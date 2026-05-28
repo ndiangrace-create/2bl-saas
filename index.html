@@ -743,8 +743,31 @@ async function submitJoin() {
 // ── 報名場次 ──
 function goBook() {
   if(!V.loggedIn){openModal('mLogin');return;}
-  B={ses:B.ses,identity:'',equip:{},booths:1,fire:'no',power:'none',gift:'',deptFees:{},childAges:[]};
-  sp('book'); bGoStep(1); renderBookSessions();
+  const prevSes = B.ses;
+  const prevEntry = B.entryType||'';
+  B={ses:prevSes,identity:'',entryType:prevEntry,equip:{},booths:1,fire:'no',power:'none',gift:'',deptFees:{},childAges:[]};
+  sp('book');
+  if(B.ses) {
+    // 已選場次，設定身份
+    renderIdentities();
+    if(B.identity) {
+      // 只有一個身份，直接到步驟2
+      renderDynamicForm();
+      bGoStep(2);
+    } else {
+      // 多個身份，停在步驟1只顯示身份選擇，不再顯示場次列表
+      bGoStep(1);
+      $('bSesList').innerHTML = `<div style="background:var(--gp);border-radius:9px;padding:11px;margin-bottom:7px">
+        <div style="font-size:11px;color:var(--md)">已選場次</div>
+        <div style="font-weight:700;font-size:14px">${B.ses.name}</div>
+        <div style="font-size:11px;color:var(--md)">${B.ses.dateDisplay||B.ses.date} · ${B.ses.city} ${B.ses.venue}</div>
+        <button onclick="B.ses=null;renderBookSessions()" style="font-size:10px;color:var(--md);background:none;border:none;cursor:pointer;text-decoration:underline;padding:3px 0;font-family:'Noto Sans TC',sans-serif">換場次</button>
+      </div>`;
+    }
+  } else {
+    bGoStep(1);
+    renderBookSessions();
+  }
 }
 function bookBack(){ if(B.step>1)bGoStep(B.step-1); else sp('member'); }
 function bGoStep(n){
