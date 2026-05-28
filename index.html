@@ -675,19 +675,21 @@ function clickSesWithEntry(idx) {
 
 function goSessions(type) {
   B.entryType = type;
-  // 嚴格依類型過濾
-  const typeMap = {
-    '市集': s => s.type === '市集' || s.openVendor,
-    '體驗': s => s.type === '體驗' || s.openTeacher || s.openPublic,
-    '文化': s => s.type === '文化' || s.openPartner || s.openTheme,
-    '百貨': s => s.type === '百貨' || s.openDept,
-  };
-  const filterFn = typeMap[type] || (s => true);
-  const list = sessions.filter(filterFn);
+  // 依 type 欄位過濾，若沒有精確符合就顯示全部
+  let list = sessions.filter(s => {
+    const t = (s.type||'市集').trim();
+    if(type === '市集') return t === '市集' || t.includes('市集');
+    if(type === '體驗') return t === '體驗' || t.includes('體驗');
+    if(type === '文化') return t === '文化' || t.includes('文化');
+    if(type === '百貨') return t === '百貨' || t.includes('百貨');
+    return true;
+  });
+  // 若過濾後完全沒有，顯示全部避免空白
+  if(!list.length) list = sessions;
   $('sesTitle').textContent = {'市集':'🏪 市集活動','體驗':'🎨 體驗活動','文化':'🎭 文化企劃','百貨':'🏬 百貨寄賣'}[type]||type;
   $('sesList').innerHTML = list.length
     ? list.map(s=>renderSessionCard(s,sessions.indexOf(s))).join('')
-    : '<div style="text-align:center;padding:24px;color:var(--md);font-size:14px">此類型目前無開放報名場次</div>';
+    : '<div style="text-align:center;padding:24px;color:var(--md);font-size:15px">目前無開放報名場次</div>';
   sp('sessions');
 }
 
