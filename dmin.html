@@ -179,14 +179,13 @@ textarea{resize:vertical;min-height:60px}
       <label>場次說明</label><textarea id="ns_intro" placeholder="給攤商看的活動介紹..."></textarea>
       <div class="fg2">
         <div><label>活動開始日期 *</label><input type="date" id="ns_date_start" onchange="updateDeadline()"></div>
-        <div><label>開始時間 *</label><input type="time" id="ns_time_start" value="10:00"></div>
         <div><label>活動結束日期</label><input type="date" id="ns_date_end"></div>
-        <div><label>結束時間</label><input type="time" id="ns_time_end" value="18:00"></div>
+        <div><label>開始時間</label><input type="text" id="ns_time" placeholder="09:00"></div>
         <div><label>城市 *</label>
           <select id="ns_city"><option>高雄</option><option>台中</option><option>台北</option><option>台南</option><option>其他</option></select>
         </div>
         <div><label>場地名稱 *</label><input type="text" id="ns_venue"></div>
-        <div style="grid-column:1/-1"><label>📍 Google Maps 連結</label><input type="url" id="ns_mapurl" placeholder="https://maps.app.goo.gl/..."><div style="font-size:10px;color:var(--md);margin-top:3px">在 Google Maps 找到場地後點「分享」複製連結</div></div>
+        <div><label>場地圖連結</label><input type="url" id="ns_mapurl"></div>
         <div><label>攤位費 *</label><input type="number" id="ns_fee" placeholder="500"></div>
         <div><label>保證金（預設500）</label><input type="number" id="ns_deposit" value="500"></div>
         <div><label>攤位數上限 *</label><input type="number" id="ns_limit" placeholder="30"></div>
@@ -199,14 +198,8 @@ textarea{resize:vertical;min-height:60px}
       <label>基本配備說明</label><input type="text" id="ns_basicequip" placeholder="例：桌1椅1（僅說明文字，非免費提供）">
       <!-- 主辦協辦 -->
       <div class="fg2">
-        <div><label>主辦單位</label>
-          <input type="text" id="ns_organizer" placeholder="輸入主辦單位名稱" list="organizer_list">
-          <datalist id="organizer_list"></datalist>
-        </div>
-        <div><label>協辦單位</label>
-          <input type="text" id="ns_coorg" placeholder="輸入協辦單位名稱（選填）" list="coorg_list">
-          <datalist id="coorg_list"></datalist>
-        </div>
+        <div><label>主辦單位</label><select id="ns_organizer"><option value="">請選擇或稍後設定</option></select></div>
+        <div><label>協辦單位</label><select id="ns_coorg"><option value="">無</option></select></div>
       </div>
       <!-- 現場設備申報開關 -->
       <div style="font-size:12px;font-weight:700;color:var(--md);margin-top:12px;margin-bottom:7px">現場申報開關</div>
@@ -819,8 +812,7 @@ async function saveNewSession() {
   const payload={
     action:'createSession',sessionId,name,type:$('ns_type').value,
     intro:$('ns_intro').value.trim(),dateStart,dateEnd:$('ns_date_end').value,
-    timeStart:$('ns_time_start').value||'10:00',
-    timeEnd:$('ns_time_end').value||'18:00',city:$('ns_city').value,venue,
+    time:$('ns_time').value.trim(),city:$('ns_city').value,venue,
     mapUrl:$('ns_mapurl').value.trim(),fee:parseInt(fee),
     deposit:parseInt($('ns_deposit').value)||500,limit:parseInt(limit),
     deadline:$('ns_deadline').value,
@@ -894,10 +886,10 @@ async function loadPartners() {
   try{const d=await apiGet({action:'getPartners'});ST.partners=d.partners||[];renderPartnerOpts();}catch(e){}
 }
 function renderPartnerOpts() {
-  // datalist 填充
-  ['organizer_list','coorg_list'].forEach(id=>{
-    const dl=$(id); if(!dl)return;
-    dl.innerHTML=ST.partners.map(p=>`<option value="${p.name}">${p.name}（${p.type}）</option>`).join('');
+  ['ns_organizer','ns_coorg'].forEach(id=>{
+    const sel=$(id); if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML='<option value="">請選擇</option>'+ST.partners.filter(p=>['主辦','協辦','場地方'].includes(p.type)).map(p=>`<option value="${p.name}" ${p.name===cur?'selected':''}>${p.name}（${p.type}）</option>`).join('');
   });
   const el=$('partnerList'); if(!el)return;
   el.innerHTML=ST.partners.map(p=>`
@@ -936,8 +928,7 @@ async function doCancelReg(e, regId, brand, deposit) {
     else if(diffDays > 7) refundMsg += `活動前7日：退50%`;
     else refundMsg += `活動前5日內：不退費`;
   }
-  const fullMsg = `取消「${brand}」的報名？\n\n💰 退費政策提醒\n如有繳費，主辦將依退款政策處理退款\n\n・活動前20日以上：扣NT$100行政費後退還\n・活動前10日：扣NT$500後退還\n・活動前7日：退50%\n・活動前5日內：不退費，請聯繫客服\n  LINE：https://lin.ee/6twRqyS\n\n請輸入取消原因：`;
-  const reason = prompt(fullMsg);
+  const reason = prompt(`取消「${brand}」的報名？\n\n${refundMsg}\n\n請輸入取消原因：`);
   if(reason === null) return; // 按取消
   if(!reason.trim()) { toast('請輸入取消原因'); return; }
 

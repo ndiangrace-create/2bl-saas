@@ -201,12 +201,15 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
       <button class="hbp" onclick="goJoin()">新朋友加入</button>
       <button class="hbs" onclick="openModal('mLogin')">會員登入</button>
     </div>
-    <!-- 已登入：顯示名稱 -->
-    <div id="heroUser" style="display:none;background:var(--gp);border-radius:9px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
-      <span id="heroUserName" style="font-size:13px;font-weight:700;color:var(--g)"></span>
-      <div style="display:flex;gap:7px">
-        <button onclick="sp('member')" style="padding:6px 11px;background:var(--g);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif">我的帳號</button>
-        <button onclick="doLogout()" style="padding:6px 11px;background:#fff;color:var(--rd);border:1px solid var(--rd);border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif">登出</button>
+    <!-- 已登入：顯示名字＋登出 -->
+    <div id="heroUser" style="display:none;background:var(--gp);border-radius:9px;padding:10px 14px;margin-top:4px">
+      <div style="font-size:12px;color:var(--md);margin-bottom:6px">👋 歡迎回來</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div id="heroUserName" style="font-size:15px;font-weight:700;color:var(--g)"></div>
+        <div style="display:flex;gap:7px">
+          <button onclick="sp('member')" style="padding:7px 13px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif">我的帳號</button>
+          <button onclick="doLogout()" style="padding:7px 13px;background:#fff;color:var(--rd);border:1.5px solid var(--rd);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif">登出</button>
+        </div>
       </div>
     </div>
   </div>
@@ -237,16 +240,18 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   </div>
 </div>
 <div class="sec">
-  <div class="sec-t">近期開放報名</div>
-  <div id="homeList"><div style="text-align:center;padding:20px;color:var(--md);font-size:12px">載入中...</div></div>
-</div>
-<div class="sec">
-  <div class="sec-t">報名流程</div>
-  <div class="flow-card">
-    <div class="fs"><div class="fn">1</div><div><div class="ft">新朋友</div><div class="fd">填寫基本資料，建立一次後下次自動帶入</div></div></div>
-    <div class="fs"><div class="fn">2</div><div><div class="ft">選擇場次報名</div><div class="fd">選場次、選身份、填報名資料</div></div></div>
-    <div class="fs"><div class="fn">3</div><div><div class="ft">等待審核通知</div><div class="fd">主辦審核後發送 Email 通知</div></div></div>
-    <div class="fs"><div class="fn">4</div><div><div class="ft">收到通知後付款</div><div class="fd">完成付款後確認出攤，活動前3天再次提醒</div></div></div>
+  <div class="sec-t">📢 公告欄</div>
+  <div id="announcementBoard" style="background:#fff;border-radius:var(--r);padding:14px;box-shadow:var(--sh)">
+    <div id="announcementList">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--gp)">
+        <div style="background:var(--g);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;margin-top:1px">最新</div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--dk)">報名系統正式上線！</div><div style="font-size:11px;color:var(--md);margin-top:2px">歡迎各位攤商、體驗老師、合作夥伴加入兔彼樂！從四大分類選擇適合的活動報名。</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0">
+        <div style="background:var(--blp);color:#2980B9;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;margin-top:1px">說明</div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--dk)">如何報名？</div><div style="font-size:11px;color:var(--md);margin-top:2px">點選下方四大類型 → 選擇場次 → 填寫資料 → 等待審核通知</div></div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="footer"><div class="ft-t">兔彼樂共創活動有限公司</div>© 2026 Topilot Co-Creation Event Co., Ltd.</div>
@@ -279,7 +284,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   <div id="jS1">
     <div class="card">
       <div class="card-t">👤 基本資料</div>
-      <div class="fg"><label class="fl">姓名 <span class="fr">*</span></label><input type="text" id="jName" placeholder="真實姓名或品牌名稱"><div class="em" id="ej_name">請填寫姓名</div></div>
+      <div class="fg"><label class="fl">姓名 <span class="fr">*</span></label><input type="text" id="jName" placeholder="代表人姓名"><div class="em" id="ej_name">請填寫姓名</div></div>
       <div class="fg"><label class="fl">Email <span class="fr">*</span></label><input type="email" id="jEmail" placeholder="作為登入識別"><div class="em" id="ej_email">請填寫正確 Email</div></div>
       <div class="fg"><label class="fl">手機 <span class="fr">*</span></label><input type="tel" id="jPhone" placeholder="09xxxxxxxx"><div class="em" id="ej_phone">請填寫手機號碼</div></div>
       <div class="fg"><label class="fl">所在地區</label>
@@ -345,30 +350,50 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
     <div class="sline" id="bl2"></div>
     <div class="step" id="bs3"><div class="sdot">3</div><div class="slb">確認送出</div></div>
   </div>
-  <!-- 步驟1 -->
+  <!-- 步驟1：只有在沒有預選場次時才會出現 -->
   <div id="bS1">
-    <div class="card">
+    <!-- 場次資訊顯示（只讀，不可重選） -->
+    <div class="card" id="bSesInfoCard" style="display:none">
+      <div class="card-t">📅 報名場次</div>
+      <div id="bSesInfoText"></div>
+      <button onclick="B.ses=null;sp('sessions')" style="font-size:11px;color:var(--md);background:none;border:none;cursor:pointer;text-decoration:underline;padding:4px 0;font-family:'Noto Sans TC',sans-serif;margin-top:6px">← 換場次</button>
+    </div>
+    <!-- 無預選場次時顯示場次列表 -->
+    <div class="card" id="bSesListCard">
       <div class="card-t">📅 選擇場次</div>
       <div id="bSesList"></div>
       <div class="em" id="be_ses">請選擇場次</div>
     </div>
-    <div class="card" id="bSesIntro" style="display:none">
-      <div class="card-t">📋 場次說明</div>
-      <div id="bSesIntroText" style="font-size:12px;color:var(--md);line-height:1.8"></div>
-    </div>
-    <!-- 身份選擇 -->
+    <!-- 身份選擇（多身份時才顯示）-->
     <div class="card" id="bIdentityCard" style="display:none">
       <div class="card-t">🎭 參與身份</div>
       <div id="bIdentityList"></div>
       <div class="em" id="be_identity">請選擇身份</div>
     </div>
     <div style="display:flex;gap:9px">
-      <button class="btn btn-s" onclick="sp('member')" style="flex:1">← 返回</button>
+      <button class="btn btn-s" onclick="sp('home')" style="flex:1">← 返回</button>
       <button class="btn btn-p" onclick="bNext1()" style="flex:2">下一步</button>
     </div>
   </div>
   <!-- 步驟2：動態表單 -->
   <div id="bS2" style="display:none">
+    <!-- 已選場次資訊顯示 -->
+    <div id="bS2SesInfo" style="background:var(--gp);border-radius:var(--r);padding:11px 13px;margin-bottom:10px;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--dk)" id="bS2SesName"></div>
+          <div style="font-size:11px;color:var(--md);margin-top:3px" id="bS2SesDetail"></div>
+        </div>
+        <button onclick="bGoStep(1)" style="font-size:10px;color:var(--md);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;padding-left:8px">換場次</button>
+      </div>
+    </div>
+    <!-- 子場次選擇（有子場才顯示）-->
+    <div id="subSessionPicker" style="display:none;margin-bottom:10px">
+      <div class="card">
+        <div class="card-t">🎪 選擇子活動</div>
+        <div id="subSessionList"></div>
+      </div>
+    </div>
     <div id="bFormContent"></div>
     <div style="display:flex;gap:9px">
       <button class="btn btn-s" onclick="bGoStep(1)" style="flex:1">← 上一步</button>
@@ -389,13 +414,52 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
     <div class="card">
       <div class="card-t">📜 規範確認</div>
       <div class="rules-box">
-        <h4>一、報到與簽退</h4><ul>
-<li>活動前60分鐘開始報到，開始前10分鐘須完成開攤</li>
-<li>進場時拍照上傳至官方LINE客服，輸入「開攤」，系統自動登記進場時間</li>
-<li>撤場時拍照上傳至官方LINE客服，輸入「撤場」，系統自動登記退場時間</li>
-<li>退押金時請攜帶500元找零，手機出示畫面，回覆「已退500」，系統自動登記押金已退</li>
+<h4>🕐 一、報到與簽退</h4><ul>
+<li>活動前60分鐘報到，開始前10分鐘必須完成開攤並上傳「開攤照片」至LINE客服。</li>
+<li>未上傳視同未到，影響保證金退還。</li>
+<li>活動結束前30分鐘方可收攤，不得提前離場或空攤。</li>
+<li>簽退時須上傳「清空後場地照片」，確認場地整潔與垃圾帶走。</li>
+<li>憑「開攤＋清場照片」簽退，方可退還保證金。</li>
 </ul>
-<h4>二、商品規範</h4><ul><li>嚴禁販售仿冒、未授權商品</li><li>食品類須符合食品安全法規</li></ul>
+<h4>🔹 二、安全與互助</h4><ul>
+<li>請與臨攤成為「安全夥伴」，互相協助與照應。</li>
+<li>若遇突發狀況（如身體不適、騷擾、設備倒塌等），請立即通報服務台。</li>
+<li>攤商需自行搬運、佈置與撤收桌椅，並歸位至指定集中區。</li>
+<li>活動中禁止明火、高溫電器或危險行為。</li>
+</ul>
+<h4>📦 三、設備與場地使用</h4><ul>
+<li>現場不提供電源與照明，請自備行動電源或充電燈具。</li>
+<li>攤位禁止私自併攤、變更販售內容或超出範圍。</li>
+<li>若設備或場地有損壞、污染，將依廠商報價酌收清潔或維修費。</li>
+<li>結束後請清理地面、歸還桌椅並將垃圾自行帶走。</li>
+</ul>
+<h4>🛍 四、商品與品牌規範</h4><ul>
+<li>嚴禁販售仿冒、未授權或違法商品，違規者不退費並取消資格。</li>
+<li>食品類商品須全包裝並符合食品安全法規。</li>
+<li>攤商建議自備含品牌名稱與QR Code的立牌，方便顧客辨識。</li>
+<li>品牌若涉及版權或侵權爭議，攤商自行負責。</li>
+</ul>
+<h4>☔ 五、活動延期與退款</h4><ul>
+<li>報名繳費完成後即視同同意下列退款原則。</li>
+<li>活動前20日以上取消：扣NT$100行政費後退還餘額。</li>
+<li>活動前10日取消：扣NT$500後退還。</li>
+<li>活動前7日取消：退還50%。</li>
+<li>活動前5日內或當日未出席：恕不退費。</li>
+<li>若因天災、疫情等不可抗力導致取消，主辦將擇期延期或退還50%。</li>
+</ul>
+<h4>⚖️ 六、誠信與秩序</h4><ul>
+<li>攤商須遵守報到、營業與撤場時間，保持現場秩序與友善互動。</li>
+<li>遲到、早退或臨時取消兩次以上，將列入警示名單並不再錄取。</li>
+<li>主辦得視現場狀況調整攤位配置，攤商須予以配合。</li>
+<li>違反本規範，主辦有權提前終止合約，違約金上限NT$50,000，管轄為台中地方法院。</li>
+<li>請勿散布不實或損害名譽之言論，經查屬實主辦保留法律追訴權。</li>
+</ul>
+<h4>🌿 七、友善提醒</h4><ul>
+<li>鼓勵自備提袋與環保包裝，共同維護整潔與永續理念。</li>
+<li>若遇颱風或豪雨等天災，主辦以安全為首，保有延期或取消權。</li>
+<li>官方公告與LINE群組為最終依據，請保持通訊暢通。</li>
+<li>如有報名異動或退款問題，請聯繫 <a href="https://lin.ee/6twRqyS" target="_blank" style="color:var(--g)">LINE客服</a> 或 <a href="https://www.facebook.com/2022TobeLoved/" target="_blank" style="color:var(--g)">兔彼樂FB</a></li>
+</ul>
       </div>
       <div class="rc" onclick="document.getElementById('brc').checked=!document.getElementById('brc').checked">
         <input type="checkbox" id="brc" onclick="event.stopPropagation()">
@@ -531,18 +595,13 @@ async function loadSessions() {
   try {
     const d = await apiGet({ action:'getSessions' });
     sessions = d.sessions || [];
-    renderHome();
   } catch(e) {
     $('homeList').innerHTML = '<div style="text-align:center;padding:20px;color:var(--md);font-size:12px">暫無開放場次</div>';
   }
 }
 
 // ── 首頁 ──
-function renderHome() {
-  const el = $('homeList');
-  if(!sessions.length) { el.innerHTML='<div style="text-align:center;padding:20px;color:var(--md);font-size:12px">暫無開放報名場次</div>'; return; }
-  el.innerHTML = sessions.slice(0,3).map((s,i) => renderSessionCard(s,i)).join('');
-}
+// renderHome 已由公告欄取代
 
 function renderSessionCard(s, idx) {
   const left = s.limit - s.enrolled;
@@ -552,8 +611,9 @@ function renderSessionCard(s, idx) {
   const sidx = sessions.indexOf(s);
   return `<div class="sc">
     <div class="sc-h"><div class="sc-n">${s.name}</div><span class="badge ${badgeCls}">${badgeTxt}</span></div>
-    <div class="sc-i">📅 ${s.dateDisplay||s.date}　📍 ${s.city} ${s.venue}</div>
+    <div class="sc-i">📅 ${s.dateDisplay||s.date}${s.timeStart?' '+s.timeStart+(s.timeEnd?'-'+s.timeEnd:''):''}　📍 ${s.city} ${s.venue}</div>
     <div class="sc-p">NT$${s.fee}／攤</div>
+    ${s.mapUrl?`<a href="${s.mapUrl}" target="_blank" style="display:inline-block;font-size:10px;color:var(--md);margin-bottom:5px;text-decoration:none">📍 查看地圖</a>`:''}
     ${!full?`<button class="sc-btn" onclick="clickSesWithEntry(${sidx})">我要報名</button>`:`<button class="sc-btn" disabled>已額滿</button>`}
   </div>`;
 }
@@ -606,8 +666,10 @@ async function doLogin() {
       saveUser({ loggedIn:true, ...d.vendor });
       closeModal('mLogin');
       renderMemberUI();
-      if(B.ses) goBook();
-      // 登入後留在首頁，右上角顯示名稱即可
+      if(B.ses) {
+        goBook(); // 有預選場次直接進報名
+      }
+      // 否則留在首頁，右上角已顯示名稱
     } else {
       // 首次使用，引導加入會員
       $('jEmail').value = email;
@@ -625,8 +687,8 @@ function renderMemberUI() {
   const heroUser = $('heroUser');
   const heroUserName = $('heroUserName');
   if(heroGuest) heroGuest.style.display = 'none';
-  if(heroUser) { heroUser.style.display = 'flex'; }
-  if(heroUserName) heroUserName.textContent = V.brand || V.name || V.email || '';
+  if(heroUser) heroUser.style.display = 'block';
+  if(heroUserName) heroUserName.textContent = (V.brand || V.name || V.email || '') + ' 的帳號';
   // 會員後台
   $('memberTitle').textContent = '歡迎，'+(V.brand||V.name||'');
   $('userPts').textContent = V.points||0;
@@ -731,9 +793,15 @@ async function submitJoin() {
       saveUser({loggedIn:true,...d.vendor});
       renderMemberUI();
       const isNew = d.isNew !== false;
-      $('successMsg').innerHTML=(isNew?'🎉 會員已建立！':'👋 歡迎回來！資料已更新。')+'<br>登入中：<strong>'+email+'</strong>';
-      $('successBookBtn').style.display='block';
-      sp('success');
+      // 建立/更新後直接進報名或首頁
+      if(B.ses) {
+        // 有預選場次，直接進報名流程
+        goBook();
+      } else {
+        // 無預選場次，回首頁顯示登入狀態
+        sp('home');
+        toast((isNew?'🎉 會員已建立！歡迎 ':'👋 歡迎回來，')+(d.vendor.brand||d.vendor.name||''));
+      }
     } else {
       alert('建立失敗：'+(d.message||'請稍後再試'));
     }
@@ -748,23 +816,17 @@ function goBook() {
   B={ses:prevSes,identity:'',entryType:prevEntry,equip:{},booths:1,fire:'no',power:'none',gift:'',deptFees:{},childAges:[]};
   sp('book');
   if(B.ses) {
-    // 已選場次，設定身份
+    // 已選場次：設定身份，直接進步驟2（設備/類別選擇）
     renderIdentities();
-    if(B.identity) {
-      // 只有一個身份，直接到步驟2
-      renderDynamicForm();
-      bGoStep(2);
-    } else {
-      // 多個身份，停在步驟1只顯示身份選擇，不再顯示場次列表
-      bGoStep(1);
-      $('bSesList').innerHTML = `<div style="background:var(--gp);border-radius:9px;padding:11px;margin-bottom:7px">
-        <div style="font-size:11px;color:var(--md)">已選場次</div>
-        <div style="font-weight:700;font-size:14px">${B.ses.name}</div>
-        <div style="font-size:11px;color:var(--md)">${B.ses.dateDisplay||B.ses.date} · ${B.ses.city} ${B.ses.venue}</div>
-        <button onclick="B.ses=null;renderBookSessions()" style="font-size:10px;color:var(--md);background:none;border:none;cursor:pointer;text-decoration:underline;padding:3px 0;font-family:'Noto Sans TC',sans-serif">換場次</button>
-      </div>`;
-    }
+    if(!B.identity) B.identity = '攤商';
+    renderDynamicForm();
+    bGoStep(2);
   } else {
+    // 沒選場次：步驟1顯示場次列表
+    const infoCard = $('bSesInfoCard');
+    const listCard = $('bSesListCard');
+    if(infoCard) infoCard.style.display = 'none';
+    if(listCard) listCard.style.display = 'block';
     bGoStep(1);
     renderBookSessions();
   }
@@ -778,6 +840,18 @@ function bGoStep(n){
     const l=$('bl'+i); if(l)l.classList.toggle('dn',i<n);
   });
   B.step=n; window.scrollTo(0,0);
+  if(n===2) {
+    // 顯示已選場次資訊
+    const infoDiv = $('bS2SesInfo');
+    if(infoDiv && B.ses) {
+      infoDiv.style.display = 'block';
+      $('bS2SesName').textContent = B.ses.name;
+      const timeStr = B.ses.timeStart ? ` ${B.ses.timeStart}${B.ses.timeEnd?'-'+B.ses.timeEnd:''}` : '';
+      const mapLink = B.ses.mapUrl ? ` <a href="${B.ses.mapUrl}" target="_blank" style="color:var(--g)">📍地圖</a>` : '';
+      $('bS2SesDetail').innerHTML = `📅 ${B.ses.dateDisplay||B.ses.date}${timeStr} · ${B.ses.city} ${B.ses.venue}${mapLink}`;
+    }
+    renderSubSessionPicker();
+  }
   if(n===3)buildConfirm();
 }
 
@@ -856,6 +930,34 @@ function bNext1() {
   if(!B.identity)B.identity='攤商';
   renderDynamicForm();
   bGoStep(2);
+}
+
+// ── 子場次選擇（若有子場才顯示）──
+async function renderSubSessionPicker() {
+  const s = B.ses;
+  if(!s) return;
+  // 取得子場次
+  try {
+    const d = await apiGet({action:'getSubSessions', sessionId:s.id});
+    const subs = d.subSessions||[];
+    if(!subs.length) { $('subSessionPicker').style.display='none'; return; }
+    $('subSessionPicker').style.display='block';
+    $('subSessionList').innerHTML = subs.map(sub=>`
+      <div class="ssel ${B.subSessionId===sub.id?'sel':''}" onclick="selSubSession('${sub.id}','${sub.name}',${sub.fee},this)" style="margin-bottom:7px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-weight:700;font-size:13px">${sub.name}</div>
+          <div style="font-size:11px;color:var(--md)">${sub.enrolled}/${sub.limit}名 ・ NT$${sub.fee}</div></div>
+          ${sub.enrolled>=sub.limit?'<span style="font-size:10px;color:var(--rd);font-weight:700">額滿</span>':''}
+        </div>
+      </div>`).join('');
+  } catch(e) { $('subSessionPicker').style.display='none'; }
+}
+function selSubSession(id, name, fee, el) {
+  B.subSessionId = id;
+  document.querySelectorAll('#subSessionList .ssel').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  // 更新費用顯示
+  if(B.ses) B.ses.subFee = fee;
 }
 
 // ── 動態表單（依身份顯示不同欄位）──
@@ -994,8 +1096,8 @@ function renderDynamicForm() {
     </div>
     <!-- 設備 -->
     ${renderEquipSection(s)}
-    <!-- 明火用電（依後台場次設定顯示）-->
-    <div class="card" id="fireCard" style="${B.ses&&B.ses.openFire===false?'display:none':''}">
+    <!-- 明火用電（依後台場次設定，openFire=true 才顯示）-->
+    <div class="card" id="fireCard">
       <div class="card-t">🔥 明火與用電</div>
       <p style="font-size:12px;color:var(--md);margin-bottom:9px">請確實填寫，涉及消防安全</p>
       <div class="fg"><label class="fl">明火使用</label>
@@ -1025,6 +1127,14 @@ function renderDynamicForm() {
     </div>`;
   }
   $('bFormContent').innerHTML = html;
+  // 依場次設定控制設備/明火顯示
+  if(B.ses) {
+    // 明火用電：場次有設定 openFire=false 才隱藏
+    const fireCard = document.getElementById('fireCard');
+    if(fireCard) {
+      fireCard.style.display = (B.ses.openFire === false) ? 'none' : 'block';
+    }
+  }
   // 若有已選的類別，重新渲染
   if(B.cat && id==='攤商') renderSubCats(B.cat);
 }
@@ -1175,7 +1285,7 @@ async function submitBook() {
     name:V.name||$('f_name')?.value||'',
     brand:$('f_brand')?.value||V.brand||V.name||'',
     sellTypes:[...document.querySelectorAll('#sellTypeChips .chip.sel')].map(e=>e.textContent).join('、'),
-    sessionId:s.id, sessionName:s.name,
+    sessionId:s.id, sessionName:s.name, subSessionId:B.subSessionId||'',
     identityType:id,
     mainCat:B.cat||$('f_cat')?.value||'',
     subCats:B.subs?.join('、')||'',
@@ -1198,16 +1308,29 @@ async function submitBook() {
     accessNeeds:$('f_access')?.value||'',
     rulesOk:true
   };
+  // debug
+  console.log('送出payload:', JSON.stringify({
+    action:payload.action, email:payload.email,
+    sessionId:payload.sessionId, vendorId:payload.vendorId,
+    identityType:payload.identityType
+  }));
   sl(true);
   try{
     const d=await api(payload);
+    console.log('回應:', JSON.stringify(d));
     if(d.success){
       $('successMsg').innerHTML='報名已送出！<br>主辦審核後將通知至 <strong>'+payload.email+'</strong>';
       $('successBookBtn').style.display='block';
       sp('success');
       loadSessions();
-    }else alert('送出失敗：'+(d.message||''));
-  }catch(e){alert('網路錯誤');}finally{sl(false);}
+    }else{
+      alert('送出失敗：'+(d.message||'未知錯誤'));
+      console.error('失敗原因:', d);
+    }
+  }catch(e){
+    alert('網路錯誤：'+e.message);
+    console.error('例外:', e);
+  }finally{sl(false);}
 }
 
 // ── 選位 ──
@@ -1317,7 +1440,25 @@ async function doEcpay(regId, sessionId) {
 
 function showBankInfo(sessionName, regId) {
   const shortId = regId.replace(/[^0-9]/g,'').substr(-8) || regId.substr(-8);
-  const msg = `銀行轉帳資訊\n\n銀行：012 台北富邦\n帳號：748168012955\n戶名：兔彼樂共創活動有限公司\n\n轉帳備註請填：${shortId}\n（此為您的報名末8碼，方便主辦對帳）\n\n轉帳完成後請截圖傳送至官方LINE，告知場次「${sessionName}」及轉帳後5碼，主辦確認後將更新付款狀態。`;
+  const msg = [
+    '🏦 銀行轉帳資訊',
+    '',
+    '銀行：012 台北富邦',
+    '帳號：748168012955',
+    '戶名：兔彼樂共創活動有限公司',
+    '',
+    '⚠️ 轉帳備註請填：' + shortId,
+    '（此為您的專屬報名碼，方便主辦對帳）',
+    '',
+    '✅ 轉帳完成後請：',
+    '1. 截圖轉帳畫面',
+    '2. 傳送至官方LINE客服',
+    '3. 告知場次「' + sessionName + '」及轉帳後5碼',
+    '',
+    '主辦確認後將更新付款狀態，感謝！',
+    '',
+    'LINE客服：https://lin.ee/6twRqyS'
+  ].join('\n');
   alert(msg);
 }
 
