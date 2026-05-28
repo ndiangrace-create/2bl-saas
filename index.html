@@ -694,9 +694,16 @@ async function doLogin() {
       }
       // 否則留在首頁，右上角已顯示名稱
     } else {
-      // 首次使用，引導加入會員
-      $('jEmail').value = email;
-      goJoin();
+      // Email 不存在，提示改用新朋友加入
+      openModal('mLogin');
+      $('lEmail').value = email;
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'font-size:12px;color:var(--rd);text-align:center;margin-top:8px;padding:9px;background:var(--rdp);border-radius:8px';
+      errDiv.textContent = '找不到此 Email 的會員，請點「新朋友加入」建立帳號';
+      errDiv.id = 'loginErrMsg';
+      const existing = document.getElementById('loginErrMsg');
+      if(existing) existing.remove();
+      $('mLogin').querySelector('.mbox').appendChild(errDiv);
     }
   } catch(e) { alert('查詢失敗，請稍後再試'); }
   finally { sl(false); }
