@@ -138,6 +138,7 @@ textarea{resize:vertical;min-height:60px}
   <div class="topbar">
     <div class="tb-logo">🐰 兔彼樂</div>
     <div class="tb-right">
+      <span id="adminName" style="font-size:11px;color:rgba(255,255,255,0.7);cursor:pointer" onclick="doLogout()"></span>
       <button class="tb-btn tb-g" onclick="openModal('mAllSessions')">📅 場次</button>
       <button class="tb-btn tb-pk" id="btnDownload" style="display:none" onclick="openModal('mDownload')">⬇ 下載</button>
       <button class="tb-btn tb-g" id="btnSettings" style="display:none" onclick="openModal('mSettings')">設定</button>
@@ -373,7 +374,7 @@ async function doAdminLogin() {
   try {
     const d = await apiGet({ action:'adminLogin', email });
     if(!d.authorized) { showLoginErr('此 Email 沒有管理權限'); return; }
-    saveAdmin({ loggedIn:true, email, role:d.role });
+    saveAdmin({ loggedIn:true, email, role:d.role, sessions:d.sessions||[] });
     ST.sessions = d.sessions||[];
     ST.role = d.role;
     ST.email = email;
@@ -391,7 +392,12 @@ async function initAdmin(email, showLoading) {
     ST.role = d.role;
     ST.email = email;
     showMainApp();
-  } catch(e) { /* 背景刷新失敗不清空登入 */ showMainApp(); }
+  } catch(e) {
+    // 背景刷新失敗，用 localStorage 的舊資料
+    const saved = loadAdmin();
+    if(saved.sessions) ST.sessions = saved.sessions;
+    showMainApp();
+  }
   finally { if(showLoading)sl(false); }
 }
 
@@ -403,6 +409,9 @@ function showMainApp() {
     $('btnSettings').style.display='block';
     $('btnDownload').style.display='block';
   }
+  // 顯示廠商名稱
+  const adminNameEl = $('adminName');
+  if(adminNameEl) adminNameEl.textContent = ST.email || '';
   renderDashboard();
   loadPartners();
 }
