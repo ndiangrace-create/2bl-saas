@@ -588,8 +588,31 @@ window.onload = async () => {
     history.replaceState({}, '', window.location.pathname);
   }
   await loadSessions();
+  loadHomeAnnouncements();
   if(V.loggedIn) renderMemberUI();
 };
+
+async function loadHomeAnnouncements() {
+  try {
+    const d = await apiGet({action:'getAnnouncements'});
+    const list = d.announcements||[];
+    const el = $('announcementList');
+    if(!el) return;
+    const tagColors = {'最新':'background:var(--g);color:#fff','說明':'background:var(--blp);color:#2980B9','提醒':'background:var(--ylp);color:var(--yl)','場次':'background:var(--pkp);color:#c0607a'};
+    el.innerHTML = list.length ? list.map((a,i)=>`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;${i<list.length-1?'border-bottom:1px solid var(--gp)':''}">
+        <div style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;margin-top:1px;${tagColors[a.tag]||tagColors['說明']}">${a.tag}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--dk)">${a.title}</div>
+          <div style="font-size:11px;color:var(--md);margin-top:2px;line-height:1.6">${a.content}</div>
+          ${a.url?`<a href="${a.url}" target="_blank" style="font-size:11px;color:var(--g);font-weight:700">${a.urlText||'查看詳情'} →</a>`:''}
+        </div>
+      </div>`).join('') :
+      '<div style="text-align:center;padding:12px;color:var(--md);font-size:12px">目前無公告</div>';
+  }catch(e){
+    $('announcementList').innerHTML='<div style="text-align:center;padding:12px;color:var(--md);font-size:12px">目前無公告</div>';
+  }
+}
 
 async function loadSessions() {
   try {
