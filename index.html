@@ -343,15 +343,15 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   </div>
   <!-- 會員儀表板 -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px">
-    <div style="background:var(--wh);border-radius:var(--r);padding:13px;box-shadow:var(--sh);text-align:center">
+    <div onclick="scrollToSection('histList')" style="background:var(--wh);border-radius:var(--r);padding:13px;box-shadow:var(--sh);text-align:center;cursor:pointer">
       <div style="font-size:15px;color:var(--md);margin-bottom:4px">已報名場次</div>
       <div style="font-size:26px;font-weight:900;color:var(--g);font-family:'Noto Serif TC',serif" id="statTotal">-</div>
     </div>
-    <div style="background:var(--wh);border-radius:var(--r);padding:13px;box-shadow:var(--sh);text-align:center">
+    <div onclick="scrollToSection('histList','待審核')" style="background:var(--wh);cursor:pointer;border-radius:var(--r);padding:13px;box-shadow:var(--sh);text-align:center">
       <div style="font-size:15px;color:var(--yl);margin-bottom:4px">待審核</div>
       <div style="font-size:26px;font-weight:900;color:var(--yl);font-family:'Noto Serif TC',serif" id="statPending">-</div>
     </div>
-    <div style="background:var(--wh);border-radius:var(--r);padding:13px;box-shadow:var(--sh);text-align:center">
+    <div onclick="scrollToSection('histList','已錄取待付款')" style="background:var(--wh);cursor:pointer;border-radius:var(--r);padding:13px;box-shadow:var(--sh);text-align:center">
       <div style="font-size:15px;color:var(--rd);margin-bottom:4px">待繳費</div>
       <div style="font-size:26px;font-weight:900;color:var(--rd);font-family:'Noto Serif TC',serif" id="statUnpaid">-</div>
     </div>
@@ -443,7 +443,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
     <div class="fee-box" id="bFeeBox"></div>
     <div class="card" style="background:var(--pkp);border:1px solid rgba(255,192,203,.4)">
       <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:7px">💰 退款政策</div>
-      <div style="font-size:15px;color:var(--md);line-height:1.8">活動前20日以上：扣NT$100行政費後退還<br>活動前10日：扣NT$500行政費後退還<br>活動前7日：退50%<br>活動前5日內：不退費</div>
+      <div style="font-size:15px;color:var(--md);line-height:1.8">報名已繳費：扣NT$100行政費後退還<br>活動前10日：扣NT$500行政費後退還<br>活動前7日：退30%<br>活動前5日內：不退費</div>
     </div>
     <div style="background:var(--rdp);border-radius:10px;padding:13px;margin-bottom:12px;border-left:4px solid var(--rd)">
     <div style="font-size:14px;font-weight:700;color:var(--rd);margin-bottom:6px">⚠️ 送出前請確認</div>
@@ -483,7 +483,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 </ul>
 <h4>☔ 五、活動延期與退款</h4><ul>
 <li>報名繳費完成後即視同同意下列退款原則。</li>
-<li>活動前20日以上取消：扣NT$100行政費後退還餘額。</li>
+<li>報名已繳費取消：扣NT$100行政費後退還餘額。</li>
 <li>活動前10日取消：扣NT$500後退還。</li>
 <li>活動前7日取消：退還50%。</li>
 <li>活動前5日內或當日未出席：恕不退費。</li>
@@ -563,6 +563,645 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 </div>
 
 
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbz34vXdofbWxMBSKVkDxsvSjLwI_TPlFdX420bXDmxDbNGe5cXcG2RzeeoUsGySI8Ipjw/exec';
+const LS_KEY = 'tuibile_user_v2';
+const LINE_URL = 'https://lin.ee/RIygewy';
+const BANK_INFO = '012 台北富邦 748168012955 兔彼樂共創活動有限公司';
+
+// ── 全域狀態 ──
+let V = loadUser();
+let sessions = [];
+let B = { ses:null, identity:'', entryType:'', equip:{}, booths:1, fire:'no', power:'none', gift:'', deptFees:{}, childAges:[] };
+let J = { step:1, cat:'', subs:[] };
+
+// ── 工具函數 ──
+const $ = id => document.getElementById(id);
+function loadUser() {
+  try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : { loggedIn:false }; }
+  catch(e) { return { loggedIn:false }; }
+}
+function saveUser(data) { V = data; try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e){} }
+
+// ── 頁面切換 ──
+const _pageStack = ['home'];
+function sp(pg) {
+  const el = $('p-'+pg); if(!el) return;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  window.scrollTo(0,0);
+  if(_pageStack[_pageStack.length-1] !== pg) {
+    _pageStack.push(pg);
+    history.pushState({page:pg}, '', location.pathname + location.search);
+  }
+}
+window.addEventListener('popstate', () => {
+  if(_pageStack.length > 1) {
+    _pageStack.pop();
+    const prev = _pageStack[_pageStack.length-1];
+    const el = $('p-'+prev);
+    if(el){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('on')); el.classList.add('on'); window.scrollTo(0,0); }
+  } else { sp('home'); history.pushState({page:'home'}, '', location.pathname + location.search); }
+});
+function sl(v) { $('ov').classList.toggle('on',v); }
+function toast(m) { const t=$('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2500); }
+function openModal(id) { $(id).classList.add('on'); if(id==='mNewSession'&&!window._editingSessionId){initDateRows();} }
+function closeModal(id) { $(id).classList.remove('on'); }
+function se(id,v) { const el=$(id); if(el) el.classList.toggle('on',v); }
+function fmtM(n) { return 'NT$'+(n||0).toLocaleString(); }
+
+async function apiGet(params) {
+  const url = API+'?'+Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  const r = await fetch(url); return r.json();
+}
+async function apiPost(payload) {
+  const r = await fetch(API+'?data='+encodeURIComponent(JSON.stringify(payload))); return r.json();
+}
+async function api(payload) { return apiPost(payload); }
+
+// ── 長按進後台 ──
+let _longTimer = null;
+function heroLongPress() {}
+document.addEventListener('mousedown', e=>{ if(e.target.closest('.hero')){ _longTimer=setTimeout(()=>{ window.location.href='admin.html'; },3000); }});
+document.addEventListener('mouseup', ()=>{ clearTimeout(_longTimer); });
+document.addEventListener('touchstart', e=>{ if(e.target.closest('.hero')){ _longTimer=setTimeout(()=>{ window.location.href='admin.html'; },3000); }},{passive:true});
+document.addEventListener('touchend', ()=>{ clearTimeout(_longTimer); });
+
+// ── 公告 ──
+async function loadHomeAnnouncements() {
+  try {
+    const d = await apiGet({action:'getAnnouncements'});
+    const list = d.announcements||[];
+    const el = $('announcementList'); if(!el) return;
+    const tagColors = {'最新':'background:var(--g);color:#fff','說明':'background:var(--blp);color:#2980B9','提醒':'background:var(--ylp);color:var(--yl)','場次':'background:var(--pkp);color:#c0607a'};
+    if(!list.length) { el.innerHTML='<div style="font-size:14px;color:var(--md);text-align:center;padding:8px">目前無公告</div>'; return; }
+    el.innerHTML = list.map(a=>`
+      <div class="ann-item" style="padding:10px 0;border-bottom:1px solid var(--gp)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:12px;font-weight:700;padding:2px 7px;border-radius:8px;${tagColors[a.tag]||tagColors['說明']}">${a.tag}</span>
+          <span style="font-size:14px;font-weight:700">${a.title}</span>
+        </div>
+        <div style="font-size:13px;color:var(--md)">${a.content}</div>
+        ${a.url?`<a href="${a.url}" target="_blank" style="font-size:13px;color:var(--g);font-weight:700">${a.urlText||'查看詳情'} →</a>`:''}
+      </div>`).join('');
+  } catch(e) { const el=$('announcementList'); if(el) el.innerHTML=''; }
+}
+
+// ── 場次 ──
+async function loadSessions() {
+  try {
+    const d = await apiGet({ action:'getSessions' });
+    sessions = d.sessions || [];
+    const dbg = $('debugInfo');
+    if(dbg) dbg.textContent = sessions.length ? '載入 '+sessions.length+' 個場次' : '';
+  } catch(e) {
+    const dbg = $('debugInfo');
+    if(dbg) dbg.textContent = 'API錯誤，請重新整理';
+  }
+}
+
+async function goSessions(type) {
+  B.entryType = type;
+  if(!sessions.length) {
+    sp('sessions');
+    const sl_el = $('sesList');
+    if(sl_el) sl_el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--md)"><div style="font-size:30px;margin-bottom:8px">⏳</div><div>載入場次中...</div></div>';
+    await loadSessions();
+  }
+  const typeAliases = {
+    '市集':['市集','攤商招募'], '攤商招募':['市集','攤商招募'],
+    '體驗':['體驗','活動報名'], '活動報名':['體驗','活動報名'],
+    '文化':['文化','合作申請'], '合作申請':['文化','合作申請'],
+    '百貨':['百貨','商場百貨寄賣'], '商場百貨寄賣':['百貨','商場百貨寄賣'],
+  };
+  const allowed = typeAliases[type]||[type];
+  let list = sessions.filter(s=>{ const t=(s.type||'').trim(); return allowed.includes(t)||t===''; });
+  if(!list.length) list = [...sessions];
+  const titleMap = {
+    '市集':'🏪 攤商招募','攤商招募':'🏪 攤商招募',
+    '體驗':'🎨 活動報名','活動報名':'🎨 活動報名',
+    '文化':'🎭 合作申請','合作申請':'🎭 合作申請',
+    '百貨':'🏬 商場百貨寄賣','商場百貨寄賣':'🏬 商場百貨寄賣',
+  };
+  const titleEl = $('sesTitle');
+  if(titleEl) titleEl.textContent = titleMap[type]||type;
+  const listEl = $('sesList');
+  if(listEl) listEl.innerHTML = list.length
+    ? list.map(s=>renderSessionCard(s,sessions.indexOf(s))).join('')
+    : '<div style="text-align:center;padding:24px;color:var(--md)">目前無開放報名場次</div>';
+  sp('sessions');
+}
+
+function renderSessionCard(s, sidx) {
+  const left = (s.limit||0) - (s.enrolled||0);
+  const full = left <= 0;
+  const badgeCls = full ? 'b-full' : left<=5 ? 'b-few' : 'b-ok';
+  const badgeTxt = full ? '已額滿' : left<=5 ? '剩'+left+'名' : '招募中';
+  const typeIcon = {'攤商招募':'🏪','活動報名':'🎨','合作申請':'🎭','商場百貨寄賣':'🏬','市集':'🏪','體驗':'🎨','文化':'🎭','百貨':'🏬'}[s.type||'攤商招募']||'🏪';
+  return `<div class="sc">
+    ${s.imgUrl?`<img src="${s.imgUrl}" alt="${s.name}" style="width:calc(100% + 30px);height:160px;object-fit:cover;border-radius:9px 9px 0 0;display:block;margin:-15px -15px 10px" onerror="this.style.display='none'">`:''}
+    <div class="sc-h">
+      <div>
+        <div style="font-size:13px;color:var(--md);margin-bottom:3px">${typeIcon} ${s.type||''}　📍 ${s.city||''}</div>
+        <div class="sc-n">${s.name}</div>
+      </div>
+      <span class="badge ${badgeCls}">${badgeTxt}</span>
+    </div>
+    <div class="sc-i">📅 ${s.dateDisplay||s.date||''}${s.timeStart?' '+s.timeStart+(s.timeEnd?'-'+s.timeEnd:''):''}　${s.venue||''}</div>
+    ${!full?`<button class="sc-btn" onclick="clickSesWithEntry(${sidx})">我要報名</button>`:`<button class="sc-btn" disabled>已額滿</button>`}
+  </div>`;
+}
+
+function clickSesWithEntry(idx) {
+  B.ses = sessions[idx];
+  if(V.loggedIn) goBook();
+  else openModal('mLogin');
+}
+
+// ── 會員 ──
+function renderMemberUI() {
+  if(!V.loggedIn) return;
+  const greet = $('heroGreet');
+  if(greet) { greet.style.display='block'; greet.textContent = 'Hi '+( V.name||V.email||'')+' 🌿 祝你凡事興盛'; }
+  const mt = $('memberTitle');
+  if(mt) mt.textContent = 'Hi ' + (V.name||V.email||'') + ' 👋';
+  const pts = $('userPts');
+  if(pts) pts.textContent = V.points||0;
+  const hist = V.history||[];
+  const total = $('statTotal'), pending=$('statPending'), unpaid=$('statUnpaid'), statPts=$('statPoints');
+  if(total) total.textContent = hist.length;
+  if(pending) pending.textContent = hist.filter(h=>h.status==='待審核').length;
+  if(unpaid) unpaid.textContent = hist.filter(h=>h.status==='已錄取待付款').length;
+  if(statPts) statPts.textContent = V.points||0;
+  renderHistory(hist);
+}
+
+function scrollToSection(elId, filterStatus) {
+  const el = $(elId); if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'start'});
+  if(filterStatus) {
+    document.querySelectorAll('.hc').forEach(c=>{
+      const badge = c.querySelector('.hbadge');
+      const match = badge && badge.textContent.includes(filterStatus==='已錄取待付款'?'已錄取':filterStatus);
+      c.style.transition='opacity 0.3s';
+      c.style.opacity = match ? '1' : '0.3';
+    });
+    setTimeout(()=>{ document.querySelectorAll('.hc').forEach(c=>c.style.opacity='1'); }, 3000);
+  }
+}
+
+function renderHistory(hist) {
+  const el = $('histList'); if(!el) return;
+  if(!hist||!hist.length) { el.innerHTML='<div class="empty">尚無報名記錄</div>'; return; }
+  el.innerHTML = hist.map(h=>{
+    const statusMap = {'待審核':'b-pending','已錄取待付款':'b-accepted','錄取':'b-accepted','已付款':'b-paid','備取中':'b-waitlist','不錄取':'b-rejected','已取消':'b-rejected'};
+    const badgeCls = statusMap[h.status]||'b-pending';
+    const showCancel = ['待審核','已錄取待付款','錄取','備取中'].includes(h.status);
+    const showPay = h.status==='已錄取待付款'||h.status==='錄取';
+    return `<div class="hc">
+      <div class="hh">
+        <div>
+          <div class="hn">${h.sessionName||''}</div>
+          <div style="font-size:13px;color:var(--md);margin-top:2px">${h.identityType||'攤商'}${h.booth?' 攤位 '+h.booth:''}</div>
+          ${h.deadline?`<div style="font-size:12px;color:var(--rd);margin-top:3px">⏰ 付款截止：${h.deadline}</div>`:''}
+        </div>
+        <span class="hbadge ${badgeCls}">${h.status}</span>
+      </div>
+      ${showPay?`<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <button class="btn-sm" style="background:var(--pk);color:#fff" onclick="doLinePay('${h.regId}','${h.sessionName}',${h.totalFee||0})">📱 LINE Pay 付款</button>
+        <button class="btn-sm" style="background:var(--blp);color:#2980B9" onclick="doEcpay('${h.regId}',${h.totalFee||0})">💳 信用卡付款</button>
+        <button class="btn-sm" style="background:var(--lt);color:var(--dk)" onclick="showBankInfo('${h.sessionName}','${h.regId}')">🏦 銀行轉帳</button>
+      </div>`:''}
+      ${showCancel?`<button class="btn-sm" style="width:100%;margin-top:8px;background:var(--rdp);color:var(--rd);border:1px solid var(--rd)" onclick="cancelMyReg('${h.regId}','${h.sessionName}')">取消報名</button>`:''}
+      ${h.status==='已完成'?`<button class="btn-sm btn-sm-rd" onclick="openRefundModal('${h.regId}')">申請退款</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── 登入 ──
+async function doLogin(email) {
+  if(!email||!email.includes('@')) { toast('請輸入正確 Email'); return; }
+  sl(true);
+  try {
+    const d = await apiGet({action:'getVendor', email:encodeURIComponent(email)});
+    if(d.found) {
+      saveUser({loggedIn:true, ...d.vendor});
+      closeModal('mLogin');
+      renderMemberUI();
+      if(B.ses) goBook();
+    } else {
+      // 不存在→引導加入會員
+      J.prefillEmail = email;
+      closeModal('mLogin');
+      goJoin();
+    }
+  } catch(e) { toast('連線失敗，請稍後再試'); }
+  finally { sl(false); }
+}
+
+async function doLogout() {
+  saveUser({loggedIn:false});
+  V = {loggedIn:false};
+  sp('home');
+  const greet=$('heroGreet');
+  if(greet) greet.style.display='none';
+}
+
+async function refreshUser() {
+  if(!V.loggedIn||!V.email) return;
+  try {
+    const d = await apiGet({action:'getVendor', email:encodeURIComponent(V.email)});
+    if(d.found) { saveUser({loggedIn:true,...d.vendor}); renderMemberUI(); }
+  } catch(e){}
+}
+
+// ── 取消報名 ──
+async function cancelMyReg(regId, sessionName) {
+  const msg = '⚠️ 確定取消「'+sessionName+'」的報名？\n\n退費政策：\n・報名已繳費：扣手續費NT$100後退還\n・活動前10日：扣NT$500後退還\n・活動前7日：退30%\n・活動前5日內：不退費\n\n確認後將通知主辦。';
+  if(!confirm(msg)) return;
+  sl(true);
+  try {
+    const d = await api({action:'cancelRegistration', regId, reason:'攤商主動取消', sessionName});
+    if(d.success) {
+      toast('✅ 已取消報名');
+      await refreshUser();
+    } else alert('取消失敗：'+(d.message||''));
+  } catch(e){ alert('網路錯誤'); }
+  finally { sl(false); }
+}
+
+// ── 加入會員 ──
+function goJoin() { J={step:1,cat:'',subs:[]}; sp('join'); jGoStep(1); }
+function joinBack() { if(J.step>1) jGoStep(J.step-1); else sp('home'); }
+function jGoStep(n) {
+  J.step=n;
+  [1,2,3].forEach(i=>{ const el=$('jS'+i); if(el) el.style.display=i===n?'block':'none'; });
+  const steps=['','基本資料','品牌資料','完成'];
+  const st=$('joinStepTitle'); if(st) st.textContent=steps[n]||'';
+}
+async function doJoin() {
+  const name=$('jName')?.value.trim(), phone=$('jPhone')?.value.trim(), email=$('jEmail')?.value.trim();
+  if(!name||!phone||!email) { toast('請填寫姓名、手機、Email'); return; }
+  sl(true);
+  try {
+    const d = await api({
+      action:'register',
+      name, phone, email,
+      gender: document.querySelector('input[name="jGender"]:checked')?.value||'',
+      brand: $('jBrand')?.value.trim()||'',
+      brandIntro: $('jBrandIntro')?.value.trim()||'',
+      fb: $('jFb')?.value.trim()||'',
+      ig: $('jIg')?.value.trim()||'',
+      website: $('jWebsite')?.value.trim()||'',
+      regType: 'member'
+    });
+    if(d.success||d.vendorId) {
+      saveUser({loggedIn:true, name, phone, email,
+        brand:$('jBrand')?.value.trim()||'',
+        fb:$('jFb')?.value.trim()||'',
+        ig:$('jIg')?.value.trim()||'',
+        points:0, history:[]});
+      renderMemberUI();
+      jGoStep(3);
+    } else toast('建立失敗：'+(d.message||''));
+  } catch(e){ toast('連線失敗'); }
+  finally { sl(false); }
+}
+
+// ── 報名 ──
+function goBook() {
+  if(!V.loggedIn){openModal('mLogin');return;}
+  const prevSes = B.ses;
+  const prevEntry = B.entryType||'';
+  B={ses:prevSes,identity:'',entryType:prevEntry,equip:{},booths:1,fire:'no',power:'none',gift:'',deptFees:{},childAges:[]};
+  sp('book');
+  if(B.ses) {
+    if(!B.identity) B.identity='攤商';
+    renderDynamicForm();
+    bGoStep(2);
+  } else {
+    const infoCard=$('bSesInfoCard'), listCard=$('bSesListCard');
+    if(infoCard) infoCard.style.display='none';
+    if(listCard) listCard.style.display='block';
+    bGoStep(1);
+    renderBookSessions();
+  }
+}
+function bookBack() {
+  if(B.step>1) bGoStep(B.step-1);
+  else sp(V.loggedIn?'member':'home');
+}
+function bGoStep(n) {
+  B.step=n;
+  [1,2,3].forEach(i=>{ const el=$('bS'+i); if(el) el.style.display=i===n?'block':'none'; });
+}
+function renderBookSessions() {
+  const el=$('bSesList'); if(!el) return;
+  const open=sessions.filter(s=>s.enrolled<s.limit);
+  el.innerHTML=open.length?open.map((s,i)=>`
+    <div class="sc" style="margin-bottom:8px" onclick="quickBook(sessions.indexOf(this._s))">
+      <div class="sc-n">${s.name}</div>
+      <div class="sc-i">${s.city||''} · ${s.dateDisplay||s.date||''}</div>
+    </div>`).join(''):'<div class="empty">暫無開放場次</div>';
+  open.forEach((s,i)=>{ const el2=el.children[i]; if(el2) el2._s=s; });
+}
+function quickBook(idx) { B.ses=sessions[idx]; goBook(); }
+
+// ── 動態表單 ──
+function renderEquipSection(s) {
+  if(!s||!s.equip) return '';
+  const equipList=Object.entries(s.equip).filter(([k,v])=>v&&v.open);
+  if(!equipList.length) return '';
+  const icons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
+  let html='<div class="card"><div class="card-t">🪑 設備加購（選填）</div>';
+  equipList.forEach(([k,v])=>{
+    html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gp)">
+      <span style="font-size:15px">${icons[k]||''}　${k}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;color:var(--md)">NT$${v.price||0}/件</span>
+        <input type="number" id="eq_${k}" value="0" min="0" max="10"
+          style="width:60px;text-align:center;padding:8px;border:1.5px solid #c8ddc8;border-radius:8px;font-size:15px"
+          oninput="updateEquip('${k}',this.value)">
+      </div></div>`;
+  });
+  if(s.openFire) html+=`<label style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer"><input type="checkbox" id="f_fire" style="width:18px;height:18px;accent-color:var(--g)"><span style="font-size:15px">🔥 申請明火使用</span></label>`;
+  if(s.openPower) html+=`<label style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer"><input type="checkbox" id="f_power" style="width:18px;height:18px;accent-color:var(--g)"><span style="font-size:15px">⚡ 申請用電</span></label>`;
+  html+='</div>';
+  return html;
+}
+function updateEquip(k,v){ B.equip[k]=parseInt(v)||0; }
+function toggleChip(el){ el.classList.toggle('on'); }
+function updateChildAges() {
+  const cc=parseInt($('childCount')?.value)||0;
+  const area=$('childAgesArea'); if(!area) return;
+  area.innerHTML=cc<=0?'':Array.from({length:cc},(_,i)=>
+    `<div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+      <label style="font-size:14px;color:var(--md);white-space:nowrap">第${i+1}個小孩歲數</label>
+      <input type="number" id="childAge${i}" min="0" max="17" placeholder="歲" style="width:80px;padding:10px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:15px">
+    </div>`).join('');
+}
+
+// ── 動態表單渲染 ──
+function renderDynamicForm() {
+  const s=B.ses;
+  const entry=B.entryType||'攤商招募';
+  const defaultModsByType={
+    '攤商招募':{brand:true,sellItem:true,sellCat:true},
+    '活動報名':{adult:true,child:true,diet:true,actName:true,actContent:true,actMax:true,actFee:true},
+    '合作申請':{brand:true,brandIntro:true,collabType:true,collabSocial:true,collabPortfolio:true,collabMethod:true,collabPrice:true},
+    '商場百貨寄賣':{brand:true,sellItem:true,sellLink:true,sellCat:true,photo:true},
+    '市集':{brand:true,sellItem:true,sellCat:true},
+    '體驗':{adult:true,child:true,diet:true,actName:true,actContent:true,actMax:true,actFee:true},
+    '文化':{brand:true,brandIntro:true,collabType:true,collabSocial:true},
+    '百貨':{brand:true,sellItem:true,sellLink:true,sellCat:true},
+  };
+  const savedMods=s?.modules||{};
+  const hasSaved=Object.keys(savedMods).length>0;
+  const sesType=s?.type||entry;
+  const mods=hasSaved?savedMods:(defaultModsByType[sesType]||defaultModsByType[entry]||{brand:true,sellItem:true});
+  let html='';
+
+  html+=`<div class="card"><div class="card-t">👤 基本資料</div>
+    <label>代表人姓名 *</label><input type="text" id="f_name" value="${V.name||''}" placeholder="代表人姓名">
+    <div class="em" id="fe_name"></div>
+    <label>手機 *</label><input type="tel" id="f_phone" value="${V.phone||''}" placeholder="0912-345-678" inputmode="tel">
+    <div class="em" id="fe_phone"></div>
+    <label>Email *</label><input type="email" id="f_email" value="${V.email||''}" placeholder="your@email.com" inputmode="email">
+    <div class="em" id="fe_email"></div>
+  </div>`;
+
+  const hasBrand=mods.brand||mods.brandIntro||mods.sellItem||mods.sellLink||mods.sellCat||mods.photo;
+  if(hasBrand){
+    html+='<div class="card"><div class="card-t">🏷️ 品牌 / 攤商資料</div>';
+    if(mods.brand) html+=`<label>品牌名稱 *</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱"><div class="em" id="fe_fb"></div>`;
+    if(mods.brandIntro) html+=`<label>品牌介紹</label><textarea id="f_brand_intro" placeholder="簡介你的品牌...">${V.brandIntro||''}</textarea>`;
+    if(mods.sellItem) html+=`<label>本次販售商品 *</label><input type="text" id="f_sell_item" placeholder="例：手工皮革錢包、韓系選品"><div class="em" id="fe_sell"></div>`;
+    if(mods.sellLink) html+=`<label>販售商品連結</label><input type="url" id="f_sell_link" placeholder="商品頁或社群連結">`;
+    if(mods.sellCat) html+=`<label>販售類別</label><div class="chips" id="sellTypeChips" style="margin-top:6px">${['文創手作','飾品金工','潮流選品','動漫ACG','美食飲品','生活選物','花藝植栽','伴手禮','親子','二手','其他'].map(t=>'<div class="chip" onclick="toggleChip(this)">'+t+'</div>').join('')}</div>`;
+    if(mods.photo) html+=`<label>出攤照片連結</label><input type="url" id="f_photo" value="${V.photo||''}" placeholder="照片連結"><div style="font-size:12px;color:var(--md);margin-top:2px">💡 新手可拍模擬擺設照上傳後貼連結</div>`;
+    html+='</div>';
+  }
+
+  const hasReg=mods.adult||mods.child||mods.diet||mods.access;
+  if(hasReg){
+    html+='<div class="card"><div class="card-t">📋 報名資料</div>';
+    if(mods.adult||mods.child){
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+      if(mods.adult) html+=`<div><label>大人人數 *</label><input type="number" id="adultCount" value="1" min="1" oninput="updateChildAges()"></div>`;
+      if(mods.child) html+=`<div><label>小孩人數</label><input type="number" id="childCount" value="0" min="0" oninput="updateChildAges()"></div>`;
+      html+='</div><div id="childAgesArea"></div>';
+    }
+    if(mods.diet) html+=`<label>飲食需求</label><select id="f_diet"><option value="">無特殊需求</option><option>素食</option><option>全素</option><option>清真</option><option>其他</option></select>`;
+    if(mods.access) html+=`<label>無障礙需求</label><input type="text" id="f_access" placeholder="如有特殊需求請說明">`;
+    html+='</div>';
+  }
+
+  const hasAct=mods.actName||mods.actContent||mods.actMax||mods.actFee;
+  if(hasAct){
+    html+='<div class="card"><div class="card-t">🎯 活動資料</div>';
+    if(mods.actName) html+=`<label>活動名稱 *</label><input type="text" id="f_act_name" placeholder="活動名稱">`;
+    if(mods.actContent) html+=`<label>活動內容</label><textarea id="f_act_content" placeholder="活動內容介紹..."></textarea>`;
+    if(mods.actMax||mods.actFee){
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+      if(mods.actMax) html+=`<div><label>招收人數</label><input type="number" id="f_act_max" placeholder="10" min="1"></div>`;
+      if(mods.actFee) html+=`<div><label>材料費/人</label><input type="number" id="f_act_fee" placeholder="0" min="0"></div>`;
+      html+='</div>';
+    }
+    html+='</div>';
+  }
+
+  if(s&&s.equip&&Object.values(s.equip).some(e=>e&&e.open)) html+=renderEquipSection(s);
+
+  const hasCollab=mods.collabType||mods.collabSocial||mods.collabPortfolio||mods.collabMethod||mods.collabPrice||mods.remark;
+  if(hasCollab){
+    html+='<div class="card"><div class="card-t">🤝 合作資料</div>';
+    if(mods.collabType) html+=`<label>合作類型</label><input type="text" id="f_collab_type" placeholder="例：Coser、攝影師、KOL...">`;
+    if(mods.collabSocial) html+=`<label>社群連結 *</label><input type="url" id="f_collab_social" placeholder="FB/IG/TikTok 主頁">`;
+    if(mods.collabPortfolio) html+=`<label>作品集</label><input type="url" id="f_collab_portfolio" placeholder="作品集連結（選填）">`;
+    if(mods.collabMethod) html+=`<label>希望合作方式</label><textarea id="f_collab_method" placeholder="說明合作方式..."></textarea>`;
+    if(mods.collabPrice) html+=`<label>報價 / 互惠條件</label><input type="text" id="f_collab_price" placeholder="例：NT$3000 或 場次免費換宣傳">`;
+    if(mods.remark) html+=`<label>備註</label><textarea id="f_remark" placeholder="其他說明..."></textarea>`;
+    html+='</div>';
+  }
+
+  if(mods.custom&&s?.customFields?.length){
+    html+='<div class="card"><div class="card-t">📝 其他資料</div>';
+    s.customFields.forEach((cf,i)=>{
+      html+=`<label>${cf.label||''}${cf.required?' *':''}</label>`;
+      if(cf.type==='number') html+=`<input type="number" id="cf_${i}"${cf.required?' required':''}>`;
+      else if(cf.type==='date') html+=`<input type="date" id="cf_${i}"${cf.required?' required':''}>`;
+      else if(cf.type==='single'){const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);html+=`<select id="cf_${i}"><option value="">請選擇</option>${opts.map(o=>'<option>'+o+'</option>').join('')}</select>`;}
+      else if(cf.type==='multi'){const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);html+=`<div class="chips" id="cf_${i}_chips">${opts.map(o=>'<div class="chip" onclick="toggleChip(this)">'+o+'</div>').join('')}</div>`;}
+      else html+=`<input type="text" id="cf_${i}" placeholder="${cf.label||''}"${cf.required?' required':''}>`;
+    });
+    html+='</div>';
+  }
+
+  $('bFormContent').innerHTML = html;
+}
+
+// ── 報名驗證與送出 ──
+function bNext2() {
+  let ok=true;
+  const name=$('f_name')?.value.trim(), phone=$('f_phone')?.value.trim(), email=$('f_email')?.value.trim();
+  if(!name){se('fe_name',true);ok=false;}else se('fe_name',false);
+  if(!phone){se('fe_phone',true);ok=false;}else se('fe_phone',false);
+  if(!email||!email.includes('@')){se('fe_email',true);ok=false;}else se('fe_email',false);
+  const brandEl=$('f_brand'); if(brandEl&&!brandEl.value.trim()){se('fe_fb',true);ok=false;}else se('fe_fb',false);
+  const sellEl=$('f_sell_item'); if(sellEl&&!sellEl.value.trim()){se('fe_sell',true);ok=false;}else se('fe_sell',false);
+  if(!ok) return;
+  buildConfirm();
+  bGoStep(3);
+}
+
+function buildConfirm() {
+  const s=B.ses;
+  const fee=(parseInt(s?.fee)||0);
+  const deposit=(parseInt(s?.deposit)||500);
+  const equipFee=Object.entries(B.equip).reduce((sum,[k,q])=>{ if(q>0&&s?.equip?.[k]) return sum+q*(s.equip[k].price||0); return sum; },0);
+  const total=fee+deposit+equipFee;
+  const mapLink=s?.mapUrl?` <a href="${s.mapUrl}" target="_blank" style="color:var(--g)">📍地圖</a>`:'';
+  $('bS2SesDetail').innerHTML=`📍 ${s?.city||''} · 📅 ${s?.dateDisplay||s?.date||''} · ${s?.venue||''}${mapLink}`;
+  $('bS3SesName').textContent=s?.name||'';
+  $('bTotalFee').textContent='NT$'+(fee+equipFee).toLocaleString();
+  $('bDepositFee').textContent='NT$'+deposit.toLocaleString();
+  $('bGrandTotal').textContent='NT$'+total.toLocaleString();
+  // 設備明細
+  const equipItems=Object.entries(B.equip).filter(([,q])=>q>0);
+  $('bEquipDetail').innerHTML=equipItems.length?equipItems.map(([k,q])=>`<div style="font-size:13px;color:var(--md)">${k} × ${q} = NT$${q*(s?.equip?.[k]?.price||0)}</div>`).join(''):'';
+}
+
+async function submitBook() {
+  if(!$('brc').checked){se('be_rules',true);return;}
+  se('be_rules',false);
+  if(!V.loggedIn){alert('請先登入');return;}
+  const s=B.ses;
+  const childCount=parseInt($('childCount')?.value)||0;
+  const adultCount=parseInt($('adultCount')?.value)||1;
+  B.childAges=Array.from({length:childCount},(_,i)=>$('childAge'+i)?.value||'');
+  const payload={
+    action:'register',
+    sessionId:s.id,
+    subSessionId:B.subSes||'',
+    vendorId:V.vendorId||'',
+    email:$('f_email')?.value||V.email||'',
+    name:$('f_name')?.value||V.name||'',
+    phone:$('f_phone')?.value||V.phone||'',
+    brand:$('f_brand')?.value?.trim()||V.brand||'',
+    brandIntro:$('f_brand_intro')?.value||'',
+    sellItem:$('f_sell_item')?.value?.trim()||'',
+    sellLink:$('f_sell_link')?.value?.trim()||'',
+    sellCat:Array.from(document.querySelectorAll('#sellTypeChips .chip.on')).map(c=>c.textContent).join('、'),
+    photo:$('f_photo')?.value?.trim()||'',
+    actName:$('f_act_name')?.value||'',
+    actContent:$('f_act_content')?.value||'',
+    actMax:$('f_act_max')?.value||'',
+    actFee:$('f_act_fee')?.value||'',
+    collabType:$('f_collab_type')?.value||'',
+    collabSocial:$('f_collab_social')?.value||'',
+    collabPortfolio:$('f_collab_portfolio')?.value||'',
+    collabMethod:$('f_collab_method')?.value||'',
+    collabPrice:$('f_collab_price')?.value||'',
+    remark:$('f_remark')?.value||'',
+    adultCount, childCount,
+    childAges:B.childAges.join(','),
+    dietNeeds:$('f_diet')?.value||'',
+    accessNeeds:$('f_access')?.value||'',
+    fire:$('f_fire')?.checked?'yes':'no',
+    power:$('f_power')?.checked?'yes':'no',
+    equip:B.equip,
+    booths:B.booths||1,
+    selectedDates:(()=>{
+      if(!s?.activityDates) return '';
+      return s.activityDates.filter((_,i)=>$('f_date_'+i)?.checked).map(d=>d.date).join('、');
+    })(),
+    customAnswers:(()=>{
+      const ans={};
+      if(s?.customFields) s.customFields.forEach((cf,i)=>{
+        if(cf.type==='multi'){const chips=document.querySelectorAll('#cf_'+i+'_chips .chip.on');ans[cf.label]=Array.from(chips).map(c=>c.textContent).join('、');}
+        else ans[cf.label]=$('cf_'+i)?.value||'';
+      });
+      return JSON.stringify(ans);
+    })(),
+    rulesOk:true
+  };
+  sl(true);
+  try {
+    const d = await api(payload);
+    if(d.success||d.regId) {
+      sp('success');
+      $('successMsg').textContent='感謝你的報名，等待主辦審核通知。';
+      const btn=$('successBookBtn'); if(btn) btn.style.display='block';
+      // 關聯場次
+      if(B.ses?.relatedSessions){
+        const ids=B.ses.relatedSessions.split(',').map(s=>s.trim()).filter(Boolean);
+        const relSes=sessions.filter(s=>ids.includes(s.id));
+        if(relSes.length){
+          const area=$('relatedSessionsArea');
+          if(area){
+            area.style.display='block';
+            area.innerHTML='<div style="font-size:14px;font-weight:700;color:var(--dk);margin-bottom:8px">🎯 你也可以參加這些活動：</div>'+
+              relSes.map(s=>`<div style="background:var(--lt);border-radius:9px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-weight:700;font-size:14px">${s.name}</div><div style="font-size:12px;color:var(--md)">${s.city||''} · ${s.dateDisplay||s.date||''}</div></div>
+                <button class="btn-xs" style="background:var(--g);color:#fff;white-space:nowrap" data-id="${s.id}">立即報名</button>
+              </div>`).join('');
+            area.querySelectorAll('[data-id]').forEach(btn=>{
+              const sid=btn.dataset.id;
+              btn.onclick=()=>{ B.ses=sessions.find(x=>x.id===sid); if(B.ses) goBook(); };
+            });
+          }
+        }
+      }
+      // 更新會員資料
+      await refreshUser();
+    } else toast('送出失敗：'+(d.message||'請稍後再試'));
+  } catch(e){ toast('連線失敗'); }
+  finally { sl(false); }
+}
+
+// ── 付款 ──
+async function doLinePay(regId, sessionName, amount) {
+  sl(true);
+  try {
+    const d = await api({action:'createLinePayUrl', regId, amount});
+    if(d.paymentUrl) window.open(d.paymentUrl,'_blank');
+    else toast('LINE Pay 暫時無法使用，請改用其他方式');
+  } catch(e){ toast('連線失敗'); }
+  finally { sl(false); }
+}
+async function doEcpay(regId, amount) {
+  toast('信用卡付款功能即將開放，請先使用 LINE Pay 或銀行轉帳');
+}
+function showBankInfo(sessionName, regId) {
+  const info = `銀行轉帳資訊\n\n${BANK_INFO}\n\n請備注：${sessionName}\n轉帳後請聯繫官方LINE確認\n${LINE_URL}`;
+  alert(info);
+}
+function openRefundModal(regId) {
+  toast('如需退款請聯繫官方LINE：'+LINE_URL);
+}
+
+// ── 定位 ──
+function goPos(sessionId, regId, sessionName, booth) {
+  sp('pos');
+  const el=$('posContent');
+  if(el) el.innerHTML=`<div class="card"><div class="card-t">📍 選位</div><div style="font-size:15px;color:var(--md)">選位系統開發中，請聯繫官方LINE確認攤位。</div><a href="${LINE_URL}" target="_blank" class="btn btn-p mt12" style="display:block;text-align:center;text-decoration:none">聯繫官方LINE</a></div>`;
+}
+
+// ── window.onload ──
+window.onload = async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('paid')==='1') {
+    toast('✅ 付款完成！系統正在確認中...');
+    if(V.loggedIn&&V.email) setTimeout(async()=>{await refreshUser();sp('member');},1500);
+    history.replaceState({},'',(location.pathname+location.search).replace(/[?&]paid=1/,''));
+  }
+  await loadSessions();
+  loadHomeAnnouncements();
+  if(V.loggedIn) renderMemberUI();
+};
+
+</script>
 </body>
 </html><div class="sec">
   <div style="background:var(--g);color:#fff;border-radius:9px;padding:11px 16px;font-size:16px;font-weight:700;text-align:center;margin-bottom:12px;letter-spacing:1px">活動報名</div>

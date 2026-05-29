@@ -1175,9 +1175,49 @@ async function doRefund(regId,sessionId){
   try{const d=await apiPost({action:'markRefunded',regId});if(d.success){toast('✅ 押金已退，點數+1');await reloadCheckin(sessionId);}else toast('操作失敗');}
   catch(e){toast('操作失敗');}finally{sl(false);}
 }
+async function loadCheckinDetail(sessionId, sesName){
+  const mc=$('mainContent');
+  mc.innerHTML='<div class="empty">載入中...</div>';
+  try {
+    const d = await apiGet({action:'getCheckin', sessionId});
+    const allVendors = d.vendors||[];
+    const arrived = allVendors.filter(v=>v.checkinStatus==='已報到').length;
+    mc.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <button onclick="renderCheckinWeekly()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--dk)">←</button>
+        <div style="font-size:15px;font-weight:700;flex:1">${sesName}</div>
+        <div style="font-size:13px;color:var(--md)" id="checkinCount">${arrived}/${allVendors.length} 已報到</div>
+      </div>
+      <div style="margin-bottom:10px">
+        <input type="text" id="checkinSearch" placeholder="🔍 搜尋攤位號碼或品牌名稱"
+          style="width:100%;padding:12px 14px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:15px;font-family:'Noto Sans TC',sans-serif;box-sizing:border-box"
+          oninput="filterCheckin()">
+      </div>
+      <div id="checkinList"></div>`;
+    window._checkinVendors = allVendors;
+    window._checkinSessionId = sessionId;
+    renderCheckinCards(allVendors, sessionId);
+  } catch(e) { mc.innerHTML='<div class="empty">載入失敗</div>'; }
+}
+
+function filterCheckin() {
+  const q=($('checkinSearch')?.value||'').toLowerCase().trim();
+  const vendors=window._checkinVendors||[];
+  const filtered=q?vendors.filter(v=>
+    (v.booth||'').toLowerCase().includes(q)||
+    (v.brand||'').toLowerCase().includes(q)||
+    (v.name||'').toLowerCase().includes(q)
+  ):vendors;
+  renderCheckinCards(filtered, window._checkinSessionId);
+}
+
 async function reloadCheckin(sessionId){
   const d=await apiGet({action:'getCheckin',sessionId});
-  renderCheckinCards(d.vendors||[],sessionId);
+  const vendors=d.vendors||[];
+  window._checkinVendors=vendors;
+  renderCheckinCards(vendors,sessionId);
+  const cnt=$('checkinCount');
+  if(cnt) cnt.textContent=vendors.filter(v=>v.checkinStatus==='已報到').length+'/'+vendors.length+' 已報到';
 }
 
 // ══ 工具 ══
