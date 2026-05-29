@@ -2,6 +2,10 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="version" content="v26">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>兔彼樂｜後台管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -213,7 +217,10 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     </div>
     <div><label>場地名稱 *</label><input type="text" id="ns_venue" placeholder="場地全名"></div>
   </div>
-  <label>Google Maps 連結（選填）</label>
+  <label>活動主視覺圖連結（選填）</label>
+  <input type="url" id="ns_imgurl" placeholder="上傳到 FB 後複製圖片網址貼上">
+  <div style="font-size:13px;color:var(--md);margin-top:3px">💡 先在 FB 上傳圖片→右鍵→複製圖片網址</div>
+  <label style="margin-top:10px">Google Maps 連結（選填）</label>
   <input type="url" id="ns_mapurl" placeholder="https://maps.app.goo.gl/...">
 
   <!-- 多日期設定 -->
@@ -1442,6 +1449,7 @@ async function saveNewSession(){
     timeStart:$('ns_time_start')?.value||'10:00',
     timeEnd:$('ns_time_end')?.value||'18:00',
     city:$('ns_city')?.value||'高雄',venue,
+    imgUrl:$('ns_imgurl')?.value.trim()||'',
     mapUrl:$('ns_mapurl')?.value.trim()||'',
     fee:parseInt($('ns_fee')?.value)||0,
     feeMode:$('ns_fee_mode')?.value||'場次',
