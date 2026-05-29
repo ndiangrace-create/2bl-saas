@@ -47,14 +47,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--lt);color:var(--dk);
 .cat-nm{font-size:14px;font-weight:700;color:var(--dk)}
 .cat-ds{font-size:14px;color:var(--md);margin-top:2px;line-height:1.4}
 /* 場次卡片 */
-.sc{font-size:13px;padding:6px 12px;border-radius:12px;font-weight:700;white-space:nowrap;cursor:pointer;min-height:34px;display:inline-flex;align-items:center}
+.sc{background:var(--wh);border-radius:var(--r);padding:15px;margin-bottom:10px;box-shadow:var(--sh);border-left:4px solid var(--g);display:block}
 .sc-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
-.sc-n{font-weight:700;font-size:14px;color:var(--dk)}
+.sc-n{font-weight:700;font-size:17px;color:var(--dk);line-height:1.3}
 .badge{font-size:14px;padding:2px 7px;border-radius:8px;font-weight:700}
 .b-ok{background:var(--gp);color:var(--g)}.b-few{background:#fff3cd;color:#856404}.b-full{background:var(--rdp);color:var(--rd)}
-.sc-i{font-size:15px;color:var(--md);line-height:1.7}
-.sc-p{font-size:15px;font-weight:700;color:var(--g);margin-top:5px}
-.sc-btn{width:100%;margin-top:9px;padding:10px;background:var(--g);color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;font-family:'Noto Sans TC',sans-serif;cursor:pointer}
+.sc-i{font-size:14px;color:var(--md);line-height:1.8;margin-top:5px}
+.sc-p{font-size:16px;font-weight:700;color:var(--g);margin-top:6px}
+.sc-btn{width:100%;margin-top:10px;padding:14px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;font-family:'Noto Sans TC',sans-serif;cursor:pointer;min-height:50px}
 .sc-btn:disabled{background:#aaa;cursor:not-allowed}
 /* 步驟條 */
 .steps{display:flex;align-items:center;justify-content:center;margin-bottom:16px;padding-top:14px}
@@ -264,7 +264,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   <div class="tb-t" id="sesTitle">場次列表</div>
   <button class="hw" onclick="sp('home')">🏠</button>
 </div>
-<div style="padding:14px" id="sesList"></div>
+<div style="padding:14px 14px 80px" id="sesList"></div>
 </div>
 
 <!-- ══ 加入會員 ══ -->
@@ -677,15 +677,17 @@ function goSessions(type) {
   B.entryType = type;
   // 依 type 欄位過濾，若沒有精確符合就顯示全部
   let list = sessions.filter(s => {
-    const t = (s.type||'市集').trim();
-    if(type === '市集') return t === '市集' || t.includes('市集');
-    if(type === '體驗') return t === '體驗' || t.includes('體驗');
-    if(type === '文化') return t === '文化' || t.includes('文化');
-    if(type === '百貨') return t === '百貨' || t.includes('百貨');
+    const t = (s.type||'').trim();
+    // 空白 type 視為市集（最多場次類型）
+    const st = t || '市集';
+    if(type === '市集') return st === '市集' || st.includes('市集') || t === '';
+    if(type === '體驗') return st === '體驗' || st.includes('體驗');
+    if(type === '文化') return st === '文化' || st.includes('文化');
+    if(type === '百貨') return st === '百貨' || st.includes('百貨');
     return true;
   });
-  // 若過濾後完全沒有，顯示全部避免空白
-  if(!list.length) list = sessions;
+  // 若過濾後完全沒有，顯示全部場次（不讓用戶看到空白頁）
+  if(!list.length) list = [...sessions];
   $('sesTitle').textContent = {'市集':'🏪 市集活動','體驗':'🎨 體驗活動','文化':'🎭 文化企劃','百貨':'🏬 百貨寄賣'}[type]||type;
   $('sesList').innerHTML = list.length
     ? list.map(s=>renderSessionCard(s,sessions.indexOf(s))).join('')
@@ -1023,268 +1025,107 @@ function selSubSession(id, name, fee, el) {
   if(B.ses) B.ses.subFee = fee;
 }
 
-// ── 動態表單（依身份顯示不同欄位）──
+// ── 動態表單（依後台模組設定顯示欄位）──
 function renderDynamicForm() {
-  const id=B.identity, s=B.ses;
-  let html='';
+  const s = B.ses;
+  const mods = s?.modules || {};
+  let html = '';
 
-  if(id==='民眾體驗') {
-    // 民眾體驗：獨立表單
-    html=`<div class="card">
-      <div class="card-t">👥 民眾體驗報名</div>
-      <div class="fg"><label class="fl">姓名 <span class="fr">*</span></label><input type="text" id="f_name" placeholder="報名者姓名" value="${V.name||''}"><div class="em" id="fe_name">請填寫姓名</div></div>
-      <div class="fg"><label class="fl">手機 <span class="fr">*</span></label><input type="tel" id="f_phone" placeholder="09xxxxxxxx" value="${V.phone||''}"><div class="em" id="fe_phone">請填寫手機</div></div>
-      <div class="fg"><label class="fl">Email <span class="fr">*</span></label><input type="email" id="f_email" placeholder="Email" value="${V.email||''}"><div class="em" id="fe_email">請填寫 Email</div></div>
-      <div class="fg"><label class="fl">大人人數</label>
-        <div class="num-row"><span class="num-label">大人</span><button class="qbs" onclick="changeNum('adultCount',-1)">−</button><span class="num-val" id="adultCount">1</span><button class="qbs" onclick="changeNum('adultCount',1)">+</button></div>
-      </div>
-      <div class="fg"><label class="fl">小孩人數</label>
-        <div class="num-row"><span class="num-label">小孩</span><button class="qbs" onclick="changeChildCount(-1)">−</button><span class="num-val" id="childCount">0</span><button class="qbs" onclick="changeChildCount(1)">+</button></div>
-        <div id="childAgesArea"></div>
-      </div>
-      <div class="fg"><label class="fl">飲食需求</label><input type="text" id="f_diet" placeholder="例：素食、過敏食材..."></div>
-      <div class="fg"><label class="fl">無障礙需求</label><input type="text" id="f_access" placeholder="例：輪椅、哺乳室..."></div>
-      <div class="fg"><label class="fl">備註</label><textarea id="f_note" placeholder="其他補充說明"></textarea></div>
-    </div>`;
-  } else if(id==='合作夥伴') {
-    html=`<div class="card">
-      <div class="card-t">🤝 合作夥伴提案</div>
-      <div class="fg"><label class="fl">應徵身份 <span class="fr">*</span></label>
-        <select id="f_role"><option value="">請選擇</option><option>官方合作攝影師</option><option>官方合作造型師/妝娘</option><option>專業Coser</option><option>達人秀演出者</option><option>YouTuber</option><option>KOL／自媒體創作者</option><option>其他</option></select>
-        <div class="em" id="fe_role">請選擇身份</div>
-      </div>
-      <div class="fg"><label class="fl">社群連結 <span class="fr">*</span></label><input type="url" id="f_social" placeholder="IG/YouTube/TikTok 連結"><div class="em" id="fe_social">請填寫社群連結</div></div>
-      <div class="fg"><label class="fl">代表作品連結</label><input type="url" id="f_work" placeholder="作品集或代表貼文"></div>
-      <div class="fg"><label class="fl">可配合時段</label><input type="text" id="f_time" placeholder="例：全天 / 上午10-12點"></div>
-      <div class="fg"><label class="fl">提供內容說明 <span class="fr">*</span></label><textarea id="f_content" placeholder="說明您可以提供的服務..."></textarea><div class="em" id="fe_content">請填寫提供內容</div></div>
-      <div class="fg"><label class="fl">提供報價（NT$，填0代表互惠）</label><input type="number" id="f_quote" placeholder="0"></div>
-      <div class="fg"><label class="fl">互惠內容（可複選）</label>
-        <div style="display:flex;flex-direction:column;gap:7px;margin-top:6px">
-          ${['官方曝光／素材授權','合作名單識別證','活動資源支持','其他'].map(m=>`<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" value="${m}" class="mutualChk" style="accent-color:var(--g);width:15px;height:15px">${m}</label>`).join('')}
-        </div>
-      </div>
-    </div>`;
-  } else if(id==='體驗老師') {
-    html=`<div class="card">
-      <div class="card-t">🎨 體驗課程提案</div>
-      <div class="fg"><label class="fl">體驗名稱 <span class="fr">*</span></label><input type="text" id="f_tname" placeholder="例：手作蠟燭體驗"><div class="em" id="fe_tname">請填寫體驗名稱</div></div>
-      <div class="fg"><label class="fl">體驗內容 <span class="fr">*</span></label><textarea id="f_tcontent" placeholder="說明課程內容、流程..."></textarea><div class="em" id="fe_tcontent">請填寫體驗內容</div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-        <div class="fg"><label class="fl">適合年齡</label><input type="text" id="f_tage" placeholder="例：8歲以上"></div>
-        <div class="fg"><label class="fl">每場人數</label><input type="number" id="f_tpax" placeholder="6"></div>
-        <div class="fg"><label class="fl">每場時長</label><input type="text" id="f_tdur" placeholder="60分鐘"></div>
-        <div class="fg"><label class="fl">材料費/人</label><input type="number" id="f_tmat" placeholder="0"></div>
-      </div>
-      <div class="fg"><label class="fl">桌椅需求</label><textarea id="f_tequip" placeholder="例：需要6張椅子、2張桌子"></textarea></div>
-      <div class="fg"><label class="fl">安全注意事項</label><textarea id="f_tsafety" placeholder="例：含加熱器，需注意燙傷風險"></textarea></div>
-    </div>`;
-  } else if(id==='主題活動') {
-    const items = s.themeItems||[];
-    html=`<div class="card">
-      <div class="card-t">✨ 主題活動參與</div>
-      <p style="font-size:14px;color:var(--md);margin-bottom:10px">請勾選您想參與的項目（可複選）</p>
-      <div style="display:flex;flex-direction:column;gap:8px" id="themeItemList">
-        ${items.map(item=>`<label style="display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer;padding:9px;background:var(--lt);border-radius:7px"><input type="checkbox" value="${item}" class="themeChk" style="accent-color:var(--g);width:16px;height:16px">${item}</label>`).join('')}
-      </div>
-      <div class="em" id="fe_theme">請至少勾選一個項目</div>
-    </div>`;
-  } else if(id==='百貨寄賣') {
-    // 百貨寄賣：品牌資料 + 費用選擇 + 燈具
-    html=`<div class="card">
-      <div class="card-t">🏬 百貨寄賣資料</div>
-      <div class="fg"><label class="fl">品牌名稱</label><input type="text" id="f_brand" value="${V.brand||V.name||''}"></div>
-      <div class="fg"><label class="fl">主要類別</label>
-        <select id="f_cat"><option value="">請選擇</option>${Object.keys(SUBCATS).map(k=>`<option>${k}</option>`).join('')}</select>
-      </div>
-      <div class="fg"><label class="fl">販售商品說明</label><textarea id="f_prod" placeholder="請說明主要販售商品..."></textarea></div>
-    </div>
-    <div class="card">
-      <div class="card-t">💰 服務費用選擇</div>
-      <div class="dept-fee-item" id="dfi_upload" onclick="toggleDeptFee('upload',500,this)">
-        <div><div style="font-size:15px;font-weight:700">上架費</div><div style="font-size:15px;color:var(--md)">商品上架、陳列服務</div></div>
-        <div style="font-size:14px;font-weight:700;color:var(--g)">NT$500</div>
-      </div>
-      <div class="dept-fee-item" id="dfi_withdraw" onclick="toggleDeptFee('withdraw',500,this)">
-        <div><div style="font-size:15px;font-weight:700">代撤費</div><div style="font-size:15px;color:var(--md)">代為撤除商品服務</div></div>
-        <div style="font-size:14px;font-weight:700;color:var(--g)">NT$500</div>
-      </div>
-      <div class="dept-fee-item" id="dfi_transfer" onclick="toggleDeptFee('transfer',500,this)">
-        <div><div style="font-size:15px;font-weight:700">轉移費</div><div style="font-size:15px;color:var(--md)">續約・移櫃・換位</div></div>
-        <div style="font-size:14px;font-weight:700;color:var(--g)">NT$500</div>
-      </div>
-    </div>
-    ${s.equip&&s.equip['燈']&&s.equip['燈'].open?`<div class="card">
-      <div class="card-t">💡 燈具加購</div>
-      <div class="eq-item" id="eq-燈">
-        <div class="eq-l"><div style="font-size:18px">${EICONS['燈']}</div><div><div class="eq-nm">燈具</div><div class="eq-pr">NT$${s.equip['燈'].price}／組</div></div></div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="qbs" onclick="chgE('燈',-1)">−</button>
-          <span class="qd" id="qty-燈">0</span>
-          <button class="qbs" onclick="chgE('燈',1)">+</button>
-        </div>
-      </div>
-    </div>`:''}`;
-  } else {
-    // 攤商（預設）
-    html=`<div class="card">
-      <div class="card-t">🏪 攤商資料</div>
-      <div class="fg"><label class="fl">品牌名稱</label><input type="text" id="f_brand" value="${V.brand||V.name||''}"></div>
-      <div class="fg"><label class="fl">主要類別 <span class="fr">*</span></label>
-        <div class="mcg" id="mcgWrap">
-          ${Object.keys(SUBCATS).map((k,ki)=>`<div class="mc ${k===B.cat?'sel':''}" onclick="selCat('${k}',this)"><span class="mc-ic">${['🍽️','🚐','✂️','🛍️','👗','🌿','🏡','🐾','✨'][ki]||'✨'}</span><div class="mc-nm">${k}</div></div>`).join('')}
-        </div>
-        <div class="em" id="fe_cat">請選擇主要類別</div>
-      </div>
-      <div id="subCatWrap" style="display:${B.cat?'block':'none'}">
-        <div class="fg"><label class="fl">販售內容（可複選）</label><div class="chips" id="subChips"></div><div class="em" id="fe_subcat">請至少選擇一項</div></div>
-      </div>
-      <div class="fg">
-        <label class="fl">本次販售類別 <span class="fr">*</span>（可複選）</label>
-        <div class="chips" id="sellTypeChips" style="margin-top:6px">
-          ${['文創手作','動漫ACG','食品飲品','生活選物','寵物相關','二手老物','親子教育','其他'].map(t=>'<div class="chip" onclick="toggleSellType(this)">'+t+'</div>').join('')}
-        </div>
-        <div class="em" id="fe_selltype">請至少選擇一項</div>
-      </div>
-    </div>
-    <!-- 攤數 -->
-    <div class="card">
-      <div class="card-t">🏪 租攤數量</div>
-      <p style="font-size:14px;color:var(--md);margin-bottom:9px">一攤費用 NT$${s.fee}，請選擇租幾攤</p>
-      <div class="booth-ctr">
-        <button class="qb" onclick="chgB(-1)">−</button>
-        <div><div class="bn" id="boothN">1</div><div style="font-size:15px;color:var(--md);text-align:center">攤</div></div>
-        <button class="qb" onclick="chgB(1)">+</button>
-      </div>
-      <div style="text-align:center;font-size:14px;color:var(--md);margin-top:4px">攤位費小計：<strong style="color:var(--g);font-size:14px">NT$<span id="boothSub">${s.fee}</span></strong></div>
-    </div>
-    <!-- 設備 -->
-    ${renderEquipSection(s)}
-    <!-- 明火用電（依後台場次設定，openFire=true 才顯示）-->
-    <div class="card" id="fireCard">
-      <div class="card-t">🔥 明火與用電</div>
-      <p style="font-size:14px;color:var(--md);margin-bottom:9px">請確實填寫，涉及消防安全</p>
-      <div class="fg"><label class="fl">明火使用</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:5px">
-          <div class="mc" onclick="selFire('no',this)" id="fire-no"><span class="mc-ic">✅</span><div class="mc-nm">不使用明火</div></div>
-          <div class="mc" onclick="selFire('yes',this)" id="fire-yes"><span class="mc-ic">🔥</span><div class="mc-nm">使用明火</div></div>
-        </div>
-      </div>
-      <div class="fg"><label class="fl">用電需求</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:5px">
-          <div class="mc" onclick="selPower('none',this)" id="pow-none"><span class="mc-ic">🔌</span><div class="mc-nm">一般用電</div></div>
-          <div class="mc" onclick="selPower('high',this)" id="pow-high"><span class="mc-ic">⚡</span><div class="mc-nm">大功率</div></div>
-          <div class="mc" onclick="selPower('no',this)" id="pow-no"><span class="mc-ic">🚫</span><div class="mc-nm">不需用電</div></div>
-        </div>
-      </div>
-      <div id="powerNoteArea" style="display:none"><div class="fg"><label class="fl">用電說明</label><input type="text" id="f_powernote" placeholder="例：加熱器 1500W"></div></div>
-    </div>
-    <!-- 贈品 -->
-    <div class="card">
-      <div class="card-t">🎁 贈品募集</div>
-      <div style="display:flex;gap:7px;margin-top:4px">
-        <div class="mc" style="flex:1" onclick="selGift('yes',this)"><span class="mc-ic">🎀</span><div class="mc-nm">有意願</div></div>
-        <div class="mc" style="flex:1" onclick="selGift('maybe',this)"><span class="mc-ic">🤔</span><div class="mc-nm">暫不確定</div></div>
-        <div class="mc" style="flex:1" onclick="selGift('no',this)"><span class="mc-ic">❌</span><div class="mc-nm">不參加</div></div>
-      </div>
-      <div id="giftArea" style="display:none"><div class="fg mt8"><label class="fl">贈品內容</label><textarea id="f_gift" placeholder="請說明贈品商品或折價券內容"></textarea></div></div>
-    </div>`;
-  }
-  $('bFormContent').innerHTML = html;
-  // 依場次設定控制設備/明火顯示
-  if(B.ses) {
-    // 明火用電：場次有設定 openFire=false 才隱藏
-    const fireCard = document.getElementById('fireCard');
-    if(fireCard) {
-      fireCard.style.display = (B.ses.openFire === false) ? 'none' : 'block';
-    }
-  }
-  // 若有已選的類別，重新渲染
-  if(B.cat && id==='攤商') renderSubCats(B.cat);
-}
-
-function renderEquipSection(s) {
-  const avail = ['帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'].filter(k=>s.equip&&s.equip[k]&&s.equip[k].open);
-  if(!avail.length) return '<div class="card"><div class="card-t">🪑 設備加購</div><div style="font-size:14px;color:var(--md)">此場次無開放加購設備</div></div>';
-  return `<div class="card">
-    <div class="card-t">🪑 設備加購</div>
-    <p style="font-size:14px;color:var(--md);margin-bottom:9px">基本配備：${s.basicEquip||'無'}</p>
-    ${avail.map(k=>`<div class="eq-item" id="eq-${k}">
-      <div style="display:flex;align-items:center;gap:9px"><div style="font-size:18px">${EICONS[k]}</div><div><div class="eq-nm">${k}</div><div class="eq-pr">NT$${s.equip[k].price}／${EUNITS[k]}</div></div></div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <button class="qbs" onclick="chgE('${k}',-1)">−</button>
-        <span class="qd" id="qty-${k}">0</span>
-        <button class="qbs" onclick="chgE('${k}',1)">+</button>
-      </div>
-    </div>`).join('')}
+  // ── 基本資料（必選）──
+  html += `<div class="card"><div class="card-t">👤 基本資料</div>
+    <label>代表人姓名 *</label><input type="text" id="f_name" value="${V.name||''}" placeholder="代表人姓名">
+    <div class="em" id="fe_name"></div>
+    <label>手機 *</label><input type="tel" id="f_phone" value="${V.phone||''}" placeholder="0912-345-678" inputmode="tel">
+    <div class="em" id="fe_phone"></div>
+    <label>Email *</label><input type="email" id="f_email" value="${V.email||''}" placeholder="your@email.com" inputmode="email">
+    <div class="em" id="fe_email"></div>
   </div>`;
-}
 
-// 攤數
-function chgB(d) {
-  B.booths=Math.max(1,(B.booths||1)+d);
-  $('boothN').textContent=B.booths;
-  if(B.ses) $('boothSub').textContent=B.booths*B.ses.fee;
-}
-// 設備
-function chgE(k,d) {
-  const v=Math.max(0,(B.equip[k]||0)+d); B.equip[k]=v;
-  const el=$('qty-'+k); if(el)el.textContent=v;
-  const item=$('eq-'+k); if(item)item.classList.toggle('on',v>0);
-}
-// 百貨費用
-function toggleDeptFee(key,amount,el) {
-  if(B.deptFees[key]){delete B.deptFees[key];el.classList.remove('on');}
-  else{B.deptFees[key]=amount;el.classList.add('on');}
-}
-// 民眾體驗人數
-let adultCount=1, childCount=0;
-function changeNum(id, d) {
-  adultCount=Math.max(1,adultCount+(id==='adultCount'?d:0));
-  const el=$(id); if(el)el.textContent=adultCount;
-}
-function changeChildCount(d) {
-  childCount=Math.max(0,childCount+d);
-  $('childCount').textContent=childCount;
-  const area=$('childAgesArea');
-  if(!area)return;
-  if(childCount===0){area.innerHTML='';B.childAges=[];return;}
-  area.innerHTML='<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">'+
-    Array.from({length:childCount},(_,i)=>`<div style="display:flex;align-items:center;gap:9px"><label style="font-size:14px;white-space:nowrap">第${i+1}個小孩年齡</label><input type="text" id="childAge${i}" placeholder="例：3歲" style="flex:1;padding:8px;border:1.5px solid #c8ddc8;border-radius:7px;font-size:15px;font-family:'Noto Sans TC',sans-serif"></div>`).join('')+'</div>';
-}
-// 類別選擇
-function selCat(cat,el) {
-  B.cat=cat; B.subs=[];
-  document.querySelectorAll('#mcgWrap .mc').forEach(e=>e.classList.remove('sel'));
-  el.classList.add('sel');
-  $('subCatWrap').style.display='block';
-  renderSubCats(cat);
-}
-function renderSubCats(cat) {
-  $('subChips').innerHTML=(SUBCATS[cat]||[]).map(s=>`<div class="chip ${(B.subs||[]).includes(s)?'sel':''}" onclick="toggleSub('${s}',this)">${s}</div>`).join('');
-}
-function toggleSub(s,el) {
-  el.classList.toggle('sel');
-  if(el.classList.contains('sel')){ if(!B.subs.includes(s))B.subs.push(s); }
-  else B.subs=B.subs.filter(x=>x!==s);
-}
-// 明火/用電
-function selFire(v,el) {
-  B.fire=v;
-  ['no','yes'].forEach(x=>$('fire-'+x)?.classList.remove('sel'));
-  el.classList.add('sel');
-}
-function selPower(v,el) {
-  B.power=v;
-  ['none','high','no'].forEach(x=>$('pow-'+x)?.classList.remove('sel'));
-  el.classList.add('sel');
-  $('powerNoteArea').style.display=v==='high'?'block':'none';
-}
-// 贈品
-function selGift(v,el) {
-  B.gift=v;
-  document.querySelectorAll('#bFormContent .mc').forEach(e=>{ if(e.onclick&&e.onclick.toString().includes('selGift'))e.classList.remove('sel'); });
-  el.classList.add('sel');
-  const ga=$('giftArea'); if(ga)ga.style.display=v==='yes'?'block':'none';
+  // ── 品牌資料 ──
+  if(mods.brand!==false) html += `<div class="card"><div class="card-t">🏷️ 品牌資料</div>
+    <label>品牌名稱 *</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱">
+    <label>品牌介紹</label><textarea id="f_brand_intro" placeholder="簡介你的品牌...">${V.brandIntro||''}</textarea>
+    <label>FB 粉絲頁 *</label><input type="url" id="f_fb" value="${V.fb||''}" placeholder="https://www.facebook.com/...">
+    <div class="em" id="fe_fb"></div>
+    <label>IG</label><input type="url" id="f_ig" value="${V.ig||''}" placeholder="https://www.instagram.com/...">
+    <label>官方網站</label><input type="url" id="f_website" placeholder="https://...">
+  </div>`;
+
+  // ── 販售資料 ──
+  if(mods.sell) html += `<div class="card"><div class="card-t">🛍️ 販售資料</div>
+    <label>本次販售類別</label>
+    <div class="chips" id="sellTypeChips" style="margin-top:6px">
+      ${['文創手作','飾品金工','潮流選品','動漫ACG','美食飲品','生活選物','花藝植栽','伴手禮','親子','二手','其他'].map(t=>'<div class="chip" onclick="toggleSellType(this)">'+t+'</div>').join('')}
+    </div>
+    <label style="margin-top:10px">本次販售說明 *</label>
+    <input type="text" id="sellNote" placeholder="填您主要販售的商品，例：手工皮革錢包、韓系選品">
+    <div class="em" id="fe_sell"></div>
+  </div>`;
+
+  // ── 課程資料 ──
+  if(mods.course) html += `<div class="card"><div class="card-t">📚 課程資料</div>
+    <label>課程名稱 *</label><input type="text" id="f_course_name" placeholder="課程名稱">
+    <label>課程介紹</label><textarea id="f_course_intro" placeholder="課程內容、適合對象..."></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label>招收人數</label><input type="number" id="f_course_max" placeholder="10" min="1"></div>
+      <div><label>材料費/人</label><input type="number" id="f_course_fee" placeholder="0" min="0"></div>
+    </div>
+  </div>`;
+
+  // ── 設備需求 ──
+  if(mods.equip) html += renderEquipSection(s);
+
+  // ── 民眾資料 ──
+  if(mods.public) html += `<div class="card"><div class="card-t">👥 參與資料</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label>大人人數 *</label><input type="number" id="adultCount" value="1" min="1" oninput="updateChildAges()"></div>
+      <div><label>小孩人數</label><input type="number" id="childCount" value="0" min="0" oninput="updateChildAges()"></div>
+    </div>
+    <div id="childAgesArea"></div>
+    <label>飲食需求</label>
+    <select id="f_diet"><option value="">無特殊需求</option><option>素食</option><option>全素</option><option>清真</option><option>其他</option></select>
+    <label>無障礙需求</label><input type="text" id="f_access" placeholder="如有特殊需求請說明">
+    <label>備註</label><textarea id="f_note" placeholder="其他說明..."></textarea>
+  </div>`;
+
+  // ── 合作資料 ──
+  if(mods.partner) html += `<div class="card"><div class="card-t">🤝 合作資料</div>
+    <label>合作類型 *</label>
+    <select id="f_partner_type"><option value="">請選擇</option>
+      <option>Coser</option><option>攝影師</option><option>KOL</option>
+      <option>插畫家</option><option>音樂人</option><option>展演藝術家</option><option>其他</option>
+    </select>
+    <label>希望合作內容 *</label><textarea id="f_partner_content" placeholder="說明你希望的合作方式..."></textarea>
+    <label>可提供資源</label><textarea id="f_partner_resource" placeholder="你可以提供什麼？（露出、宣傳、費用...）"></textarea>
+    <label>報價 / 互惠條件</label><input type="text" id="f_partner_price" placeholder="例：NT$3000 或 場次免費換宣傳">
+    <label>社群連結 *</label><input type="url" id="f_partner_social" placeholder="FB / IG / TikTok 主頁連結">
+    <label>作品集</label><input type="url" id="f_partner_portfolio" placeholder="作品集連結或 Google Drive 連結">
+  </div>`;
+
+  // ── 自訂欄位 ──
+  if(mods.custom && s.customFields && s.customFields.length) {
+    html += '<div class="card"><div class="card-t">📝 其他資料</div>';
+    s.customFields.forEach((cf,i)=>{
+      html += '<label>'+cf.label+(cf.required?' *':'')+'</label>';
+      if(cf.type==='text') html += '<input type="text" id="cf_'+i+'" placeholder="'+cf.label+'"'+(cf.required?' required':'')+' >';
+      else if(cf.type==='number') html += '<input type="number" id="cf_'+i+'"'+(cf.required?' required':'')+' >';
+      else if(cf.type==='date') html += '<input type="date" id="cf_'+i+'"'+(cf.required?' required':'')+' >';
+      else if(cf.type==='single'){
+        const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);
+        html += '<select id="cf_'+i+'"><option value="">請選擇</option>'+opts.map(o=>'<option>'+o+'</option>').join('')+'</select>';
+      } else if(cf.type==='multi'){
+        const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);
+        html += '<div class="chips" id="cf_'+i+'_chips">'+opts.map(o=>'<div class="chip" onclick="toggleChip(this)">'+o+'</div>').join('')+'</div>';
+      }
+    });
+    html += '</div>';
+  }
+
+  $('bFormContent').innerHTML = html;
+  if(s) {
+    const fireCard = document.getElementById('fireCard');
+    if(fireCard) fireCard.style.display = (s.openFire===false)?'none':'block';
+  }
 }
 
 function bNext2() {
@@ -1525,6 +1366,7 @@ function showBankInfo(sessionName, regId) {
   alert(msg);
 }
 
+function toggleChip(el){ el.classList.toggle('on'); }
 function toggleSellType(el) {
   el.classList.toggle('sel');
 }
