@@ -194,8 +194,31 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <div><label>活動結束時間</label><input type="time" id="ns_time_end" value="18:00"></div>
   </div>
   <div class="fg2">
-    <div><label>城市 *</label>
-      <select id="ns_city"><option>高雄</option><option>台中</option><option>台北</option><option>台南</option><option>其他</option></select>
+    <div><label>縣市 *</label>
+      <select id="ns_city">
+          <option value="基隆市">基隆市</option>
+          <option value="台北市">台北市</option>
+          <option value="新北市">新北市</option>
+          <option value="桃園市">桃園市</option>
+          <option value="新竹市">新竹市</option>
+          <option value="新竹縣">新竹縣</option>
+          <option value="苗栗縣">苗栗縣</option>
+          <option value="台中市">台中市</option>
+          <option value="彰化縣">彰化縣</option>
+          <option value="南投縣">南投縣</option>
+          <option value="雲林縣">雲林縣</option>
+          <option value="嘉義市">嘉義市</option>
+          <option value="嘉義縣">嘉義縣</option>
+          <option value="台南市">台南市</option>
+          <option value="高雄市">高雄市</option>
+          <option value="屏東縣">屏東縣</option>
+          <option value="台東縣">台東縣</option>
+          <option value="花蓮縣">花蓮縣</option>
+          <option value="宜蘭縣">宜蘭縣</option>
+          <option value="澎湖縣">澎湖縣</option>
+          <option value="金門縣">金門縣</option>
+          <option value="連江縣">連江縣</option>
+      </select>
     </div>
     <div><label>場地名稱 *</label><input type="text" id="ns_venue" placeholder="場地全名"></div>
   </div>
@@ -459,7 +482,10 @@ function renderSessionRow(s){
   return `<div class="session-row" id="sr-${s.id}">
     <div class="sr-header" onclick="toggleRow('${s.id}')">
       <div class="sr-date">${s.dateDisplay||''}</div>
-      <div class="sr-name">${s.name}<small>${s.city||''} ${s.venue||''}</small></div>
+      <div class="sr-name">
+        <span style="font-size:12px;color:var(--md);font-weight:400;margin-right:5px">${s.city||''}</span>${s.name}
+        <small>${s.venue||''}</small>
+      </div>
       <div class="sr-arrow" id="arrow-${s.id}">›</div>
     </div>
     <div class="stat-chips">

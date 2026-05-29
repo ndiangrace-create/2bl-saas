@@ -659,8 +659,14 @@ function renderSessionCard(s, idx) {
   const typeIcon = {'市集':'🏪','體驗':'🎨','文化':'🎭','百貨':'🏬'}[s.type||'市集']||'🏪';
   const sidx = sessions.indexOf(s);
   return `<div class="sc">
-    <div class="sc-h"><div class="sc-n">${s.name}</div><span class="badge ${badgeCls}">${badgeTxt}</span></div>
-    <div class="sc-i">${typeIcon} ${s.type||'市集'}　📅 ${s.dateDisplay||s.date}${s.timeStart?' '+s.timeStart+(s.timeEnd?'-'+s.timeEnd:''):''}　📍 ${s.city} ${s.venue}</div>
+    <div class="sc-h">
+      <div>
+        <div style="font-size:13px;color:var(--md);margin-bottom:3px">${typeIcon} ${s.type||'市集'}　📍 ${s.city||''}</div>
+        <div class="sc-n">${s.name}</div>
+      </div>
+      <span class="badge ${badgeCls}">${badgeTxt}</span>
+    </div>
+    <div class="sc-i">📅 ${s.dateDisplay||s.date}${s.timeStart?' '+s.timeStart+(s.timeEnd?'-'+s.timeEnd:''):''}　${s.venue}</div>
     <div class="sc-p">NT$${s.fee}／攤</div>
     ${s.mapUrl?`<a href="${s.mapUrl}" target="_blank" style="display:inline-block;font-size:14px;color:var(--md);margin-bottom:5px;text-decoration:none">📍 查看地圖</a>`:''}
     ${!full?`<button class="sc-btn" onclick="clickSesWithEntry(${sidx})">我要報名</button>`:`<button class="sc-btn" disabled>已額滿</button>`}
@@ -914,7 +920,7 @@ function bGoStep(n){
       $('bS2SesName').textContent = B.ses.name;
       const timeStr = B.ses.timeStart ? ` ${B.ses.timeStart}${B.ses.timeEnd?'-'+B.ses.timeEnd:''}` : '';
       const mapLink = B.ses.mapUrl ? ` <a href="${B.ses.mapUrl}" target="_blank" style="color:var(--g)">📍地圖</a>` : '';
-      $('bS2SesDetail').innerHTML = `📅 ${B.ses.dateDisplay||B.ses.date}${timeStr} · ${B.ses.city} ${B.ses.venue}${mapLink}`;
+      $('bS2SesDetail').innerHTML = `📍 ${B.ses.city||''} · 📅 ${B.ses.dateDisplay||B.ses.date}${timeStr} · ${B.ses.venue}${mapLink}`;
     }
     renderSubSessionPicker();
   }
