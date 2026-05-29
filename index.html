@@ -235,15 +235,6 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   </div>
 </div>
 <div class="sec">
-  <div class="sec-t">選擇活動類型</div>
-  <div class="cat-grid">
-    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('攤商招募')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
-    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('活動報名')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
-    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('合作申請')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
-    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('商場百貨寄賣')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
-  </div>
-</div>
-<div class="sec">
   <div class="sec-t">📢 公告欄</div>
   <div id="announcementBoard" style="background:#fff;border-radius:var(--r);padding:14px;box-shadow:var(--sh)">
     <div id="announcementList">
@@ -1143,20 +1134,20 @@ function renderDynamicForm() {
   const s = B.ses;
   const entry = B.entryType || '攤商招募';
   const defaultModsByType = {
-    '攤商招募':      { brand:true, sell_item:true, sell_cat:true, photo:false },
-    '活動報名':      { public:true, dates:true, course:true },
-    '合作申請':      { brand:true, brand_intro:true, partner:true },
-    '商場百貨寄賣':  { brand:true, sell_item:true, sell_link:true, sell_cat:true },
-    // 舊名稱相容
-    '市集': { brand:true, sell_item:true, sell_cat:true },
-    '體驗': { public:true, dates:true, course:true },
-    '文化': { brand:true, partner:true },
-    '百貨': { brand:true, sell_item:true },
+    '攤商招募':      { brand:true, sellItem:true, sellCat:true },
+    '活動報名':      { adult:true, child:true, diet:true, actName:true, actContent:true, actMax:true, actFee:true },
+    '合作申請':      { brand:true, brandIntro:true, collabType:true, collabSocial:true, collabPortfolio:true, collabMethod:true, collabPrice:true },
+    '商場百貨寄賣':  { brand:true, sellItem:true, sellLink:true, sellCat:true, photo:true },
+    '市集': { brand:true, sellItem:true, sellCat:true },
+    '體驗': { adult:true, child:true, diet:true, actName:true, actContent:true, actMax:true, actFee:true },
+    '文化': { brand:true, brandIntro:true, collabType:true, collabSocial:true },
+    '百貨': { brand:true, sellItem:true, sellLink:true, sellCat:true },
   };
   const savedMods = s?.modules || {};
   const hasSaved = Object.keys(savedMods).length > 0;
   const sesType = s?.type || entry;
-  const mods = hasSaved ? savedMods : (defaultModsByType[sesType] || defaultModsByType[entry] || {brand:true, sell_item:true});
+  const mods = hasSaved ? savedMods : (defaultModsByType[sesType] || defaultModsByType[entry] || { brand:true, sellItem:true });
+
   let html = '';
 
   // ── 基本資料（必填）──
@@ -1172,76 +1163,67 @@ function renderDynamicForm() {
     <div class="em" id="fe_email"></div>
   </div>`;
 
-  // ── 攤商報名欄位 ──
-  const hasVendorMod = mods.brand||mods.brand_intro||mods.sell_item||mods.sell_link||mods.sell_cat||mods.photo;
-  if(hasVendorMod) {
-    html += '<div class="card"><div class="card-t">🏷️ 攤商資料</div>';
+  // ── 品牌/攤商資料 ──
+  const hasBrandSection = mods.brand||mods.brandIntro||mods.sellItem||mods.sellLink||mods.sellCat||mods.photo;
+  if(hasBrandSection) {
+    html += '<div class="card"><div class="card-t">🏷️ 品牌 / 攤商資料</div>';
     if(mods.brand) html += `<label>品牌名稱 *</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱"><div class="em" id="fe_fb"></div>`;
-    if(mods.brand_intro) html += `<label>品牌介紹</label><textarea id="f_brand_intro" placeholder="簡介你的品牌...">${V.brandIntro||''}</textarea>`;
-    if(mods.sell_item) html += `<label>主要販售商品 *</label><input type="text" id="f_sell_item" placeholder="例：手工皮革錢包、韓系選品"><div class="em" id="fe_sell"></div>`;
-    if(mods.sell_link) html += `<label>販售商品連結</label><input type="url" id="f_sell_link" placeholder="商品頁或社群連結">`;
-    if(mods.sell_cat) html += `<label>販售類別</label>
+    if(mods.brandIntro) html += `<label>品牌介紹</label><textarea id="f_brand_intro" placeholder="簡介你的品牌...">${V.brandIntro||''}</textarea>`;
+    if(mods.sellItem) html += `<label>主要販售商品 *</label><input type="text" id="f_sell_item" placeholder="例：手工皮革錢包、韓系選品"><div class="em" id="fe_sell"></div>`;
+    if(mods.sellLink) html += `<label>販售商品連結</label><input type="url" id="f_sell_link" placeholder="商品頁或社群連結">`;
+    if(mods.sellCat) html += `<label>販售類別</label>
       <div class="chips" id="sellTypeChips" style="margin-top:6px">
         ${['文創手作','飾品金工','潮流選品','動漫ACG','美食飲品','生活選物','花藝植栽','伴手禮','親子','二手','其他'].map(t=>'<div class="chip" onclick="toggleChip(this)">'+t+'</div>').join('')}
       </div>`;
-    if(mods.photo) html += `<label>出攤照片連結</label><input type="url" id="f_photo" placeholder="照片連結（新手可模擬拍照）"><div style="font-size:12px;color:var(--md);margin-top:2px">💡 新手可拍模擬擺設照上傳到雲端再貼連結</div>`;
+    if(mods.photo) html += `<label>出攤照片連結</label><input type="url" id="f_photo" placeholder="照片連結"><div style="font-size:12px;color:var(--md);margin-top:2px">💡 新手可拍模擬擺設照上傳後貼連結</div>`;
     html += '</div>';
   }
 
-  // ── 課程資料 ──
-  if(mods.course) html += `<div class="card"><div class="card-t">📚 課程資料</div>
-    <label>課程名稱 *</label><input type="text" id="f_course_name" placeholder="課程名稱">
-    <label>課程介紹</label><textarea id="f_course_intro" placeholder="課程內容、適合對象..."></textarea>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><label>招收人數</label><input type="number" id="f_course_max" placeholder="10" min="1"></div>
-      <div><label>材料費/人</label><input type="number" id="f_course_fee" placeholder="0" min="0"></div>
-    </div>
-  </div>`;
+  // ── 報名資料 ──
+  const hasRegSection = mods.adult||mods.child||mods.diet||mods.access;
+  if(hasRegSection) {
+    html += '<div class="card"><div class="card-t">📋 報名資料</div>';
+    if(mods.adult||mods.child) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+      if(mods.adult) html += `<div><label>大人人數 *</label><input type="number" id="adultCount" value="1" min="1" oninput="updateChildAges()"></div>`;
+      if(mods.child) html += `<div><label>小孩人數</label><input type="number" id="childCount" value="0" min="0" oninput="updateChildAges()"></div>`;
+      html += '</div><div id="childAgesArea"></div>';
+    }
+    if(mods.diet) html += `<label>飲食需求</label><select id="f_diet"><option value="">無特殊需求</option><option>素食</option><option>全素</option><option>清真</option><option>其他</option></select>`;
+    if(mods.access) html += `<label>無障礙需求</label><input type="text" id="f_access" placeholder="如有特殊需求請說明">`;
+    html += '</div>';
+  }
+
+  // ── 活動資料 ──
+  const hasActSection = mods.actName||mods.actContent||mods.actMax||mods.actFee;
+  if(hasActSection) {
+    html += '<div class="card"><div class="card-t">🎯 活動資料</div>';
+    if(mods.actName) html += `<label>活動名稱 *</label><input type="text" id="f_act_name" placeholder="活動名稱">`;
+    if(mods.actContent) html += `<label>活動內容</label><textarea id="f_act_content" placeholder="活動內容介紹..."></textarea>`;
+    if(mods.actMax||mods.actFee) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+      if(mods.actMax) html += `<div><label>招收人數</label><input type="number" id="f_act_max" placeholder="10" min="1"></div>`;
+      if(mods.actFee) html += `<div><label>材料費/人</label><input type="number" id="f_act_fee" placeholder="0" min="0"></div>`;
+      html += '</div>';
+    }
+    html += '</div>';
+  }
 
   // ── 設備需求 ──
-  if(s && (s.equip && Object.values(s.equip).some(e=>e&&e.open))) html += renderEquipSection(s);
-
-  // ── 民眾資料 ──
-  if(mods.public) html += `<div class="card"><div class="card-t">👥 參與資料</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><label>大人人數 *</label><input type="number" id="adultCount" value="1" min="1" oninput="updateChildAges()"></div>
-      <div><label>小孩人數</label><input type="number" id="childCount" value="0" min="0" oninput="updateChildAges()"></div>
-    </div>
-    <div id="childAgesArea"></div>
-    <label>飲食需求</label>
-    <select id="f_diet"><option value="">無特殊需求</option><option>素食</option><option>全素</option><option>清真</option><option>其他</option></select>
-    <label>無障礙需求</label><input type="text" id="f_access" placeholder="如有特殊需求請說明">
-  </div>`;
-
-  // ── 參加日期勾選 ──
-  if(mods.dates && s?.activityDates?.length) {
-    html += '<div class="card"><div class="card-t">📅 參加場次日期</div>';
-    html += '<div style="font-size:13px;color:var(--md);margin-bottom:8px">請勾選要參加的日期</div>';
-    html += s.activityDates.map((d,i)=>
-      `<label style="display:flex;align-items:center;gap:10px;padding:11px;background:var(--lt);border-radius:9px;margin-bottom:6px;cursor:pointer">
-        <input type="checkbox" id="f_date_${i}" value="${d.date}" style="width:18px;height:18px;accent-color:var(--g)">
-        <span style="font-size:15px;font-weight:700">${d.date}</span>
-        <span style="font-size:13px;color:var(--md)">${d.start||''}${d.end?' - '+d.end:''}</span>
-      </label>`
-    ).join('');
-    html += '</div>';
-  }
+  if(s && s.equip && Object.values(s.equip).some(e=>e&&e.open)) html += renderEquipSection(s);
 
   // ── 合作資料 ──
-  if(mods.partner) html += `<div class="card"><div class="card-t">🤝 合作資料</div>
-    <label>單位名稱 *</label><input type="text" id="f_partner_org" placeholder="單位或個人名稱">
-    <label>合作類型</label><input type="text" id="f_partner_type" placeholder="例：Coser、攝影師、KOL、展演...">
-    <label>聯絡人</label><input type="text" id="f_partner_contact" placeholder="聯絡人姓名">
-    <label>電話</label><input type="tel" id="f_partner_phone" placeholder="聯絡電話">
-    <label>聯絡 Email</label><input type="email" id="f_partner_email" placeholder="聯絡信箱">
-    <label>統一編號</label><input type="text" id="f_partner_taxid" placeholder="（選填）">
-    <label>希望合作內容</label><textarea id="f_partner_content" placeholder="說明你希望的合作方式..."></textarea>
-    <label>可提供資源</label><textarea id="f_partner_resource" placeholder="你可以提供什麼？"></textarea>
-    <label>報價 / 互惠條件</label><input type="text" id="f_partner_price" placeholder="例：NT$3000 或 場次免費換宣傳">
-    <label>社群連結 *</label><input type="url" id="f_partner_social" placeholder="FB / IG / TikTok 主頁連結">
-    <label>作品集</label><input type="url" id="f_partner_portfolio" placeholder="作品集連結（選填）">
-    <label>備註</label><textarea id="f_partner_note" placeholder="其他說明..."></textarea>
-  </div>`;
+  const hasCollabSection = mods.collabType||mods.collabSocial||mods.collabPortfolio||mods.collabMethod||mods.collabPrice||mods.remark;
+  if(hasCollabSection) {
+    html += '<div class="card"><div class="card-t">🤝 合作資料</div>';
+    if(mods.collabType) html += `<label>合作類型</label><input type="text" id="f_collab_type" placeholder="例：Coser、攝影師、KOL、展演...">`;
+    if(mods.collabSocial) html += `<label>社群連結 *</label><input type="url" id="f_collab_social" placeholder="FB / IG / TikTok 主頁連結">`;
+    if(mods.collabPortfolio) html += `<label>作品集</label><input type="url" id="f_collab_portfolio" placeholder="作品集連結（選填）">`;
+    if(mods.collabMethod) html += `<label>希望合作方式</label><textarea id="f_collab_method" placeholder="說明你希望的合作方式..."></textarea>`;
+    if(mods.collabPrice) html += `<label>報價 / 互惠條件</label><input type="text" id="f_collab_price" placeholder="例：NT$3000 或 場次免費換宣傳">`;
+    if(mods.remark) html += `<label>備註</label><textarea id="f_remark" placeholder="其他說明..."></textarea>`;
+    html += '</div>';
+  }
 
   // ── 自訂欄位 ──
   if(mods.custom && s?.customFields?.length) {
@@ -1256,9 +1238,7 @@ function renderDynamicForm() {
       } else if(cf.type==='multi'){
         const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);
         html += `<div class="chips" id="cf_${i}_chips">${opts.map(o=>'<div class="chip" onclick="toggleChip(this)">'+o+'</div>').join('')}</div>`;
-      } else {
-        html += `<input type="text" id="cf_${i}" placeholder="${cf.label||''}"${cf.required?' required':''}>`;
-      }
+      } else html += `<input type="text" id="cf_${i}" placeholder="${cf.label||''}"${cf.required?' required':''}>`;
     });
     html += '</div>';
   }
@@ -1614,4 +1594,13 @@ async function submitRefund() {
 }
 </script>
 </body>
-</html>
+</html><div class="sec">
+  <div class="sec-t">選擇活動類型</div>
+  <div class="cat-grid">
+    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('攤商招募')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
+    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('活動報名')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
+    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('合作申請')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
+    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('商場百貨寄賣')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
+  </div>
+</div>
+

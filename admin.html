@@ -263,14 +263,16 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
 
   <!-- 報名表設定 -->
   <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:10px">📋 報名表設定</div>
-  <div style="background:var(--gp);border-radius:9px;padding:10px;margin-bottom:10px">
-    <div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:5px">基本資料（必填）</div>
+
+  <!-- 基本資料（必填）-->
+  <div style="background:var(--gp);border-radius:9px;padding:10px 12px;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:4px">基本資料（必填，不可取消）</div>
     <div style="font-size:13px;color:var(--md)">✅ 姓名　✅ 手機　✅ Email</div>
   </div>
 
-  <!-- 攤商報名欄位 -->
-  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:7px">攤商報名</div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px" id="vendorModules">
+  <!-- 品牌資料 -->
+  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:6px">品牌 / 攤商資料</div>
+  <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
     <label class="mod-label"><input type="checkbox" id="mod_brand" class="mod-cb"> 品牌名稱</label>
     <label class="mod-label"><input type="checkbox" id="mod_brand_intro" class="mod-cb"> 品牌介紹</label>
     <label class="mod-label"><input type="checkbox" id="mod_sell_item" class="mod-cb"> 主要販售商品</label>
@@ -279,29 +281,59 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <label class="mod-label"><input type="checkbox" id="mod_photo" class="mod-cb"> 出攤照片連結</label>
   </div>
 
-  <!-- 活動資料 -->
-  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:7px">活動資料（民眾）</div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-    <label class="mod-label"><input type="checkbox" id="mod_public" class="mod-cb"> 大人小孩人數</label>
-    <label class="mod-label"><input type="checkbox" id="mod_dates" class="mod-cb"> 參加場次日期</label>
-    <label class="mod-label"><input type="checkbox" id="mod_course" class="mod-cb"> 課程資料</label>
+  <!-- 報名資料（原民眾/參與資料）-->
+  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:6px">報名資料</div>
+  <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
+    <label class="mod-label"><input type="checkbox" id="mod_adult" class="mod-cb"> 大人人數</label>
+    <label class="mod-label"><input type="checkbox" id="mod_child" class="mod-cb"> 小孩人數/年齡</label>
+    <label class="mod-label"><input type="checkbox" id="mod_diet" class="mod-cb"> 飲食需求</label>
+    <label class="mod-label"><input type="checkbox" id="mod_access" class="mod-cb"> 無障礙需求</label>
+  </div>
+
+  <!-- 活動資料（課程）-->
+  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:6px">活動資料</div>
+  <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
+    <label class="mod-label"><input type="checkbox" id="mod_act_name" class="mod-cb"> 活動名稱</label>
+    <label class="mod-label"><input type="checkbox" id="mod_act_content" class="mod-cb"> 活動內容</label>
+    <label class="mod-label"><input type="checkbox" id="mod_act_max" class="mod-cb"> 招收人數</label>
+    <label class="mod-label"><input type="checkbox" id="mod_act_fee" class="mod-cb"> 材料費</label>
   </div>
 
   <!-- 合作資料 -->
-  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:7px">合作資料</div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-    <label class="mod-label"><input type="checkbox" id="mod_partner" class="mod-cb"> 合作資料欄位</label>
+  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:6px">合作資料</div>
+  <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
+    <label class="mod-label"><input type="checkbox" id="mod_collab_type" class="mod-cb"> 合作類型</label>
+    <label class="mod-label"><input type="checkbox" id="mod_collab_social" class="mod-cb"> 社群連結</label>
+    <label class="mod-label"><input type="checkbox" id="mod_collab_portfolio" class="mod-cb"> 作品集</label>
+    <label class="mod-label"><input type="checkbox" id="mod_collab_method" class="mod-cb"> 合作方式</label>
+    <label class="mod-label"><input type="checkbox" id="mod_collab_price" class="mod-cb"> 報價/互惠</label>
+    <label class="mod-label"><input type="checkbox" id="mod_remark" class="mod-cb"> 備註</label>
+  </div>
+
+  <!-- 設備（各自勾選）-->
+  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:6px">設備需求（各自開放）</div>
+  <div class="eq-grid" style="margin-bottom:12px">
+    <div class="eq-item"><input type="checkbox" id="ns_eq_桌" class="mod-cb"><span class="eq-name">🪵 桌</span><input type="number" id="ns_ep_桌" placeholder="350" class="eq-price"></div>
+    <div class="eq-item"><input type="checkbox" id="ns_eq_椅子" class="mod-cb"><span class="eq-name">🪑 椅子</span><input type="number" id="ns_ep_椅子" placeholder="20" class="eq-price"></div>
+    <div class="eq-item"><input type="checkbox" id="ns_eq_帳篷" class="mod-cb"><span class="eq-name">⛺ 帳篷</span><input type="number" id="ns_ep_帳篷" placeholder="800" class="eq-price"></div>
+    <div class="eq-item"><input type="checkbox" id="ns_eq_野餐墊" class="mod-cb"><span class="eq-name">🧺 野餐墊</span><input type="number" id="ns_ep_野餐墊" placeholder="50" class="eq-price"></div>
+    <div class="eq-item"><input type="checkbox" id="ns_eq_桌布" class="mod-cb"><span class="eq-name">🎀 桌布</span><input type="number" id="ns_ep_桌布" placeholder="50" class="eq-price"></div>
+    <div class="eq-item"><input type="checkbox" id="ns_eq_電" class="mod-cb"><span class="eq-name">⚡ 電</span><input type="number" id="ns_ep_電" placeholder="100" class="eq-price"></div>
+    <div class="eq-item"><input type="checkbox" id="ns_eq_燈" class="mod-cb"><span class="eq-name">💡 燈</span><input type="number" id="ns_ep_燈" placeholder="50" class="eq-price"></div>
+    <div class="eq-item"><input type="checkbox" id="ns_eq_陽傘" class="mod-cb"><span class="eq-name">☂️ 陽傘</span><input type="number" id="ns_ep_陽傘" placeholder="450" class="eq-price"></div>
+    <div class="eq-item" style="border-color:#ffd0b0"><input type="checkbox" id="ns_open_fire" class="mod-cb"><span class="eq-name" style="color:#c0607a">🔥 明火</span></div>
+    <div class="eq-item" style="border-color:#b0d0ff"><input type="checkbox" id="ns_open_power" class="mod-cb"><span class="eq-name" style="color:#2980B9">⚡ 用電</span></div>
   </div>
 
   <!-- 自訂欄位 -->
-  <label class="mod-label" style="width:100%;padding:10px 13px"><input type="checkbox" id="mod_custom" class="mod-cb"> 開放自訂欄位</label>
-  <div id="customFieldsArea" style="display:none;background:var(--lt);border-radius:10px;padding:12px;margin-top:8px;margin-bottom:4px">
-    <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:8px">自訂欄位設定</div>
+  <label class="mod-label" style="width:100%;padding:10px 13px;margin-bottom:8px"><input type="checkbox" id="mod_custom" class="mod-cb"> 開放自訂欄位</label>
+  <div id="customFieldsArea" style="display:none;background:var(--lt);border-radius:10px;padding:12px;margin-bottom:4px">
+    <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:8px">自訂欄位設定（此場次獨立）</div>
     <div id="customFieldsList"></div>
     <button type="button" onclick="addCustomField()" style="width:100%;padding:10px;background:none;border:2px dashed #c8ddc8;border-radius:9px;font-size:14px;color:var(--md);cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:8px">＋ 新增欄位</button>
   </div>
 
-  <!-- 子場次設定 -->
+<!-- 子場次設定 -->
   <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:8px">子場次設定</div>
   <select id="ns_pos_mode" onchange="togglePosMode()" style="margin-bottom:9px">
     <option value="none">不設定子場次</option>
@@ -330,6 +362,31 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
 <div class="modal" id="mVendorDetail" onclick="if(event.target===this)closeModal('mVendorDetail')">
   <div class="mbox"><div class="mh"></div><div id="vendorDetailContent"></div></div>
 </div>
+
+  <!-- 新增子場次浮層 -->
+  <div class="modal" id="mAddSubSession" onclick="if(event.target===this)closeModal('mAddSubSession')">
+  <div class="mbox">
+    <div class="mh"></div>
+    <div class="mt" id="mSubSesTitle">新增子場次</div>
+    <input type="hidden" id="sub_parent_id">
+    <label>子場次名稱 *</label>
+    <input type="text" id="sub_name" placeholder="例：市集攤商、民眾體驗、走秀報名">
+    <label>活動日期 *</label>
+    <input type="date" id="sub_date">
+    <div class="fg2">
+      <div><label>開始時間</label><input type="time" id="sub_time_start" value="10:00"></div>
+      <div><label>結束時間</label><input type="time" id="sub_time_end" value="18:00"></div>
+    </div>
+    <div class="fg2">
+      <div><label>費用（0=免費）</label><input type="number" id="sub_fee" value="0" placeholder="500"></div>
+      <div><label>保證金</label><input type="number" id="sub_deposit" value="500"></div>
+    </div>
+    <div><label>名額上限</label><input type="number" id="sub_limit" placeholder="30"></div>
+    <div><label>說明（選填）</label><textarea id="sub_intro" placeholder="子場次說明..."></textarea></div>
+    <button class="btn btn-p mt12" onclick="saveSubSession()">建立子場次</button>
+    <button class="btn btn-s mt8" onclick="closeModal('mAddSubSession')">取消</button>
+  </div>
+  </div>
 
 <!-- 新增公告 -->
 <div class="modal" id="mAddAnnouncement" onclick="if(event.target===this)closeModal('mAddAnnouncement')">
@@ -967,6 +1024,47 @@ async function editSession(sessionId) {
   openModal('mNewSession');
 }
 
+function openAddSubSession(parentId, parentName) {
+  $('sub_parent_id').value = parentId;
+  $('mSubSesTitle').textContent = '新增子場次：' + parentName;
+  $('sub_name').value = '';
+  $('sub_date').value = '';
+  $('sub_time_start').value = '10:00';
+  $('sub_time_end').value = '18:00';
+  $('sub_fee').value = '0';
+  $('sub_deposit').value = '500';
+  $('sub_limit').value = '30';
+  $('sub_intro').value = '';
+  openModal('mAddSubSession');
+}
+
+async function saveSubSession() {
+  const parentId = $('sub_parent_id')?.value;
+  const name = $('sub_name')?.value.trim();
+  const date = $('sub_date')?.value;
+  if(!parentId||!name||!date) { toast('請填寫子場次名稱和日期'); return; }
+  sl(true);
+  try {
+    const d = await apiPost({
+      action: 'createSubSession',
+      parentId,
+      name,
+      date,
+      timeStart: $('sub_time_start')?.value || '10:00',
+      timeEnd: $('sub_time_end')?.value || '18:00',
+      fee: parseInt($('sub_fee')?.value)||0,
+      deposit: parseInt($('sub_deposit')?.value)||500,
+      limit: parseInt($('sub_limit')?.value)||30,
+      intro: $('sub_intro')?.value||'',
+    });
+    if(d.success) {
+      toast('✅ 子場次已建立');
+      closeModal('mAddSubSession');
+    } else toast('建立失敗：'+(d.message||''));
+  } catch(e) { toast('操作失敗'); }
+  finally { sl(false); }
+}
+
 async function copySession(sessionId, sessionName) {
   if(!confirm(`複製「${sessionName}」場次？將建立相同設定的新場次。`)) return;
   sl(true);
@@ -1110,8 +1208,9 @@ function renderSessionsManageList(){
       </div>
       <div style="font-size:15px;color:var(--md)">報名 ${s.enrolled||0}／${s.limit||0} · 繳費 ${s.paid||0} · 缺 ${Math.max(0,(parseInt(s.limit)||0)-(parseInt(s.accepted)||0))} 攤</div>
       <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px">
-        <button class="btn-xs" style="background:var(--g);color:#fff" onclick="switchTab('dash');setTimeout(()=>toggleRow('${s.id}'),300)">📋 名單</button>
+        <button class="btn-xs" style="background:var(--g);color:#fff" onclick="switchTab('dash');setTimeout(()=>loadVendors('${s.id}'),300)">📋 名單</button>
         <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="editSession('${s.id}')">✏️ 編輯</button>
+        <button class="btn-xs" style="background:var(--gp);color:var(--g)" onclick="openAddSubSession('${s.id}','${s.name.replace(/'/g,'')}')">➕ 子場次</button>
         <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="copySession('${s.id}','${s.name.replace(/'/g,'')}')">📋 複製</button>
         <button class="btn-xs" style="background:var(--ylp);color:var(--yl)" onclick="toggleSessionStatus('${s.id}','${s.status||'報名中'}')">
           ${s.status==='關閉'?'🔓 開放':'🔒 關閉'}
@@ -1451,16 +1550,31 @@ async function saveNewSession(){
   });
   // 收集模組設定
   const modules = {
+    // 品牌/攤商
     brand: $('mod_brand')?.checked||false,
     brandIntro: $('mod_brand_intro')?.checked||false,
     sellItem: $('mod_sell_item')?.checked||false,
     sellLink: $('mod_sell_link')?.checked||false,
     sellCat: $('mod_sell_cat')?.checked||false,
     photo: $('mod_photo')?.checked||false,
-    public: $('mod_public')?.checked||false,
-    dates: $('mod_dates')?.checked||false,
-    course: $('mod_course')?.checked||false,
-    partner: $('mod_partner')?.checked||false,
+    // 報名資料
+    adult: $('mod_adult')?.checked||false,
+    child: $('mod_child')?.checked||false,
+    diet: $('mod_diet')?.checked||false,
+    access: $('mod_access')?.checked||false,
+    // 活動資料
+    actName: $('mod_act_name')?.checked||false,
+    actContent: $('mod_act_content')?.checked||false,
+    actMax: $('mod_act_max')?.checked||false,
+    actFee: $('mod_act_fee')?.checked||false,
+    // 合作資料
+    collabType: $('mod_collab_type')?.checked||false,
+    collabSocial: $('mod_collab_social')?.checked||false,
+    collabPortfolio: $('mod_collab_portfolio')?.checked||false,
+    collabMethod: $('mod_collab_method')?.checked||false,
+    collabPrice: $('mod_collab_price')?.checked||false,
+    remark: $('mod_remark')?.checked||false,
+    // 自訂
     custom: $('mod_custom')?.checked||false,
   };
 
