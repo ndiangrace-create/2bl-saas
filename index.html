@@ -1210,6 +1210,36 @@ async function submitBook() {
     childAges:B.childAges,
     dietNeeds:$('f_diet')?.value||'',
     accessNeeds:$('f_access')?.value||'',
+    // 新模組欄位
+    sellNote:$('sellNote')?.value.trim()||'',
+    brandIntro:$('f_brand_intro')?.value||'',
+    website:$('f_website')?.value||'',
+    fb:$('f_fb')?.value||V.fb||'',
+    ig:$('f_ig')?.value||V.ig||'',
+    courseName:$('f_course_name')?.value||'',
+    courseIntro:$('f_course_intro')?.value||'',
+    courseMax:$('f_course_max')?.value||'',
+    courseFee:$('f_course_fee')?.value||'',
+    partnerType:$('f_partner_type')?.value||'',
+    partnerContent:$('f_partner_content')?.value||'',
+    partnerResource:$('f_partner_resource')?.value||'',
+    partnerPrice:$('f_partner_price')?.value||'',
+    partnerSocial:$('f_partner_social')?.value||'',
+    partnerPortfolio:$('f_partner_portfolio')?.value||'',
+    customAnswers: (() => {
+      const ans = {};
+      if(B.ses?.customFields) {
+        B.ses.customFields.forEach((cf,i)=>{
+          if(cf.type==='multi'){
+            const chips=document.querySelectorAll('#cf_'+i+'_chips .chip.on');
+            ans[cf.label]=Array.from(chips).map(c=>c.textContent).join('、');
+          } else {
+            ans[cf.label]=$('cf_'+i)?.value||'';
+          }
+        });
+      }
+      return JSON.stringify(ans);
+    })(),
     rulesOk:true
   };
   // debug
