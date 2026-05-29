@@ -1028,7 +1028,21 @@ function selSubSession(id, name, fee, el) {
 // ── 動態表單（依後台模組設定顯示欄位）──
 function renderDynamicForm() {
   const s = B.ses;
-  const mods = s?.modules || {};
+  const entry = B.entryType || '市集';
+
+  // 依入口類型設定預設模組（後台有設定就用設定，否則依入口推算）
+  const defaultModsByEntry = {
+    '市集': { brand:true, sell:true, equip:true },
+    '體驗': { brand:true, course:true, equip:true },
+    '文化': { brand:true, partner:true },
+    '百貨': { brand:true, sell:true },
+  };
+
+  // 後台有設定模組就用後台設定，否則依入口推算預設
+  const savedMods = s?.modules || {};
+  const hasSavedMods = Object.keys(savedMods).length > 0;
+  const mods = hasSavedMods ? savedMods : (defaultModsByEntry[entry] || { brand:true, sell:true });
+
   let html = '';
 
   // ── 基本資料（必選）──
