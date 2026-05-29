@@ -218,6 +218,28 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
     </div>
   </div>
 </div>
+<div class="sec">
+  <div class="sec-t">📢 公告欄</div>
+  <div id="announcementBoard" style="background:#fff;border-radius:var(--r);padding:14px;box-shadow:var(--sh)">
+    <div id="announcementList">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--gp)">
+        <div style="background:var(--g);color:#fff;font-size:14px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;margin-top:1px">最新</div>
+        <div><div style="font-size:15px;font-weight:700;color:var(--dk)">報名系統正式上線！</div><div style="font-size:15px;color:var(--md);margin-top:2px">歡迎各位攤商、體驗老師、合作夥伴加入兔彼樂！從四大分類選擇適合的活動報名。</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0">
+        <div style="background:var(--blp);color:#2980B9;font-size:14px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;margin-top:1px">說明</div>
+        <div><div style="font-size:15px;font-weight:700;color:var(--dk)">如何報名？</div><div style="font-size:15px;color:var(--md);margin-top:2px">點選下方四大類型 → 選擇場次 → 填寫資料 → 等待審核通知</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="footer" style="text-align:center;padding:20px 16px 30px;background:var(--g);color:#fff;margin-top:20px">
+  <div style="font-size:16px;font-weight:700;margin-bottom:4px">兔彼樂共創活動有限公司</div>
+  <div style="font-size:13px;opacity:0.85;margin-bottom:8px">ToBeloved Co-Creation Event Ltd.</div>
+  <div style="font-size:12px;opacity:0.7">統編：90279650 ｜ 台中市</div>
+  <div style="font-size:11px;opacity:0.6;margin-top:8px">© 2025 ToBeloved Co-Creation Event Ltd. All rights reserved.</div>
+</div>
+</div>
 <div class="sec" style="padding-bottom:12px">
   <div class="flow-card" style="background:rgba(0,100,0,0.04);border:1px solid var(--gp)">
     <div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px;text-align:center">📋 報名流程</div>
@@ -234,23 +256,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
     </div>
   </div>
 </div>
-<div class="sec">
-  <div class="sec-t">📢 公告欄</div>
-  <div id="announcementBoard" style="background:#fff;border-radius:var(--r);padding:14px;box-shadow:var(--sh)">
-    <div id="announcementList">
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--gp)">
-        <div style="background:var(--g);color:#fff;font-size:14px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;margin-top:1px">最新</div>
-        <div><div style="font-size:15px;font-weight:700;color:var(--dk)">報名系統正式上線！</div><div style="font-size:15px;color:var(--md);margin-top:2px">歡迎各位攤商、體驗老師、合作夥伴加入兔彼樂！從四大分類選擇適合的活動報名。</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0">
-        <div style="background:var(--blp);color:#2980B9;font-size:14px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;margin-top:1px">說明</div>
-        <div><div style="font-size:15px;font-weight:700;color:var(--dk)">如何報名？</div><div style="font-size:15px;color:var(--md);margin-top:2px">點選下方四大類型 → 選擇場次 → 填寫資料 → 等待審核通知</div></div>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="footer"><div class="ft-t">兔彼樂共創活動有限公司</div>© 2026 Topilot Co-Creation Event Co., Ltd.</div>
-</div>
+
 
 <!-- ══ 場次列表 ══ -->
 <div class="page" id="p-sessions">
@@ -1628,7 +1634,7 @@ async function submitRefund() {
 </script>
 </body>
 </html><div class="sec">
-  <div class="sec-t">選擇活動類型</div>
+  <div style="background:var(--g);color:#fff;border-radius:9px;padding:11px 16px;font-size:16px;font-weight:700;text-align:center;margin-bottom:12px;letter-spacing:1px">活動報名</div>
   <div class="cat-grid">
     <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('攤商招募')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
     <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('活動報名')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
@@ -1636,4 +1642,5 @@ async function submitRefund() {
     <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('商場百貨寄賣')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
   </div>
 </div>
+
 
