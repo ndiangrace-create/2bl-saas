@@ -282,6 +282,13 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
       <div class="fg"><label class="fl">姓名 <span class="fr">*</span></label><input type="text" id="jName" placeholder="代表人姓名"><div class="em" id="ej_name">請填寫姓名</div></div>
       <div class="fg"><label class="fl">Email <span class="fr">*</span></label><input type="email" id="jEmail" placeholder="作為登入識別"><div class="em" id="ej_email">請填寫正確 Email</div></div>
       <div class="fg"><label class="fl">手機 <span class="fr">*</span></label><input type="tel" id="jPhone" placeholder="09xxxxxxxx"><div class="em" id="ej_phone">請填寫手機號碼</div></div>
+      <div class="fg"><label class="fl">性別</label>
+        <div style="display:flex;gap:14px;margin-top:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer"><input type="radio" name="jGender" value="male" style="accent-color:var(--g)"> 男</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer"><input type="radio" name="jGender" value="female" style="accent-color:var(--g)"> 女</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer"><input type="radio" name="jGender" value="other" style="accent-color:var(--g)"> 不公開</label>
+        </div>
+      </div>
       <div class="fg"><label class="fl">所在地區</label>
         <select id="jRegion"><option value="">請選擇</option><option>北北基</option><option>桃竹苗</option><option>中彰投</option><option>雲嘉南</option><option>高屏</option><option>宜花東</option><option>離島</option><option>海外</option></select>
       </div>
@@ -293,8 +300,10 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
     <div class="card">
       <div class="card-t">🎨 品牌資料</div>
       <div class="fg"><label class="fl">品牌名稱</label><input type="text" id="jBrand" placeholder="攤位品牌名（可與姓名相同）"></div>
-      <div class="fg"><label class="fl">FB 連結 <span class="fr">*</span></label><input type="url" id="jFb" placeholder="https://www.facebook.com/..."><div class="fh">主辦將點開連結審核</div><div class="em" id="ej_fb">請填寫 FB 連結</div></div>
-      <div class="fg"><label class="fl">IG 連結 <span class="fr">*</span></label><input type="url" id="jIg" placeholder="https://www.instagram.com/..."><div class="em" id="ej_ig">請填寫 IG 連結</div></div>
+      <div class="fg"><label class="fl">FB 粉專連結 <span style="font-size:12px;color:var(--md)">選填</span></label><input type="url" id="jFb" placeholder="https://www.facebook.com/..."><div class="fh">帶入報名表，方便主辦審核</div></div>
+      <div class="fg"><label class="fl">IG 連結 <span style="font-size:12px;color:var(--md)">選填</span></label><input type="url" id="jIg" placeholder="https://www.instagram.com/..."></div>
+      <div class="fg"><label class="fl">官方網站 <span style="font-size:12px;color:var(--md)">選填</span></label><input type="url" id="jWebsite" placeholder="官網或其他平台連結"></div>
+      <div class="fg"><label class="fl">品牌介紹 <span style="font-size:12px;color:var(--md)">選填</span></label><textarea id="jBrandIntro" placeholder="簡短介紹你的品牌" rows="3" style="border:1.5px solid #c8ddc8;border-radius:9px;padding:11px;font-size:15px;font-family:'Noto Sans TC',sans-serif;resize:vertical;width:100%"></textarea></div>
       <div style="display:flex;gap:9px;margin-top:12px">
         <button class="btn btn-s" onclick="jGoStep(1)" style="flex:1">← 上一步</button>
         <button class="btn btn-pk" onclick="submitJoin()" style="flex:2">建立會員</button>
@@ -531,6 +540,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
     </a>
     <div style="font-size:13px;color:var(--md);margin-top:6px;text-align:center">聯繫後可收到錄取通知與繳費提醒</div>
     <div id="successBookBtn" style="display:none;margin-top:12px"><button class="btn btn-p" onclick="goBook()">繼續報名下一場 →</button></div>
+    <div id="relatedSessionsArea" style="display:none;margin-top:12px"></div>
     <button class="btn btn-s mt12" onclick="sp('home')">回首頁</button>
   </div>
 </div>
@@ -1169,6 +1179,7 @@ function renderDynamicForm() {
     html += '<div class="card"><div class="card-t">🏷️ 品牌 / 攤商資料</div>';
     if(mods.brand) html += `<label>品牌名稱 *</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱"><div class="em" id="fe_fb"></div>`;
     if(mods.brandIntro) html += `<label>品牌介紹</label><textarea id="f_brand_intro" placeholder="簡介你的品牌...">${V.brandIntro||''}</textarea>`;
+    if(mods.photo) html += `<label>出攤照片連結</label><input type="url" id="f_photo" value="${V.photo||''}" placeholder="照片連結"><div style="font-size:12px;color:var(--md);margin-top:2px">💡 新手可拍模擬擺設照上傳後貼連結</div>`;
     if(mods.sellItem) html += `<label>主要販售商品 *</label><input type="text" id="f_sell_item" placeholder="例：手工皮革錢包、韓系選品"><div class="em" id="fe_sell"></div>`;
     if(mods.sellLink) html += `<label>販售商品連結</label><input type="url" id="f_sell_link" placeholder="商品頁或社群連結">`;
     if(mods.sellCat) html += `<label>販售類別</label>
@@ -1392,6 +1403,28 @@ async function submitBook() {
       $('successMsg').innerHTML='報名已送出！<br>主辦審核後將通知至 <strong>'+payload.email+'</strong>';
       $('successBookBtn').style.display='block';
       sp('success');
+      // 顯示關聯場次
+      if(B.ses?.relatedSessions) {
+        const ids = B.ses.relatedSessions.split(',').map(s=>s.trim()).filter(Boolean);
+        const relSes = sessions.filter(s=>ids.includes(s.id));
+        if(relSes.length) {
+          const area = $('relatedSessionsArea');
+          if(area) {
+            area.style.display='block';
+            area.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--dk);margin-bottom:8px">🎯 你也可以參加這些活動：</div>' +
+              relSes.map(s=>`<div style="background:var(--lt);border-radius:9px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-weight:700;font-size:14px">${s.name}</div><div style="font-size:12px;color:var(--md)">${s.city||''} · ${s.dateDisplay||s.date||''}</div></div>
+                <button class="btn-xs" style="background:var(--g);color:#fff;white-space:nowrap" onclick="clickSesWithEntry(sessions.indexOf(this._ses))" data-id="${s.id}">立即報名</button>
+              </div>`).join('');
+            // 為按鈕設定場次
+            area.querySelectorAll('[data-id]').forEach(btn=>{
+              const sid=btn.dataset.id;
+              btn._ses=sessions.find(x=>x.id===sid);
+              btn.onclick=()=>{ if(btn._ses){B.ses=btn._ses;goBook();} };
+            });
+          }
+        }
+      }
       loadSessions();
     }else{
       alert('送出失敗：'+(d.message||'未知錯誤'));

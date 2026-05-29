@@ -222,6 +222,9 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
   <div style="font-size:13px;color:var(--md);margin-top:3px">💡 先在 FB 上傳圖片→右鍵→複製圖片網址</div>
   <label style="margin-top:10px">Google Maps 連結（選填）</label>
   <input type="url" id="ns_mapurl" placeholder="https://maps.app.goo.gl/...">
+  <label style="margin-top:10px">關聯場次（選填）</label>
+  <input type="text" id="ns_related" placeholder="填入相關場次ID，例：SES-001,SES-002（可空白，之後補填）">
+  <div style="font-size:12px;color:var(--md);margin-top:3px">💡 報名成功後會顯示「你也可以報名這些活動」的提示</div>
 
   <!-- 多日期設定 -->
   <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:7px">活動日期時間 *（可新增多天）</div>
@@ -246,20 +249,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
   </div>
   <div><label>基本配備說明</label><input type="text" id="ns_basicequip" placeholder="例：桌1椅1"></div>
 
-  <!-- 設備加購 -->
-  <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:8px">設備需求開放（勾選才開放）</div>
-  <div class="eq-grid">
-    <div class="eq-item"><input type="checkbox" id="ns_eq_桌"><span class="eq-name">🪵 桌</span><input type="number" id="ns_ep_桌" placeholder="350" class="eq-price"></div>
-    <div class="eq-item"><input type="checkbox" id="ns_eq_椅子"><span class="eq-name">🪑 椅子</span><input type="number" id="ns_ep_椅子" placeholder="20" class="eq-price"></div>
-    <div class="eq-item"><input type="checkbox" id="ns_eq_桌布"><span class="eq-name">🎀 桌布</span><input type="number" id="ns_ep_桌布" placeholder="50" class="eq-price"></div>
-    <div class="eq-item"><input type="checkbox" id="ns_eq_陽傘"><span class="eq-name">☂️ 陽傘</span><input type="number" id="ns_ep_陽傘" placeholder="450" class="eq-price"></div>
-    <div class="eq-item"><input type="checkbox" id="ns_eq_帳篷"><span class="eq-name">⛺ 帳篷</span><input type="number" id="ns_ep_帳篷" placeholder="800" class="eq-price"></div>
-    <div class="eq-item"><input type="checkbox" id="ns_eq_野餐墊"><span class="eq-name">🧺 野餐墊</span><input type="number" id="ns_ep_野餐墊" placeholder="50" class="eq-price"></div>
-    <div class="eq-item"><input type="checkbox" id="ns_eq_電"><span class="eq-name">⚡ 電</span><input type="number" id="ns_ep_電" placeholder="100" class="eq-price"></div>
-    <div class="eq-item"><input type="checkbox" id="ns_eq_燈"><span class="eq-name">💡 燈</span><input type="number" id="ns_ep_燈" placeholder="50" class="eq-price"></div>
-    <div class="eq-item" style="border-color:#ffd0b0"><input type="checkbox" id="ns_open_fire"><span class="eq-name" style="color:#c0607a">🔥 明火申報</span></div>
-    <div class="eq-item" style="border-color:#b0d0ff"><input type="checkbox" id="ns_open_power"><span class="eq-name" style="color:#2980B9">⚡ 用電申報</span></div>
-  </div>
+  
 
   <!-- 報名表設定 -->
   <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:10px">📋 報名表設定</div>
@@ -1020,6 +1010,26 @@ async function editSession(sessionId) {
   // 標題改為「編輯場次」，送出時帶入 sessionId
   document.querySelector('#mNewSession .mt').textContent = '編輯場次：'+s.name;
   // 記錄正在編輯哪個場次
+  // 帶入模組設定
+  const mods = s.modules || {};
+  ['brand','brand_intro','sell_item','sell_link','sell_cat','photo',
+   'adult','child','diet','access','act_name','act_content','act_max','act_fee',
+   'collab_type','collab_social','collab_portfolio','collab_method','collab_price','remark',
+   'custom'].forEach(k=>{
+    const cb=$('mod_'+k); if(cb) cb.checked=mods[k===k?k:k]||false;
+  });
+  // 帶入自訂欄位
+  customFieldsData = s.customFields||[];
+  renderCustomFields();
+  if(customFieldsData.length){ const ca=$('mod_custom'); if(ca) ca.checked=true; }
+  // 帶入多日期
+  actDates = s.activityDates && s.activityDates.length ? s.activityDates : [{date:'',start:'10:00',end:'18:00'}];
+  renderDateRows();
+  // 帶入關聯場次
+  const relEl=$('ns_related'); if(relEl) relEl.value=s.relatedSessions||'';
+  // 按鈕改為「更新場次」
+  const saveBtn=document.querySelector('#mNewSession .btn-p[onclick="saveNewSession()"]');
+  if(saveBtn) saveBtn.textContent='更新場次';
   window._editingSessionId = sessionId;
   openModal('mNewSession');
 }
@@ -1123,172 +1133,17 @@ async function loadStaffList() {
     const d = await apiGet({action:'getStaffList'});
     const staff = d.staff||[];
     el.innerHTML = staff.length ? staff.map(s=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--gp)">
-        <div><div style="font-size:15px;font-weight:700">${s.email}</div>
-        <div style="font-size:15px;color:var(--md)">${s.role==='superadmin'?'超級管理員':'管理員'} · ${s.sessions||'全部場次'}</div></div>
-        ${s.role!=='superadmin'?`<button onclick="removeStaff('${s.email}')" style="padding:5px 10px;background:var(--rdp);color:var(--rd);border:none;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif">移除</button>`:''}
-      </div>`).join('') : '<div style="font-size:14px;color:var(--md);padding:8px 0">僅超級管理員</div>';
-  }catch(e){}
-}
-
-async function addStaffMember() {
-  const email = $('newStaffEmail')?.value.trim();
-  if(!email||!email.includes('@')){toast('請輸入正確 Email');return;}
-  sl(true);
-  try {
-    const role = $('newStaffRole')?.value || 'staff';
-  const d = await apiPost({action:'addStaff', email, role, sessionIds:ST.sessions.map(s=>s.id)});
-    if(d.success){toast('✅ 管理員已新增');$('newStaffEmail').value='';loadStaffList();}
-    else toast('新增失敗：'+(d.message||''));
-  }catch(e){toast('操作失敗');}finally{sl(false);}
-}
-
-async function removeStaff(email) {
-  if(!confirm(`確定移除管理員 ${email}？`)) return;
-  sl(true);
-  try {
-    const d = await apiPost({action:'removeStaff', email});
-    if(d.success){toast('已移除');loadStaffList();}
-    else toast('操作失敗');
-  }catch(e){toast('操作失敗');}finally{sl(false);}
-}
-
-// ── 取消場次 ──
-async function doCancelReg(regId,brand,deposit){
-  const ses=ST.sessions.find(s=>s.id===ST.currentSessionId);
-  const now=new Date();
-  let refundNote='';
-  if(ses?.dateStart){
-    const d=new Date(ses.dateStart);
-    const diff=Math.ceil((d-now)/86400000);
-    if(diff>20) refundNote='活動前20日以上：扣NT$100後退還';
-    else if(diff>10) refundNote='活動前10日：扣NT$500後退還';
-    else if(diff>7) refundNote='活動前7日：退50%';
-    else refundNote='活動前5日內：不退費';
-  }
-  const reason=prompt(`取消「${brand}」的報名？
-
-💰 退費政策：
-${refundNote}
-
-請輸入取消原因：`);
-  if(reason===null) return;
-  if(!reason.trim()){toast('請輸入原因');return;}
-  sl(true);
-  try{
-    const d=await apiPost({action:'cancelRegistration',regId,reason:reason.trim(),deposit,sessionName:ses?.name||''});
-    if(d.success){toast('✅ 已取消，通知信已寄出');await reloadSession();}
-    else toast('操作失敗：'+(d.message||''));
-  }catch(e){toast('操作失敗');}finally{sl(false);}
-}
-
-// ══ 場次管理 ══
-function renderSessionsTab(){
-  const mc=$('mainContent');
-  mc.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-size:15px;font-weight:700;font-family:'Noto Serif TC',serif">場次管理</div>
-      <button class="tb-btn tb-g" onclick="openModal('mNewSession')">＋ 新增場次</button>
-    </div>
-    <div id="sessionsManageList"></div>`;
-  renderSessionsManageList();
-}
-
-function renderSessionsManageList(){
-  const el=$('sessionsManageList'); if(!el) return;
-  const sorted=[...ST.sessions].sort((a,b)=>(b.dateStart||'').localeCompare(a.dateStart||''));
-  el.innerHTML=sorted.map(s=>`
-    <div class="card" style="border-left:4px solid var(--g)">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div>
-          <div style="font-weight:700;font-size:14px">${s.name}</div>
-          <div style="font-size:15px;color:var(--md);margin-top:2px">${s.dateDisplay||s.dateStart||''} · ${s.city||''} ${s.venue||''}</div>
-        </div>
-        <span class="badge ${s.status==='報名中'?'b-accepted':'b-rejected'}">${s.status||'報名中'}</span>
-      </div>
-      <div style="font-size:15px;color:var(--md)">報名 ${s.enrolled||0}／${s.limit||0} · 繳費 ${s.paid||0} · 缺 ${Math.max(0,(parseInt(s.limit)||0)-(parseInt(s.accepted)||0))} 攤</div>
-      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px">
-        <button class="btn-xs" style="background:var(--g);color:#fff" onclick="switchTab('dash');setTimeout(()=>loadVendors('${s.id}'),300)">📋 名單</button>
-        <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="editSession('${s.id}')">✏️ 編輯</button>
-        <button class="btn-xs" style="background:var(--gp);color:var(--g)" onclick="openAddSubSession('${s.id}','${s.name.replace(/'/g,'')}')">➕ 子場次</button>
-        <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="copySession('${s.id}','${s.name.replace(/'/g,'')}')">📋 複製</button>
-        <button class="btn-xs" style="background:var(--ylp);color:var(--yl)" onclick="toggleSessionStatus('${s.id}','${s.status||'報名中'}')">
-          ${s.status==='關閉'?'🔓 開放':'🔒 關閉'}
-        </button>
-        <button class="btn-xs" style="background:var(--rdp);color:var(--rd)" onclick="deleteSession('${s.id}','${s.name.replace(/'/g,'')}')">🗑 刪除</button>
-        ${s.mapUrl?`<a href="${s.mapUrl}" target="_blank" class="btn-xs" style="background:var(--blp);color:#2980B9;text-decoration:none;display:flex;align-items:center">📍 地圖</a>`:''}
-      </div>
-    </div>`).join('')||'<div class="empty">尚無場次</div>';
-}
-
-// ══ 報到管理 ══
-async function renderCheckinWeekly(){
-  const mc=$('mainContent');
-  mc.innerHTML='<div class="empty">載入中...</div>';
-  try{
-    const d=await apiGet({action:'getWeeklyCheckin'});
-    const sessions=d.sessions||[];
-    if(!sessions.length){mc.innerHTML='<div class="empty">本週無活動</div>';return;}
-    mc.innerHTML="<div style=\"font-size:15px;font-weight:700;margin-bottom:12px\">📅 本週報到</div>"+
-      sessions.map(s=>`
-        <div class="card" style="border-left:4px solid var(--g);margin-bottom:10px" onclick="loadCheckinDetail('${s.id}','${s.name.replace(/'/g,'')}')">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div><div style="font-weight:700;font-size:14px">${s.name}</div><div style="font-size:15px;color:var(--md)">${s.date}</div></div>
-            <div style="text-align:right"><div style="font-size:18px;font-weight:900;color:var(--g)">${s.arrived}/${s.total}</div><div style="font-size:14px;color:var(--md)">已到/總計</div></div>
-          </div>
-          ${s.depositPending>0?`<div style="font-size:15px;color:var(--rd);margin-top:6px">⚠️ 待退押金 ${s.depositPending} 筆</div>`:''}
-          <div style="font-size:14px;color:var(--g);margin-top:6px;font-weight:700">點此管理報到 →</div>
-        </div>`).join('');
-  }catch(e){ mc.innerHTML='<div class="empty">載入失敗</div>'; }
-}
-
-async function loadCheckinDetail(sessionId,sesName){
-  const mc=$('mainContent');
-  mc.innerHTML='<div class="empty">載入中...</div>';
-  try{
-    const d=await apiGet({action:'getCheckin',sessionId});
-    const vendors=d.vendors||[];
-    mc.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><button onclick="renderCheckinWeekly()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--dk)">←</button><div style="font-size:15px;font-weight:700">${sesName}</div></div>
-      <div id="checkinList"></div>`;
-    renderCheckinCards(vendors,sessionId);
-  }catch(e){ mc.innerHTML='<div class="empty">載入失敗</div>'; }
-}
-
-function renderCheckinCards(vendors,sessionId){
-  const el=$('checkinList'); if(!el) return;
-  if(!vendors.length){el.innerHTML='<div class="empty">暫無已付款攤商</div>';return;}
-  const isStaff = ST.role==='staff';
-  el.innerHTML=vendors.map(v=>{
-    const showRefund=v.clearStatus==='已清場'&&v.refundStatus==='未退';
-    // 設備字串
-    const equipStr=Object.entries(v.equipment||{}).filter(([,q])=>q>0)
-      .map(([k,q])=>{
-        const icons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
-        return (icons[k]||'')+k+'×'+q;
-      }).join('　')||'';
-    const fireStr = v.fire==='yes'?'🔥 明火':''
-    const powerStr = v.power?'⚡ 用電':''
-    const equipDisplay = [equipStr,fireStr,powerStr].filter(Boolean).join('　')
-
-    return `<div class="ci-card" style="flex-direction:column;align-items:stretch">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div class="ci-booth">${v.booth||'-'}</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:10px;background:#fff;border-radius:9px;margin-bottom:6px;border:1.5px solid ${s.disabled?'#eee':'var(--gp)'}">
         <div style="flex:1;min-width:0">
-          <div class="ci-brand">${v.brand}</div>
-          ${equipDisplay?`<div style="font-size:12px;color:var(--md);margin-top:2px">${equipDisplay}</div>`:''}
+          <div style="font-size:14px;font-weight:700;color:${s.disabled?'#aaa':'var(--dk)'}">${s.email}${s.disabled?' <span style="font-size:11px;background:#eee;color:#999;padding:2px 5px;border-radius:4px">停用</span>':''}</div>
+          <div style="font-size:12px;color:var(--md);margin-top:2px">${{'superadmin':'🔴 超級管理員','partner':'🟡 協力夥伴','staff':'🟢 工作夥伴'}[s.role]||s.role}${s.sessions?' · '+s.sessions:''}</div>
         </div>
-        <span class="ci-badge ${v.checkinStatus==='已報到'?'ci-in':v.clearStatus==='已清場'?'ci-out':'ci-wait'}">
-          ${v.clearStatus==='已清場'?'已清場':v.checkinStatus==='已報到'?'已進場':'未報到'}
-        </span>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${v.checkinStatus!=='已報到'&&v.clearStatus!=='已清場'?`<button class="btn-xs" style="background:var(--gp);color:var(--g);flex:1" onclick="doCheckin('${v.id}','${sessionId}')">✅ 進場</button>`:''}
-        ${v.checkinStatus==='已報到'&&v.clearStatus!=='已清場'?`<button class="btn-xs" style="background:var(--blp);color:#2980B9;flex:1" onclick="doClear('${v.id}','${sessionId}')">📦 清場</button>`:''}
-        ${showRefund?`<button class="btn-xs" style="background:var(--pkp);color:#c0607a;flex:1" onclick="doRefund('${v.id}','${sessionId}')">💰 退押金</button>`:''}
-        ${!isStaff?`<button class="btn-xs" style="background:var(--rdp);color:var(--rd)" onclick="doCancelReg('${v.id}','${v.brand}',${v.deposit||0})">取消</button>`:''}
-      </div>
-    </div>`;
-  }).join('');
+        ${s.role!=='superadmin'?`
+          <button onclick="toggleStaffStatus('${s.email}','${s.disabled?'enable':'disable'}')" style="padding:6px 10px;background:${s.disabled?'var(--gp)':'var(--ylp)'};color:${s.disabled?'var(--g)':'#c08000'};border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">${s.disabled?'啟用':'停用'}</button>
+          <button onclick="removeStaff('${s.email}')" style="padding:6px 10px;background:var(--rdp);color:var(--rd);border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">移除</button>
+        `:''}
+      </div>`).join('') : '<div style="font-size:13px;color:var(--md);padding:8px">尚無管理員</div>';
+  } catch(e) {}
 }
 
 async function doCheckin(regId,sessionId){
@@ -1320,12 +1175,6 @@ function renderTools(){
     <div style="font-size:15px;font-weight:700;color:var(--md);margin-bottom:8px">📢 公告欄</div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="tb-btn tb-g" onclick="openModal('mAddAnnouncement')">＋ 新增公告</button></div>
     <div id="announcementAdminList"><div class="empty">載入中...</div></div>
-    <div class="divider"></div>
-    <div style="font-size:15px;font-weight:700;color:var(--md);margin-bottom:8px">⬇️ 下載中心</div>
-    <div class="dl-btn" style="background:var(--gp);border-color:var(--g)" onclick="downloadAllSessions()"><span class="dl-ic">📦</span><div><div style="color:var(--g)">下載全部場次名單</div><div style="font-size:15px;color:var(--md)">所有場次各自一份 CSV</div></div></div>
-    <div class="dl-btn" onclick="downloadCSV('roster')"><span class="dl-ic">📑</span><div><div>報名名冊</div><div style="font-size:15px;color:var(--md)">當前場次完整資料</div></div></div>
-    <div class="dl-btn" onclick="downloadCSV('checkin')"><span class="dl-ic">📋</span><div><div>現場報到表</div><div style="font-size:15px;color:var(--md)">攤位、品牌、報到欄</div></div></div>
-    <div class="dl-btn" onclick="downloadCSV('equip')"><span class="dl-ic">🪑</span><div><div>設備需求表</div><div style="font-size:15px;color:var(--md)">設備數量統計</div></div></div>
     <div class="divider"></div>
     <div style="font-size:15px;font-weight:700;color:var(--md);margin-bottom:8px">💸 支出記錄</div>
     <select id="expenseSessionSel" onchange="loadExpenseForm()"><option value="">選擇場次</option>${ST.sessions.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select>
@@ -1525,9 +1374,10 @@ document.addEventListener('change',e=>{
   }
 });
 async function saveNewSession(){
-  const name=$('ns_name')?.value.trim(), dateStart=$('ns_date_start')?.value;
+  const name=$('ns_name')?.value.trim();
   const venue=$('ns_venue')?.value.trim(), limit=$('ns_limit')?.value;
-  if(!name||!dateStart||!venue||!limit){toast('請填寫場次名稱、開始日期、場地名稱和名額上限');return;}
+  const validDates = actDates.filter(d=>d.date);
+  if(!name||!validDates.length||!venue||!limit){toast('請填寫場次名稱、至少一個日期、場地名稱和名額上限');return;}
   const themeItemsRaw=$('ns_theme_items')?.value||'';
   const themeItems=themeItemsRaw.split('\n').map(s=>s.trim()).filter(Boolean);
   let positions=[];
