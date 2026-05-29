@@ -178,17 +178,17 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <div><label>場次名稱 *</label><input type="text" id="ns_name" placeholder="例：耶市集07月"></div>
     <div><label>活動類型 *</label>
       <select id="ns_type" onchange="updateFormModulesByType()">
-          <option value="市集">🏪 市集（攤商販售）</option>
-          <option value="體驗">🎨 體驗（課程報名）</option>
-          <option value="文化">🎭 文化（合作夥伴）</option>
-          <option value="百貨">🏬 百貨（寄賣品牌）</option>
+          <option value="攤商招募">🏪 攤商招募</option>
+          <option value="活動報名">🎨 活動報名</option>
+          <option value="合作申請">🎭 合作申請</option>
+          <option value="商場百貨寄賣">🏬 商場百貨寄賣</option>
         </select>
         <div style="font-size:13px;color:var(--md);margin-top:4px">選擇後自動設定預設表單模組，可再調整</div>
     </div>
   </div>
   <label>場次說明</label><textarea id="ns_intro" placeholder="給報名者看的活動介紹..."></textarea>
   <div class="fg2">
-    <div><label>開始日期 *</label><input type="date" id="ns_date_start" onchange="updateDeadline()"></div>
+    <div><label>開始日期 *</label><input type="date" id="ns_date_start"></div>
     <div><label>活動開始時間</label><input type="time" id="ns_time_start" value="10:00"></div>
     <div><label>結束日期</label><input type="date" id="ns_date_end"></div>
     <div><label>活動結束時間</label><input type="time" id="ns_time_end" value="18:00"></div>
@@ -234,7 +234,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <div><label>名額上限 *</label><input type="number" id="ns_limit" placeholder="30"></div>
   </div>
   <div class="fg2">
-    <div><label>付款截止日</label><input type="date" id="ns_deadline"><div style="font-size:14px;color:var(--rd);margin-top:2px">錄取後7天內須付款</div></div>
     <div><label>基本配備說明</label><input type="text" id="ns_basicequip" placeholder="例：桌1椅1"></div>
   </div>
   <div class="fg2">
@@ -262,12 +261,27 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <button type="button" onclick="addCustomField()" style="width:100%;padding:10px;background:none;border:2px dashed #c8ddc8;border-radius:9px;font-size:14px;color:var(--md);cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:8px">＋ 新增自訂欄位</button>
   </div>
 
-  <!-- 申報開關 -->
-  <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:8px">現場申報開關</div>
-  <div class="fg2">
-    <label style="display:flex;align-items:center;gap:8px;margin-top:0;font-size:15px;cursor:pointer;padding:10px;background:var(--lt);border-radius:9px"><input type="checkbox" id="ns_open_fire" checked style="width:18px;height:18px;accent-color:var(--g)"> 開放明火申報</label>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:0;font-size:15px;cursor:pointer;padding:10px;background:var(--lt);border-radius:9px"><input type="checkbox" id="ns_open_power" checked style="width:18px;height:18px;accent-color:var(--g)"> 開放用電申報</label>
+  <!-- 表單模組設定 -->
+  <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:8px">📋 報名表模組（勾選要收集的資料）</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;padding:10px 13px;background:var(--gp);border-radius:9px;border:2px solid var(--g);margin-top:0"><input type="checkbox" id="mod_basic" checked disabled style="accent-color:var(--g);width:17px;height:17px"> 基本資料（必選）</label>
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;padding:10px 13px;background:var(--lt);border-radius:9px;margin-top:0"><input type="checkbox" id="mod_brand" style="accent-color:var(--g);width:17px;height:17px"> 品牌資料</label>
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;padding:10px 13px;background:var(--lt);border-radius:9px;margin-top:0"><input type="checkbox" id="mod_sell" style="accent-color:var(--g);width:17px;height:17px"> 販售資料</label>
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;padding:10px 13px;background:var(--lt);border-radius:9px;margin-top:0"><input type="checkbox" id="mod_course" style="accent-color:var(--g);width:17px;height:17px"> 課程資料</label>
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;padding:10px 13px;background:var(--lt);border-radius:9px;margin-top:0"><input type="checkbox" id="mod_equip" style="accent-color:var(--g);width:17px;height:17px"> 設備需求</label>
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;padding:10px 13px;background:var(--lt);border-radius:9px;margin-top:0"><input type="checkbox" id="mod_public" style="accent-color:var(--g);width:17px;height:17px"> 民眾資料</label>
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;padding:10px 13px;background:var(--lt);border-radius:9px;margin-top:0"><input type="checkbox" id="mod_partner" style="accent-color:var(--g);width:17px;height:17px"> 合作資料</label>
+    <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;padding:10px 13px;background:var(--lt);border-radius:9px;margin-top:0"><input type="checkbox" id="mod_custom" style="accent-color:var(--g);width:17px;height:17px"> 自訂欄位</label>
   </div>
+
+  <!-- 自訂欄位設定 -->
+  <div id="customFieldsArea" style="display:none;background:var(--lt);border-radius:10px;padding:12px;margin-bottom:12px">
+    <div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">自訂欄位設定（此場次獨立）</div>
+    <div id="customFieldsList"></div>
+    <button type="button" onclick="addCustomField()" style="width:100%;padding:10px;background:none;border:2px dashed #c8ddc8;border-radius:9px;font-size:14px;color:var(--md);cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:8px">＋ 新增自訂欄位</button>
+  </div>
+
+  
 
   <!-- 開放身份 -->
   <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:8px">開放報名身份</div>
@@ -292,6 +306,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <div class="eq-item"><input type="checkbox" id="ns_eq_電"><span class="eq-name">⚡ 電</span><input type="number" id="ns_ep_電" placeholder="100" class="eq-price"></div>
     <div class="eq-item"><input type="checkbox" id="ns_eq_燈"><span class="eq-name">💡 燈</span><input type="number" id="ns_ep_燈" placeholder="50" class="eq-price"></div>
     <div class="eq-item"><input type="checkbox" id="ns_eq_陽傘"><span class="eq-name">☂️ 陽傘</span><input type="number" id="ns_ep_陽傘" placeholder="450" class="eq-price"></div>
+    <div class="eq-item" style="border-color:#ffd0b0"><input type="checkbox" id="ns_open_fire"><span class="eq-name" style="color:#c0607a">🔥 開放明火申報</span></div>
+    <div class="eq-item" style="border-color:#b0d0ff"><input type="checkbox" id="ns_open_power"><span class="eq-name" style="color:#2980B9">⚡ 開放用電申報</span></div>
   </div>
   <!-- 子場次 -->
   <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:8px">子場次設定</div>
@@ -489,12 +505,11 @@ function renderSessionRow(s){
       <div class="sr-arrow" id="arrow-${s.id}">›</div>
     </div>
     <div class="stat-chips">
-      <span class="sc sc-total">📋 ${s.enrolled||0}報名</span>
-      ${(s.pending||0)>0?`<span class="sc sc-pending" onclick="openSessionFilter('${s.id}','pending')">⏳ ${s.pending}待審</span>`:''}
-      <span class="sc sc-paid">💳 ${s.paid||0}繳費</span>
-      ${remain>0?`<span class="sc sc-remain">📍 缺${remain}</span>`:'<span class="sc sc-remain" style="background:var(--rdp);color:var(--rd)">🈵 額滿</span>'}
-      <span class="sc sc-income">💰 ${income}</span>
-      ${equipStr?`<span class="sc sc-equip">🪑 ${equipStr}</span>`:''}
+      <span class="sc sc-total">報名 ${s.enrolled||0}</span>
+      <span class="sc sc-paid">繳費 ${s.paid||0}</span>
+      ${remain>0?`<span class="sc sc-remain">缺 ${remain}</span>`:'<span class="sc sc-remain" style="background:var(--rdp);color:var(--rd)">額滿</span>'}
+      ${(s.pending||0)>0?`<span class="sc sc-pending" onclick="openSessionFilter('${s.id}','pending')">待審 ${s.pending}</span>`:''}
+      <span class="sc sc-income">${income}</span>
     </div>
     <div class="sr-body" id="srb-${s.id}"></div>
   </div>`;
@@ -550,12 +565,11 @@ async function loadSessionBody(id,body){
         const chips=rowEl.querySelector('.stat-chips');
         if(chips){
           chips.innerHTML=`
-            <span class="sc sc-total">📋 ${s.enrolled||0}報名</span>
-            ${(s.pending||0)>0?`<span class="sc sc-pending" onclick="openSessionFilter('${s.id}','pending')">⏳ ${s.pending}待審</span>`:''}
-            <span class="sc sc-paid">💳 ${s.paid||0}繳費</span>
-            ${remain>0?`<span class="sc sc-remain">📍 缺${remain}</span>`:'<span class="sc sc-remain" style="background:var(--rdp);color:var(--rd)">🈵 額滿</span>'}
-            <span class="sc sc-income">💰 ${income}</span>
-            ${equipStr?`<span class="sc sc-equip">🪑 ${equipStr}</span>`:''}`;
+            <span class="sc sc-total">報名 ${s.enrolled||0}</span>
+            <span class="sc sc-paid">繳費 ${s.paid||0}</span>
+            ${remain>0?`<span class="sc sc-remain">缺 ${remain}</span>`:'<span class="sc sc-remain" style="background:var(--rdp);color:var(--rd)">額滿</span>'}
+            ${(s.pending||0)>0?`<span class="sc sc-pending" onclick="openSessionFilter('${s.id}','pending')">待審 ${s.pending}</span>`:''}
+            <span class="sc sc-income">${income}</span>`;
         }
       }
     }
@@ -806,7 +820,6 @@ async function editSession(sessionId) {
   $('ns_fee_mode').value = s.feeMode||'場次';
   $('ns_deposit').value = s.deposit||500;
   $('ns_limit').value = s.limit||30;
-  $('ns_deadline').value = s.deadline||'';
   $('ns_organizer').value = s.organizer||'';
   $('ns_coorg').value = s.coOrganizer||'';
   $('ns_open_fire').checked = s.openFire!==false;
@@ -867,8 +880,7 @@ async function deleteSession(sessionId, sessionName) {
 
 ⚠️ 此操作不可復原，報名記錄也會一併刪除！`);
   if(!confirm1) return;
-  const confirm2 = prompt(`請輸入場次名稱確認刪除：`);
-  if(confirm2 !== sessionName){toast('名稱不符，取消刪除');return;}
+
   sl(true);
   try {
     const d = await apiPost({action:'deleteSession', sessionId});
@@ -1096,8 +1108,8 @@ function renderTools(){
     <div style="font-size:15px;color:var(--md);margin-bottom:9px">設定可登入後台的管理員帳號（限超級管理員）</div>
     <div id="staffListArea"><div class="empty">載入中...</div></div>
     <div style="display:flex;gap:9px;margin-top:9px">
-      <input type="email" id="newStaffEmail" placeholder="管理員 Email" style="flex:1">
-      <select id="newStaffRole" style="padding:12px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:14px;font-family:'Noto Sans TC',sans-serif">
+      <input type="email" id="newStaffEmail" placeholder="輸入管理員 Email" style="flex:2;font-size:15px;padding:13px 14px;border:1.5px solid #c8ddc8;border-radius:9px;font-family:'Noto Sans TC',sans-serif">
+      <select id="newStaffRole" style="padding:13px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:14px;font-family:'Noto Sans TC',sans-serif;flex:1">
         <option value="staff">一般管理員</option>
         <option value="superadmin">超級管理員</option>
       </select>
@@ -1213,10 +1225,10 @@ async function doDeletePartner(id){
 function updateFormModulesByType() {
   const type = $('ns_type')?.value || '市集';
   const presets = {
-    '市集': { brand:true, sell:true, equip:true, course:false, public:false, partner:false },
-    '體驗': { brand:true, sell:false, equip:true, course:true, public:true, partner:false },
-    '文化': { brand:true, sell:false, equip:false, course:false, public:false, partner:true },
-    '百貨': { brand:true, sell:true, equip:false, course:false, public:false, partner:false },
+    '攤商招募': { brand:true, sell:true, equip:true, course:false, public:false, partner:false },
+    '活動報名': { brand:true, sell:false, equip:true, course:true, public:true, partner:false },
+    '合作申請': { brand:true, sell:false, equip:false, course:false, public:false, partner:true },
+    '商場百貨寄賣': { brand:true, sell:true, equip:false, course:false, public:false, partner:false },
   };
   const p = presets[type] || presets['市集'];
   ['brand','sell','equip','course','public','partner'].forEach(k=>{
@@ -1229,11 +1241,6 @@ function togglePosMode(){
   const autoEl=$('ns_pos_auto'), custEl=$('ns_pos_custom');
   if(autoEl) autoEl.style.display=mode==='auto'?'block':'none';
   if(custEl) custEl.style.display=mode==='custom'?'block':'none';
-}
-function updateDeadline(){
-  const d=new Date($('ns_date_start').value);
-  d.setDate(d.getDate()-21);
-  $('ns_deadline').value=d.toISOString().split('T')[0];
 }
 document.addEventListener('change',e=>{
   if(e.target.id==='ns_theme') { const area=$('nsThemeArea'); if(area) area.style.display=e.target.checked?'block':'none'; }
@@ -1291,7 +1298,6 @@ async function saveNewSession(){
     feeMode:$('ns_fee_mode')?.value||'場次',
     deposit:parseInt($('ns_deposit')?.value)||500,
     limit:parseInt(limit),
-    deadline:$('ns_deadline')?.value||'',
     basicEquip:$('ns_basicequip')?.value.trim()||'',
     organizer:$('ns_organizer')?.value.trim()||'',
     coOrganizer:$('ns_coorg')?.value.trim()||'',

@@ -997,7 +997,7 @@ function renderSessionCard(s, idx) {
   const full = left <= 0;
   const badgeCls = full ? 'b-full' : left<=5 ? 'b-few' : 'b-ok';
   const badgeTxt = full ? '已額滿' : left<=5 ? '剩'+left+'名' : '招募中';
-  const typeIcon = {'市集':'🏪','體驗':'🎨','文化':'🎭','百貨':'🏬'}[s.type||'市集']||'🏪';
+  const typeIcon = {'攤商招募':'🏪','活動報名':'🎨','合作申請':'🎭','商場百貨寄賣':'🏬','市集':'🏪','體驗':'🎨','文化':'🎭','百貨':'🏬'}[s.type||'攤商招募']||'🏪';
   const sidx = sessions.indexOf(s);
   return `<div class="sc">
     <div class="sc-h">
@@ -1026,15 +1026,13 @@ function goSessions(type) {
   // 依 type 欄位過濾，若沒有精確符合就顯示全部
   let list = sessions.filter(s => {
     const t = (s.type||'').trim();
-    // 空白 type 視為市集（最多場次類型）
-    const st = t || '市集';
-    if(type === '市集') return st === '市集' || st.includes('市集') || t === '';
-    if(type === '體驗') return st === '體驗' || st.includes('體驗');
-    if(type === '文化') return st === '文化' || st.includes('文化');
-    if(type === '百貨') return st === '百貨' || st.includes('百貨');
+    const st = t || '攤商招募';
+    if(type === '市集') return st === '攤商招募' || st === '市集' || t === '';
+    if(type === '體驗') return st === '活動報名' || st === '體驗';
+    if(type === '文化') return st === '合作申請' || st === '文化';
+    if(type === '百貨') return st === '商場百貨寄賣' || st === '百貨';
     return true;
   });
-  // 若過濾後完全沒有，顯示全部場次（不讓用戶看到空白頁）
   if(!list.length) list = [...sessions];
   $('sesTitle').textContent = {'市集':'🏪 攤商招募','體驗':'🎨 活動報名','文化':'🎭 合作申請','百貨':'🏬 商場百貨寄賣'}[type]||type;
   $('sesList').innerHTML = list.length
@@ -1380,6 +1378,11 @@ function renderDynamicForm() {
 
   // 依場次類型推算預設模組（後台有設定就用設定，否則依場次 type 推算）
   const defaultModsByType = {
+    '攤商招募': { brand:true, sell:true, equip:true },
+    '活動報名': { brand:true, course:true, equip:true, public:true },
+    '合作申請': { brand:true, partner:true },
+    '商場百貨寄賣': { brand:true, sell:true },
+    // 舊名稱相容
     '市集': { brand:true, sell:true, equip:true },
     '體驗': { brand:true, course:true, equip:true, public:true },
     '文化': { brand:true, partner:true },
