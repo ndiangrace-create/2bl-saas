@@ -1049,7 +1049,13 @@ function goSessions(type) {
     return allowed.includes(t) || t === '';
   });
   if(!list.length) list = [...sessions];
-  $('sesTitle').textContent = {'市集':'🏪 攤商招募','體驗':'🎨 活動報名','文化':'🎭 合作申請','百貨':'🏬 商場百貨寄賣'}[type]||type;
+  const _titleMap = {
+    '市集':'🏪 攤商招募','攤商招募':'🏪 攤商招募',
+    '體驗':'🎨 活動報名','活動報名':'🎨 活動報名',
+    '文化':'🎭 合作申請','合作申請':'🎭 合作申請',
+    '百貨':'🏬 商場百貨寄賣','商場百貨寄賣':'🏬 商場百貨寄賣',
+  };
+  $('sesTitle').textContent = _titleMap[type]||type;
   $('sesList').innerHTML = list.length
     ? list.map(s=>renderSessionCard(s,sessions.indexOf(s))).join('')
     : '<div style="text-align:center;padding:24px;color:var(--md);font-size:15px">目前無開放報名場次</div>';
@@ -1546,28 +1552,24 @@ function renderDynamicForm() {
 
 
 function bNext2() {
-  const id=B.identity;
-  let ok=true;
-  if(id==='攤商'){
-    if(!B.cat){se('fe_cat',true);ok=false;}
-    const sellSelected = document.querySelectorAll('#sellTypeChips .chip.sel');
-    if(!sellSelected.length){se('fe_selltype',true);ok=false;}
-  }else if(id==='合作夥伴'){
-    if(!$('f_role')?.value){se('fe_role',true);ok=false;}
-    if(!$('f_social')?.value.trim()){se('fe_social',true);ok=false;}
-    if(!$('f_content')?.value.trim()){se('fe_content',true);ok=false;}
-  }else if(id==='體驗老師'){
-    if(!$('f_tname')?.value.trim()){se('fe_tname',true);ok=false;}
-    if(!$('f_tcontent')?.value.trim()){se('fe_tcontent',true);ok=false;}
-  }else if(id==='主題活動'){
-    const checked=document.querySelectorAll('.themeChk:checked');
-    if(!checked.length){se('fe_theme',true);ok=false;}
-  }else if(id==='民眾體驗'){
-    if(!$('f_name')?.value.trim()){se('fe_name',true);ok=false;}
-    if(!$('f_phone')?.value.trim()){se('fe_phone',true);ok=false;}
-    if(!$('f_email')?.value.trim()){se('fe_email',true);ok=false;}
-  }
-  if(!ok)return;
+  // 新模組式驗證：只驗基本資料必填
+  let ok = true;
+  const name = $('f_name')?.value.trim();
+  const phone = $('f_phone')?.value.trim();
+  const email = $('f_email')?.value.trim();
+  if(!name){ se('fe_name',true); ok=false; } else se('fe_name',false);
+  if(!phone){ se('fe_phone',true); ok=false; } else se('fe_phone',false);
+  if(!email||!email.includes('@')){ se('fe_email',true); ok=false; } else se('fe_email',false);
+  // 品牌名稱（如果有 mod_brand 欄位）
+  const brandEl = $('f_brand');
+  if(brandEl && !brandEl.value.trim()){ se('fe_fb',true); ok=false; } else se('fe_fb',false);
+  // 主要販售商品（如果有 mod_sell_item 欄位）
+  const sellEl = $('f_sell_item');
+  if(sellEl && !sellEl.value.trim()){ se('fe_sell',true); ok=false; } else se('fe_sell',false);
+  // 合作社群連結
+  const socialEl = $('f_partner_social');
+  if(socialEl && !socialEl.value.trim()){ ok=false; toast('請填寫社群連結'); }
+  if(!ok) return;
   bGoStep(3);
 }
 
