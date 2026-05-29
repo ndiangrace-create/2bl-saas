@@ -2,6 +2,10 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="version" content="v26">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>兔彼樂共創活動｜報名系統</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -1129,9 +1133,11 @@ function renderMemberUI() {
 }
 
 function renderQuick() {
+  const quickArea = $('quickArea');
+  if(!quickArea) return; // 元素不存在就不執行
   const open = sessions.filter(s=>s.enrolled<s.limit);
-  if(!open.length) { $('quickArea').style.display='none'; return; }
-  $('quickArea').style.display='block';
+  if(!open.length) { quickArea.style.display='none'; return; }
+  quickArea.style.display='block';
   $('quickList').innerHTML = open.slice(0,3).map((s,i)=>`
     <div style="background:var(--gp);border:1.5px solid rgba(0,100,0,.15);border-radius:9px;padding:10px 12px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between">
       <div><div style="font-size:15px;font-weight:700">${s.name}</div><div style="font-size:14px;color:var(--md)">${s.dateDisplay||s.date}　NT$${s.fee}　剩${s.limit-s.enrolled}名</div></div>
