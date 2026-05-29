@@ -447,7 +447,7 @@ function showMainApp(){
   $('mainApp').style.display='block';
   $('adminNameDisplay').textContent=ST.email;
   loadPartners();
-  switchTab('dash');
+  switchTab(ST.role==='staff'?'checkin':'dash');
 }
 
 function cancelNewSession(){
@@ -466,16 +466,20 @@ function doLogout(){
 
 // ── 底部導航 ──
 function switchTab(tab){
+  if(ST.role==='staff' && tab!=='checkin') tab='checkin';
   ST.currentTab=tab;
   ['dash','sessions','checkin','tools'].forEach(t=>{
     const btn=$('nav-'+t);
-    if(btn) btn.classList.toggle('on',t===tab);
+    if(btn){
+      btn.classList.toggle('on',t===tab);
+      if(ST.role==='staff' && t!=='checkin') btn.style.display='none';
+      else btn.style.display='flex';
+    }
   });
-  const mc=$('mainContent');
   if(tab==='dash') renderDashboard();
-  else if(tab==='sessions') renderSessionsTab();
+  else if(tab==='sessions' && ST.role!=='staff') renderSessionsTab();
   else if(tab==='checkin') renderCheckinWeekly();
-  else if(tab==='tools') renderTools();
+  else if(tab==='tools' && ST.role!=='staff') renderTools();
 }
 
 // ══ 儀表板 ══
@@ -1225,12 +1229,18 @@ function renderTools(){
     <div class="divider"></div>
     ${ST.role==='superadmin'?`
     <div style="font-size:15px;font-weight:700;color:var(--md);margin-bottom:8px">👤 管理員設定</div>
-    <div style="font-size:15px;color:var(--md);margin-bottom:9px">設定可登入後台的管理員帳號（限超級管理員）</div>
+    <div style="font-size:14px;color:var(--md);margin-bottom:8px">設定可登入後台的帳號與權限</div>
+    <div style="font-size:13px;background:var(--lt);border-radius:9px;padding:10px;margin-bottom:10px;line-height:1.9">
+      🔴 <b>超級管理員</b>：所有功能<br>
+      🟡 <b>協力夥伴</b>：新增/修改場次、審核、報到（指定場次）<br>
+      🟢 <b>工作夥伴</b>：只看已繳費名單、報到（指定場次）
+    </div>
     <div id="staffListArea"><div class="empty">載入中...</div></div>
     <div style="display:flex;gap:9px;margin-top:9px">
       <input type="email" id="newStaffEmail" placeholder="輸入管理員 Email" style="flex:2;font-size:15px;padding:13px 14px;border:1.5px solid #c8ddc8;border-radius:9px;font-family:'Noto Sans TC',sans-serif">
       <select id="newStaffRole" style="padding:13px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:14px;font-family:'Noto Sans TC',sans-serif;flex:1">
-        <option value="staff">一般管理員</option>
+        <option value="partner">協力夥伴（可新增/修改/審核）</option>
+        <option value="staff">工作夥伴（只能報到）</option>
         <option value="superadmin">超級管理員</option>
       </select>
       <button class="tb-btn tb-g" onclick="addStaffMember()">新增</button>
