@@ -162,14 +162,18 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     </div>
   </div>
 
-  <div class="main" id="mainContent">
+  <div class="main" id="mainContent" style="padding-bottom:80px">
     <!-- 動態內容 -->
+  </div>
+
+  <!-- 固定新增場次按鈕 -->
+  <div id="addSessionFab" style="position:fixed;bottom:64px;left:0;right:0;padding:8px 16px;background:#fff;border-top:1.5px solid var(--gp);display:none;z-index:90">
+    <button class="btn btn-p" style="width:100%;font-size:15px" onclick="openModal('mNewSession');initDateRows()">＋ 新增場次</button>
   </div>
 
   <!-- 底部導航 -->
   <div class="bottom-nav">
-    <button class="bn-item on" id="nav-dash" onclick="switchTab('dash')"><span class="bn-ic">📊</span>儀表板</button>
-    <button class="bn-item" id="nav-sessions" onclick="switchTab('sessions')"><span class="bn-ic">📅</span>場次</button>
+    <button class="bn-item on" id="nav-dash" onclick="switchTab('dash')"><span class="bn-ic">📊</span>場次總覽</button>
     <button class="bn-item" id="nav-checkin" onclick="switchTab('checkin')"><span class="bn-ic">✅</span>報到</button>
     <button class="bn-item" id="nav-tools" onclick="switchTab('tools')"><span class="bn-ic">⚙️</span>工具</button>
   </div>
@@ -495,6 +499,8 @@ function showMainApp(){
   $('adminNameDisplay').textContent=ST.email;
   loadPartners();
   switchTab(ST.role==='staff'?'checkin':'dash');
+  const fab=$('addSessionFab');
+  if(fab) fab.style.display=ST.role==='staff'?'none':'block';
 }
 
 function cancelNewSession(){
@@ -515,7 +521,7 @@ function doLogout(){
 function switchTab(tab){
   if(ST.role==='staff' && tab!=='checkin') tab='checkin';
   ST.currentTab=tab;
-  ['dash','sessions','checkin','tools'].forEach(t=>{
+  ['dash','checkin','tools'].forEach(t=>{
     const btn=$('nav-'+t);
     if(btn){
       btn.classList.toggle('on',t===tab);
@@ -524,7 +530,6 @@ function switchTab(tab){
     }
   });
   if(tab==='dash') renderDashboard();
-  else if(tab==='sessions' && ST.role!=='staff') renderSessionsTab();
   else if(tab==='checkin') renderCheckinWeekly();
   else if(tab==='tools' && ST.role!=='staff') renderTools();
 }
@@ -562,10 +567,17 @@ function renderSessionCard2(s){
       <span class="sc sc-income">$-</span>
     </div>
     <div id="vlist-${s.id}" style="margin-top:10px"></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn-xs" style="background:var(--g);color:#fff;flex:1" onclick="loadVendors('${s.id}')">📋 審核</button>
-      <button class="btn-xs" style="background:var(--gp);color:var(--g);flex:1" onclick="doBatchAccept('${s.id}')">✓ 批次審核</button>
-      <button class="btn-xs" style="background:var(--blp);color:#2980B9;flex:1" onclick="doBatchResend('${s.id}')">📧 重寄錄取</button>
+    <div id="vlist-${s.id}"></div>
+    <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn-xs" style="background:var(--g);color:#fff" onclick="loadVendors('${s.id}')">📋 審核</button>
+      <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="switchTab('checkin');setTimeout(()=>loadCheckinDetail('${s.id}','${s.name}'),200)">✅ 報到</button>
+      <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="editSession('${s.id}')">✏️ 編輯</button>
+      <button class="btn-xs" style="background:var(--gp);color:var(--g)" onclick="openAddSubSession('${s.id}','${s.name}')">➕ 子場次</button>
+      <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="copySession('${s.id}','${s.name}')">📋 複製</button>
+      <button class="btn-xs" style="background:var(--ylp);color:var(--yl)" onclick="toggleSessionStatus('${s.id}','${s.status||"報名中"}')">
+        ${s.status==='關閉'?'🔓 開放':'🔒 關閉'}
+      </button>
+      ${ST.role==='superadmin'?`<button class="btn-xs" style="background:var(--rdp);color:var(--rd)" onclick="deleteSession('${s.id}','${s.name}')">🗑 刪除</button>`:''}
     </div>
   </div>`;
 }
