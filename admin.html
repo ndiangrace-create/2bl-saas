@@ -38,6 +38,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--lt);color:var(--dk);
 .card-t{font-size:14px;font-weight:700;color:var(--md);margin-bottom:10px;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center}
 /* ══ 儀表板：一行一場 ══ */
 .session-row{background:var(--wh);border-radius:var(--r);margin-bottom:8px;box-shadow:var(--sh);overflow:hidden;border-left:4px solid var(--g)}
+.dash-card{background:var(--wh);border-radius:var(--r);margin-bottom:10px;box-shadow:var(--sh);padding:14px;border-left:4px solid var(--g)}
 .sr-header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:13px 14px;cursor:pointer;gap:10px;min-height:56px}
 .sr-date{font-size:15px;font-weight:700;color:var(--md);white-space:nowrap}
 .sr-name{font-size:14px;font-weight:700;color:var(--dk)}
@@ -472,6 +473,132 @@ function switchTab(tab){
 
 // ══ 儀表板 ══
 function renderDashboard(){
+  const mc=$('mainContent');
+  if(!ST.sessions.length){
+    mc.innerHTML='<div class="empty" style="padding:40px 20px;text-align:center"><div style="font-size:40px;margin-bottom:12px">📭</div><div style="font-size:16px;font-weight:700;color:var(--md)">尚無場次</div><div style="font-size:14px;color:var(--md);margin-top:6px">點下方「場次」新增第一個活動</div></div>';
+    return;
+  }
+  const sorted=[...ST.sessions].sort((a,b)=>(b.dateStart||'').localeCompare(a.dateStart||''));
+  mc.innerHTML='<div style="font-size:15px;font-weight:700;margin-bottom:10px">📊 場次總覽</div>'+
+    sorted.map(s=>renderSessionCard2(s)).join('');
+  // 載入每個場次的統計數字
+  sorted.forEach(s=>loadSessionStats(s.id));
+}
+
+function renderSessionCard2(s){
+  const limit=parseInt(s.limit)||0;
+  return `<div class="dash-card" id="dc-${s.id}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div>
+        <div style="font-size:12px;color:var(--md);margin-bottom:2px">${s.city||''} · ${s.type||''}</div>
+        <div style="font-size:16px;font-weight:700;color:var(--dk)">${s.name}</div>
+        <div style="font-size:12px;color:var(--md);margin-top:2px">📅 ${s.dateDisplay||''} · ${s.venue||''}</div>
+      </div>
+      <span class="badge ${s.status==='報名中'?'b-accepted':'b-rejected'}" style="white-space:nowrap">${s.status||'報名中'}</span>
+    </div>
+    <div class="stat-chips" id="chips-${s.id}">
+      <span class="sc sc-total">報名 -</span>
+      <span class="sc sc-pending">待審 -</span>
+      <span class="sc sc-paid">繳費 -</span>
+      <span class="sc sc-remain">缺 ${limit}</span>
+      <span class="sc sc-income">$-</span>
+    </div>
+    <div id="vlist-${s.id}" style="margin-top:10px"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn-xs" style="background:var(--g);color:#fff;flex:1" onclick="loadVendors('${s.id}')">📋 審核</button>
+      <button class="btn-xs" style="background:var(--gp);color:var(--g);flex:1" onclick="doBatchAccept('${s.id}')">✓ 批次審核</button>
+      <button class="btn-xs" style="background:var(--blp);color:#2980B9;flex:1" onclick="doBatchResend('${s.id}')">📧 重寄錄取</button>
+    </div>
+  </div>`;
+}
+
+async function loadSessionStats(sessionId){
+  try{
+    const d=await apiGet({action:'getDashboard',sessionId});
+    const s=ST.sessions.find(x=>x.id===sessionId)||{};
+    const limit=parseInt(s.limit)||0;
+    const paid=d.paid||0;
+    const accepted=d.accepted||0;
+    const remain=Math.max(0,limit-accepted);
+    const income='NT$'+((paid*(parseInt(s.fee)||0)).toLocaleString());
+    const el=$('chips-'+sessionId); if(!el) return;
+    el.innerHTML=`
+      <span class="sc sc-total">報名 ${d.total||0}</span>
+      ${(d.pending||0)>0?`<span class="sc sc-pending" onclick="filterVendorsInCard('${sessionId}','pending')">待審 ${d.pending}</span>`:''}
+      <span class="sc sc-paid">繳費 ${paid}</span>
+      ${remain>0?`<span class="sc sc-remain">缺 ${remain}</span>`:`<span class="sc sc-remain" style="background:var(--rdp);color:var(--rd)">額滿</span>`}
+      <span class="sc sc-income">${income}</span>`;
+  }catch(e){}
+}
+
+async function loadVendors(sessionId){
+  ST.currentSessionId=sessionId;
+  ST.filter='all';
+  const el=$('vlist-'+sessionId); if(!el) return;
+  el.innerHTML='<div class="empty">載入中...</div>';
+  try{
+    const d=await apiGet({action:'getVendors',sessionId});
+    ST.vendors=d.vendors||[];
+    renderVendorListInCard(sessionId);
+  }catch(e){el.innerHTML='<div class="empty">載入失敗</div>';}
+}
+
+function filterVendorsInCard(sessionId,filter){
+  ST.currentSessionId=sessionId;
+  ST.filter=filter;
+  loadVendors(sessionId);
+}
+
+function renderVendorListInCard(sessionId){
+  const el=$('vlist-'+sessionId); if(!el) return;
+  const now=new Date();
+  const filtered=ST.vendors.filter(v=>{
+    if(ST.filter==='pending') return v.reviewStatus==='待審核';
+    if(ST.filter==='paid') return v.payStatus==='已付款';
+    return true;
+  });
+  if(!filtered.length){el.innerHTML='<div class="empty" style="padding:8px">暫無資料</div>';return;}
+  
+  // 篩選列
+  el.innerHTML=`<div class="filters" style="padding:8px 0 8px;margin-bottom:6px">
+    <div class="ftab ${ST.filter==='all'?'on':''}" onclick="ST.filter='all';renderVendorListInCard('${sessionId}')">全部</div>
+    <div class="ftab ${ST.filter==='pending'?'on':''}" onclick="ST.filter='pending';renderVendorListInCard('${sessionId}')">待審</div>
+    <div class="ftab ${ST.filter==='paid'?'on':''}" onclick="ST.filter='paid';renderVendorListInCard('${sessionId}')">已繳費</div>
+  </div>` +
+  filtered.map(v=>{
+    const stMap={'待審核':['vc-pending','b-pending','待審核'],'錄取':['vc-accepted','b-accepted','已錄取'],'備取':['vc-waitlist','b-waitlist','備取'],'不錄取':['vc-rejected','b-rejected','不錄取']};
+    let [vcCls,badgeCls,badgeTxt]=stMap[v.reviewStatus]||['vc-pending','b-pending',v.reviewStatus];
+    if(v.payStatus==='已付款'){vcCls='vc-paid';badgeCls='b-paid';badgeTxt='已付款';}
+    return `<div class="vendor-card ${vcCls}" style="margin:0 0 6px">
+      <div class="v-head">
+        <div><div class="v-brand">${v.brand||v.name||''}</div>
+        <div style="font-size:12px;color:var(--md)">${v.email}</div></div>
+        <span class="badge ${badgeCls}">${badgeTxt}</span>
+      </div>
+      ${v.reviewStatus==='待審核'?`<div class="act-row">
+        <button class="act-btn act-accept" onclick="doStatus('${v.id}','錄取')">✓ 錄取</button>
+        <button class="act-btn act-wait" onclick="doStatus('${v.id}','備取')">備取</button>
+        <button class="act-btn act-reject" onclick="doStatus('${v.id}','不錄取')">✗ 不錄</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function doBatchAccept(sessionId){
+  ST.currentSessionId=sessionId;
+  const d=await apiGet({action:'getVendors',sessionId});
+  ST.vendors=d.vendors||[];
+  await batchAccept();
+  loadSessionStats(sessionId);
+  loadVendors(sessionId);
+}
+
+async function doBatchResend(sessionId){
+  ST.currentSessionId=sessionId;
+  await batchEmail();
+}
+
+function renderDashboard_old(){
   const mc=$('mainContent');
   if(!ST.sessions.length){
     mc.innerHTML=`<div class="no-sessions"><div class="ns-ic">📭</div><div class="ns-t">尚無場次</div><div class="ns-s">點下方「場次」新增第一個活動</div></div>`;

@@ -233,10 +233,10 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 <div class="sec">
   <div class="sec-t">選擇活動類型</div>
   <div class="cat-grid">
-    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('市集')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
-    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('體驗')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
-    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('文化')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
-    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('百貨')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
+    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('攤商招募')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
+    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('活動報名')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
+    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('合作申請')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
+    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('商場百貨寄賣')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
   </div>
 </div>
 <div class="sec">
@@ -574,10 +574,10 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 <div class="sec">
   <div class="sec-t">選擇活動類型</div>
   <div class="cat-grid">
-    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('市集')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
-    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('體驗')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
-    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('文化')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
-    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('百貨')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
+    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('攤商招募')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
+    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('活動報名')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
+    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('合作申請')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
+    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('商場百貨寄賣')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
   </div>
 </div>
 <div class="sec">
@@ -1386,6 +1386,36 @@ function selSubSession(id, name, fee, el) {
   if(B.ses) B.ses.subFee = fee;
 }
 
+// ── 設備區塊渲染 ──
+function renderEquipSection(s) {
+  if(!s || !s.equip) return '';
+  const equipList = Object.entries(s.equip).filter(([k,v])=>v&&v.open);
+  if(!equipList.length) return '';
+  const icons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
+  let html = '<div class="card"><div class="card-t">🪑 設備加購（選填）</div>';
+  equipList.forEach(([k,v])=>{
+    if(k==='fire'||k==='power') return;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gp)">
+      <span style="font-size:15px">${icons[k]||''}　${k}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;color:var(--md)">NT$${v.price||0}/件</span>
+        <input type="number" id="eq_${k}" value="0" min="0" max="10"
+          style="width:60px;text-align:center;padding:8px;border:1.5px solid #c8ddc8;border-radius:8px;font-size:15px"
+          oninput="updateEquip('${k}',this.value)">
+      </div>
+    </div>`;
+  });
+  // 明火/用電申報
+  if(s.openFire) html += `<label style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer">
+    <input type="checkbox" id="f_fire" style="width:18px;height:18px;accent-color:var(--g)">
+    <span style="font-size:15px">🔥 申請明火使用</span></label>`;
+  if(s.openPower) html += `<label style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer">
+    <input type="checkbox" id="f_power" style="width:18px;height:18px;accent-color:var(--g)">
+    <span style="font-size:15px">⚡ 申請用電</span></label>`;
+  html += '</div>';
+  return html;
+}
+
 // ── 動態表單（依後台模組設定顯示欄位）──
 function renderDynamicForm() {
   const s = B.ses;
@@ -1799,6 +1829,7 @@ function showBankInfo(sessionName, regId) {
   alert(msg);
 }
 
+function updateEquip(k,v){ B.equip[k]=parseInt(v)||0; }
 function toggleChip(el){ el.classList.toggle('on'); }
 function toggleSellType(el) {
   el.classList.toggle('sel');
