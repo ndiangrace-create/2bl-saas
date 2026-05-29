@@ -766,7 +766,15 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
       <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:7px">💰 退款政策</div>
       <div style="font-size:15px;color:var(--md);line-height:1.8">活動前20日以上：扣NT$100行政費後退還<br>活動前10日：扣NT$500行政費後退還<br>活動前7日：退50%<br>活動前5日內：不退費</div>
     </div>
-    <div class="card">
+    <div style="background:var(--rdp);border-radius:10px;padding:13px;margin-bottom:12px;border-left:4px solid var(--rd)">
+    <div style="font-size:14px;font-weight:700;color:var(--rd);margin-bottom:6px">⚠️ 送出前請確認</div>
+    <div style="font-size:13px;color:#c0392b;line-height:1.9">
+      請確認 Email 填寫正確，以免收不到錄取信<br>
+      錄取後請主動聯繫官方 LINE，避免收不到繳費登記通知<br>
+      <a href="https://lin.ee/RIygewy" target="_blank" style="color:var(--rd);font-weight:700">👉 https://lin.ee/RIygewy</a>
+    </div>
+  </div>
+  <div class="card">
       <div class="card-t">📜 規範確認</div>
       <div class="rules-box">
 <h4>🕐 一、報到與簽退</h4><ul>
@@ -1026,12 +1034,19 @@ function goSessions(type) {
   // 依 type 欄位過濾，若沒有精確符合就顯示全部
   let list = sessions.filter(s => {
     const t = (s.type||'').trim();
-    const st = t || '攤商招募';
-    if(type === '市集') return st === '攤商招募' || st === '市集' || t === '';
-    if(type === '體驗') return st === '活動報名' || st === '體驗';
-    if(type === '文化') return st === '合作申請' || st === '文化';
-    if(type === '百貨') return st === '商場百貨寄賣' || st === '百貨';
-    return true;
+    // 支援新舊名稱雙向對應
+    const typeAliases = {
+      '市集':    ['市集','攤商招募'],
+      '體驗':    ['體驗','活動報名'],
+      '文化':    ['文化','合作申請'],
+      '百貨':    ['百貨','商場百貨寄賣'],
+      '攤商招募':    ['市集','攤商招募'],
+      '活動報名':    ['體驗','活動報名'],
+      '合作申請':    ['文化','合作申請'],
+      '商場百貨寄賣':['百貨','商場百貨寄賣'],
+    };
+    const allowed = typeAliases[type] || [type];
+    return allowed.includes(t) || t === '';
   });
   if(!list.length) list = [...sessions];
   $('sesTitle').textContent = {'市集':'🏪 攤商招募','體驗':'🎨 活動報名','文化':'🎭 合作申請','百貨':'🏬 商場百貨寄賣'}[type]||type;
@@ -1374,59 +1389,52 @@ function selSubSession(id, name, fee, el) {
 // ── 動態表單（依後台模組設定顯示欄位）──
 function renderDynamicForm() {
   const s = B.ses;
-  const entry = B.entryType || '市集';
-
-  // 依場次類型推算預設模組（後台有設定就用設定，否則依場次 type 推算）
+  const entry = B.entryType || '攤商招募';
   const defaultModsByType = {
-    '攤商招募': { brand:true, sell:true, equip:true },
-    '活動報名': { brand:true, course:true, equip:true, public:true },
-    '合作申請': { brand:true, partner:true },
-    '商場百貨寄賣': { brand:true, sell:true },
+    '攤商招募':      { brand:true, sell_item:true, sell_cat:true, photo:false },
+    '活動報名':      { public:true, dates:true, course:true },
+    '合作申請':      { brand:true, brand_intro:true, partner:true },
+    '商場百貨寄賣':  { brand:true, sell_item:true, sell_link:true, sell_cat:true },
     // 舊名稱相容
-    '市集': { brand:true, sell:true, equip:true },
-    '體驗': { brand:true, course:true, equip:true, public:true },
+    '市集': { brand:true, sell_item:true, sell_cat:true },
+    '體驗': { public:true, dates:true, course:true },
     '文化': { brand:true, partner:true },
-    '百貨': { brand:true, sell:true },
+    '百貨': { brand:true, sell_item:true },
   };
-
-  // 優先順序：後台設定模組 > 場次type > 入口entryType > 預設
   const savedMods = s?.modules || {};
-  const hasSavedMods = Object.keys(savedMods).length > 0;
-  const sesType = s?.type || entry || '市集';
-  const mods = hasSavedMods ? savedMods : (defaultModsByType[sesType] || defaultModsByType[entry] || { brand:true, sell:true });
-
+  const hasSaved = Object.keys(savedMods).length > 0;
+  const sesType = s?.type || entry;
+  const mods = hasSaved ? savedMods : (defaultModsByType[sesType] || defaultModsByType[entry] || {brand:true, sell_item:true});
   let html = '';
 
-  // ── 基本資料（必選）──
+  // ── 基本資料（必填）──
   html += `<div class="card"><div class="card-t">👤 基本資料</div>
-    <label>代表人姓名 *</label><input type="text" id="f_name" value="${V.name||''}" placeholder="代表人姓名">
+    <label>代表人姓名 *</label>
+    <input type="text" id="f_name" value="${V.name||''}" placeholder="代表人姓名">
     <div class="em" id="fe_name"></div>
-    <label>手機 *</label><input type="tel" id="f_phone" value="${V.phone||''}" placeholder="0912-345-678" inputmode="tel">
+    <label>手機 *</label>
+    <input type="tel" id="f_phone" value="${V.phone||''}" placeholder="0912-345-678" inputmode="tel">
     <div class="em" id="fe_phone"></div>
-    <label>Email *</label><input type="email" id="f_email" value="${V.email||''}" placeholder="your@email.com" inputmode="email">
+    <label>Email *</label>
+    <input type="email" id="f_email" value="${V.email||''}" placeholder="your@email.com" inputmode="email">
     <div class="em" id="fe_email"></div>
   </div>`;
 
-  // ── 品牌資料 ──
-  if(mods.brand!==false) html += `<div class="card"><div class="card-t">🏷️ 品牌資料</div>
-    <label>品牌名稱 *</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱">
-    <label>品牌介紹</label><textarea id="f_brand_intro" placeholder="簡介你的品牌...">${V.brandIntro||''}</textarea>
-    <label>FB 粉絲頁 *</label><input type="url" id="f_fb" value="${V.fb||''}" placeholder="https://www.facebook.com/...">
-    <div class="em" id="fe_fb"></div>
-    <label>IG</label><input type="url" id="f_ig" value="${V.ig||''}" placeholder="https://www.instagram.com/...">
-    <label>官方網站</label><input type="url" id="f_website" placeholder="https://...">
-  </div>`;
-
-  // ── 販售資料 ──
-  if(mods.sell) html += `<div class="card"><div class="card-t">🛍️ 販售資料</div>
-    <label>本次販售類別</label>
-    <div class="chips" id="sellTypeChips" style="margin-top:6px">
-      ${['文創手作','飾品金工','潮流選品','動漫ACG','美食飲品','生活選物','花藝植栽','伴手禮','親子','二手','其他'].map(t=>'<div class="chip" onclick="toggleSellType(this)">'+t+'</div>').join('')}
-    </div>
-    <label style="margin-top:10px">本次販售說明 *</label>
-    <input type="text" id="sellNote" placeholder="填您主要販售的商品，例：手工皮革錢包、韓系選品">
-    <div class="em" id="fe_sell"></div>
-  </div>`;
+  // ── 攤商報名欄位 ──
+  const hasVendorMod = mods.brand||mods.brand_intro||mods.sell_item||mods.sell_link||mods.sell_cat||mods.photo;
+  if(hasVendorMod) {
+    html += '<div class="card"><div class="card-t">🏷️ 攤商資料</div>';
+    if(mods.brand) html += `<label>品牌名稱 *</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱"><div class="em" id="fe_fb"></div>`;
+    if(mods.brand_intro) html += `<label>品牌介紹</label><textarea id="f_brand_intro" placeholder="簡介你的品牌...">${V.brandIntro||''}</textarea>`;
+    if(mods.sell_item) html += `<label>主要販售商品 *</label><input type="text" id="f_sell_item" placeholder="例：手工皮革錢包、韓系選品"><div class="em" id="fe_sell"></div>`;
+    if(mods.sell_link) html += `<label>販售商品連結</label><input type="url" id="f_sell_link" placeholder="商品頁或社群連結">`;
+    if(mods.sell_cat) html += `<label>販售類別</label>
+      <div class="chips" id="sellTypeChips" style="margin-top:6px">
+        ${['文創手作','飾品金工','潮流選品','動漫ACG','美食飲品','生活選物','花藝植栽','伴手禮','親子','二手','其他'].map(t=>'<div class="chip" onclick="toggleChip(this)">'+t+'</div>').join('')}
+      </div>`;
+    if(mods.photo) html += `<label>出攤照片連結</label><input type="url" id="f_photo" placeholder="照片連結（新手可模擬拍照）"><div style="font-size:12px;color:var(--md);margin-top:2px">💡 新手可拍模擬擺設照上傳到雲端再貼連結</div>`;
+    html += '</div>';
+  }
 
   // ── 課程資料 ──
   if(mods.course) html += `<div class="card"><div class="card-t">📚 課程資料</div>
@@ -1439,7 +1447,7 @@ function renderDynamicForm() {
   </div>`;
 
   // ── 設備需求 ──
-  if(mods.equip) html += renderEquipSection(s);
+  if(s && (s.equip && Object.values(s.equip).some(e=>e&&e.open))) html += renderEquipSection(s);
 
   // ── 民眾資料 ──
   if(mods.public) html += `<div class="card"><div class="card-t">👥 參與資料</div>
@@ -1451,48 +1459,61 @@ function renderDynamicForm() {
     <label>飲食需求</label>
     <select id="f_diet"><option value="">無特殊需求</option><option>素食</option><option>全素</option><option>清真</option><option>其他</option></select>
     <label>無障礙需求</label><input type="text" id="f_access" placeholder="如有特殊需求請說明">
-    <label>備註</label><textarea id="f_note" placeholder="其他說明..."></textarea>
   </div>`;
+
+  // ── 參加日期勾選 ──
+  if(mods.dates && s?.activityDates?.length) {
+    html += '<div class="card"><div class="card-t">📅 參加場次日期</div>';
+    html += '<div style="font-size:13px;color:var(--md);margin-bottom:8px">請勾選要參加的日期</div>';
+    html += s.activityDates.map((d,i)=>
+      `<label style="display:flex;align-items:center;gap:10px;padding:11px;background:var(--lt);border-radius:9px;margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" id="f_date_${i}" value="${d.date}" style="width:18px;height:18px;accent-color:var(--g)">
+        <span style="font-size:15px;font-weight:700">${d.date}</span>
+        <span style="font-size:13px;color:var(--md)">${d.start||''}${d.end?' - '+d.end:''}</span>
+      </label>`
+    ).join('');
+    html += '</div>';
+  }
 
   // ── 合作資料 ──
   if(mods.partner) html += `<div class="card"><div class="card-t">🤝 合作資料</div>
-    <label>合作類型 *</label>
-    <select id="f_partner_type"><option value="">請選擇</option>
-      <option>Coser</option><option>攝影師</option><option>KOL</option>
-      <option>插畫家</option><option>音樂人</option><option>展演藝術家</option><option>其他</option>
-    </select>
-    <label>希望合作內容 *</label><textarea id="f_partner_content" placeholder="說明你希望的合作方式..."></textarea>
-    <label>可提供資源</label><textarea id="f_partner_resource" placeholder="你可以提供什麼？（露出、宣傳、費用...）"></textarea>
+    <label>單位名稱 *</label><input type="text" id="f_partner_org" placeholder="單位或個人名稱">
+    <label>合作類型</label><input type="text" id="f_partner_type" placeholder="例：Coser、攝影師、KOL、展演...">
+    <label>聯絡人</label><input type="text" id="f_partner_contact" placeholder="聯絡人姓名">
+    <label>電話</label><input type="tel" id="f_partner_phone" placeholder="聯絡電話">
+    <label>聯絡 Email</label><input type="email" id="f_partner_email" placeholder="聯絡信箱">
+    <label>統一編號</label><input type="text" id="f_partner_taxid" placeholder="（選填）">
+    <label>希望合作內容</label><textarea id="f_partner_content" placeholder="說明你希望的合作方式..."></textarea>
+    <label>可提供資源</label><textarea id="f_partner_resource" placeholder="你可以提供什麼？"></textarea>
     <label>報價 / 互惠條件</label><input type="text" id="f_partner_price" placeholder="例：NT$3000 或 場次免費換宣傳">
     <label>社群連結 *</label><input type="url" id="f_partner_social" placeholder="FB / IG / TikTok 主頁連結">
-    <label>作品集</label><input type="url" id="f_partner_portfolio" placeholder="作品集連結或 Google Drive 連結">
+    <label>作品集</label><input type="url" id="f_partner_portfolio" placeholder="作品集連結（選填）">
+    <label>備註</label><textarea id="f_partner_note" placeholder="其他說明..."></textarea>
   </div>`;
 
   // ── 自訂欄位 ──
-  if(mods.custom && s.customFields && s.customFields.length) {
+  if(mods.custom && s?.customFields?.length) {
     html += '<div class="card"><div class="card-t">📝 其他資料</div>';
     s.customFields.forEach((cf,i)=>{
-      html += '<label>'+cf.label+(cf.required?' *':'')+'</label>';
-      if(cf.type==='text') html += '<input type="text" id="cf_'+i+'" placeholder="'+cf.label+'"'+(cf.required?' required':'')+' >';
-      else if(cf.type==='number') html += '<input type="number" id="cf_'+i+'"'+(cf.required?' required':'')+' >';
-      else if(cf.type==='date') html += '<input type="date" id="cf_'+i+'"'+(cf.required?' required':'')+' >';
+      html += `<label>${cf.label||''}${cf.required?' *':''}</label>`;
+      if(cf.type==='number') html += `<input type="number" id="cf_${i}"${cf.required?' required':''}>`;
+      else if(cf.type==='date') html += `<input type="date" id="cf_${i}"${cf.required?' required':''}>`;
       else if(cf.type==='single'){
         const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);
-        html += '<select id="cf_'+i+'"><option value="">請選擇</option>'+opts.map(o=>'<option>'+o+'</option>').join('')+'</select>';
+        html += `<select id="cf_${i}"><option value="">請選擇</option>${opts.map(o=>'<option>'+o+'</option>').join('')}</select>`;
       } else if(cf.type==='multi'){
         const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);
-        html += '<div class="chips" id="cf_'+i+'_chips">'+opts.map(o=>'<div class="chip" onclick="toggleChip(this)">'+o+'</div>').join('')+'</div>';
+        html += `<div class="chips" id="cf_${i}_chips">${opts.map(o=>'<div class="chip" onclick="toggleChip(this)">'+o+'</div>').join('')}</div>`;
+      } else {
+        html += `<input type="text" id="cf_${i}" placeholder="${cf.label||''}"${cf.required?' required':''}>`;
       }
     });
     html += '</div>';
   }
 
   $('bFormContent').innerHTML = html;
-  if(s) {
-    const fireCard = document.getElementById('fireCard');
-    if(fireCard) fireCard.style.display = (s.openFire===false)?'none':'block';
-  }
 }
+
 
 function bNext2() {
   const id=B.identity;
@@ -1577,7 +1598,12 @@ async function submitBook() {
     dietNeeds:$('f_diet')?.value||'',
     accessNeeds:$('f_access')?.value||'',
     // 新模組欄位
-    sellNote:$('sellNote')?.value.trim()||'',
+    sellItem:$('f_sell_item')?.value.trim()||'',
+    sellLink:$('f_sell_link')?.value.trim()||'',
+    sellCat:Array.from(document.querySelectorAll('#sellTypeChips .chip.on')).map(c=>c.textContent).join('、'),
+    photo:$('f_photo')?.value.trim()||'',
+    brandIntro:$('f_brand_intro')?.value||'',
+    brand:$('f_brand')?.value.trim()||V.brand||'',
     brandIntro:$('f_brand_intro')?.value||'',
     website:$('f_website')?.value||'',
     fb:$('f_fb')?.value||V.fb||'',
@@ -1586,12 +1612,23 @@ async function submitBook() {
     courseIntro:$('f_course_intro')?.value||'',
     courseMax:$('f_course_max')?.value||'',
     courseFee:$('f_course_fee')?.value||'',
+    partnerOrg:$('f_partner_org')?.value||'',
     partnerType:$('f_partner_type')?.value||'',
+    partnerContact:$('f_partner_contact')?.value||'',
+    partnerPhone:$('f_partner_phone')?.value||'',
+    partnerEmail:$('f_partner_email')?.value||'',
+    partnerTaxId:$('f_partner_taxid')?.value||'',
     partnerContent:$('f_partner_content')?.value||'',
     partnerResource:$('f_partner_resource')?.value||'',
     partnerPrice:$('f_partner_price')?.value||'',
     partnerSocial:$('f_partner_social')?.value||'',
     partnerPortfolio:$('f_partner_portfolio')?.value||'',
+    partnerNote:$('f_partner_note')?.value||'',
+    selectedDates: (() => {
+      const ses = B.ses;
+      if(!ses?.activityDates) return '';
+      return ses.activityDates.filter((_,i)=>$('f_date_'+i)?.checked).map(d=>d.date).join('、');
+    })(),
     customAnswers: (() => {
       const ans = {};
       if(B.ses?.customFields) {
