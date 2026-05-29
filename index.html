@@ -599,7 +599,37 @@ function doLogout() {
 
 // ── 工具 ──
 const $ = id => document.getElementById(id);
-function sp(pg) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('on')); $('p-'+pg).classList.add('on'); window.scrollTo(0,0); }
+// ── 頁面切換（支援手機返回鍵）──
+const _pageStack = ['home'];
+function sp(pg) {
+  const el = $('p-'+pg);
+  if(!el) return;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  window.scrollTo(0,0);
+  // 推入 history，讓返回鍵攔截
+  if(_pageStack[_pageStack.length-1] !== pg) {
+    _pageStack.push(pg);
+    history.pushState({page:pg}, '', location.pathname + location.search);
+  }
+}
+// 攔截返回鍵
+window.addEventListener('popstate', (e) => {
+  if(_pageStack.length > 1) {
+    _pageStack.pop();
+    const prev = _pageStack[_pageStack.length-1];
+    const el = $('p-'+prev);
+    if(el){
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+      el.classList.add('on');
+      window.scrollTo(0,0);
+    }
+  } else {
+    // 最頂層，回首頁而不是離開
+    sp('home');
+    history.pushState({page:'home'}, '', location.pathname + location.search);
+  }
+});
 function sl(v) { $('ov').classList.toggle('on',v); }
 function toast(m) { const t=$('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2500); }
 function openModal(id) { $(id).classList.add('on'); }
@@ -703,8 +733,15 @@ function clickSesWithEntry(idx) {
   else openModal('mLogin');
 }
 
-function goSessions(type) {
+async function goSessions(type) {
   B.entryType = type;
+  // 如果 sessions 還沒載入，先等一次
+  if(!sessions.length) {
+    sp('sessions');
+    $('sesList').innerHTML = '<div style="text-align:center;padding:30px;color:var(--md)"><div style="font-size:30px;margin-bottom:8px">⏳</div><div>載入場次中...</div></div>';
+    $('sesTitle') && ($('sesTitle').textContent = '載入中...');
+    await loadSessions();
+  }
   // 依 type 欄位過濾，若沒有精確符合就顯示全部
   let list = sessions.filter(s => {
     const t = (s.type||'').trim();

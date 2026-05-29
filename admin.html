@@ -1158,22 +1158,35 @@ async function loadCheckinDetail(sessionId,sesName){
 function renderCheckinCards(vendors,sessionId){
   const el=$('checkinList'); if(!el) return;
   if(!vendors.length){el.innerHTML='<div class="empty">暫無已付款攤商</div>';return;}
+  const isStaff = ST.role==='staff';
   el.innerHTML=vendors.map(v=>{
     const showRefund=v.clearStatus==='已清場'&&v.refundStatus==='未退';
-    return `<div class="ci-card">
-      <div class="ci-booth">${v.booth||'-'}</div>
-      <div class="ci-info">
-        <div class="ci-brand">${v.brand}</div>
-        <div class="ci-time">${v.checkinTime||'未進場'}</div>
-      </div>
-      <div class="ci-actions">
-        <span class="ci-badge ${v.checkinStatus==='已報到'?'ci-in':'ci-wait'}">${v.checkinStatus||'未報到'}</span>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-          ${v.checkinStatus!=='已報到'?`<button class="btn-xs" style="background:var(--gp);color:var(--g)" onclick="doCheckin('${v.id}','${sessionId}')">進場</button>`:''}
-          ${v.clearStatus!=='已清場'?`<button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="doClear('${v.id}','${sessionId}')">清場</button>`:''}
-          ${showRefund?`<button class="btn-xs" style="background:var(--pkp);color:#c0607a" onclick="doRefund('${v.id}','${sessionId}')">退押金</button>`:''}
-          <button class="btn-xs" style="background:var(--rdp);color:var(--rd)" onclick="doCancelReg('${v.id}','${v.brand}',${v.deposit||0})">取消</button>
+    // 設備字串
+    const equipStr=Object.entries(v.equipment||{}).filter(([,q])=>q>0)
+      .map(([k,q])=>{
+        const icons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
+        return (icons[k]||'')+k+'×'+q;
+      }).join('　')||'';
+    const fireStr = v.fire==='yes'?'🔥 明火':''
+    const powerStr = v.power?'⚡ 用電':''
+    const equipDisplay = [equipStr,fireStr,powerStr].filter(Boolean).join('　')
+
+    return `<div class="ci-card" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="ci-booth">${v.booth||'-'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="ci-brand">${v.brand}</div>
+          ${equipDisplay?`<div style="font-size:12px;color:var(--md);margin-top:2px">${equipDisplay}</div>`:''}
         </div>
+        <span class="ci-badge ${v.checkinStatus==='已報到'?'ci-in':v.clearStatus==='已清場'?'ci-out':'ci-wait'}">
+          ${v.clearStatus==='已清場'?'已清場':v.checkinStatus==='已報到'?'已進場':'未報到'}
+        </span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${v.checkinStatus!=='已報到'&&v.clearStatus!=='已清場'?`<button class="btn-xs" style="background:var(--gp);color:var(--g);flex:1" onclick="doCheckin('${v.id}','${sessionId}')">✅ 進場</button>`:''}
+        ${v.checkinStatus==='已報到'&&v.clearStatus!=='已清場'?`<button class="btn-xs" style="background:var(--blp);color:#2980B9;flex:1" onclick="doClear('${v.id}','${sessionId}')">📦 清場</button>`:''}
+        ${showRefund?`<button class="btn-xs" style="background:var(--pkp);color:#c0607a;flex:1" onclick="doRefund('${v.id}','${sessionId}')">💰 退押金</button>`:''}
+        ${!isStaff?`<button class="btn-xs" style="background:var(--rdp);color:var(--rd)" onclick="doCancelReg('${v.id}','${v.brand}',${v.deposit||0})">取消</button>`:''}
       </div>
     </div>`;
   }).join('');
