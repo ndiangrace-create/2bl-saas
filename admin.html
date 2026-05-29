@@ -177,7 +177,13 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
   <div class="fg2">
     <div><label>場次名稱 *</label><input type="text" id="ns_name" placeholder="例：耶市集07月"></div>
     <div><label>活動類型 *</label>
-      <select id="ns_type"><option value="市集">🏪 市集</option><option value="體驗">🎨 體驗</option><option value="文化">🎭 文化</option><option value="百貨">🏬 百貨</option></select>
+      <select id="ns_type" onchange="updateFormModulesByType()">
+          <option value="市集">🏪 市集（攤商販售）</option>
+          <option value="體驗">🎨 體驗（課程報名）</option>
+          <option value="文化">🎭 文化（合作夥伴）</option>
+          <option value="百貨">🏬 百貨（寄賣品牌）</option>
+        </select>
+        <div style="font-size:13px;color:var(--md);margin-top:4px">選擇後自動設定預設表單模組，可再調整</div>
     </div>
   </div>
   <label>場次說明</label><textarea id="ns_intro" placeholder="給報名者看的活動介紹..."></textarea>
@@ -1177,6 +1183,21 @@ async function doDeletePartner(id){
 }
 
 // ── 新增場次 ──
+// 依活動類型自動勾選對應模組
+function updateFormModulesByType() {
+  const type = $('ns_type')?.value || '市集';
+  const presets = {
+    '市集': { brand:true, sell:true, equip:true, course:false, public:false, partner:false },
+    '體驗': { brand:true, sell:false, equip:true, course:true, public:true, partner:false },
+    '文化': { brand:true, sell:false, equip:false, course:false, public:false, partner:true },
+    '百貨': { brand:true, sell:true, equip:false, course:false, public:false, partner:false },
+  };
+  const p = presets[type] || presets['市集'];
+  ['brand','sell','equip','course','public','partner'].forEach(k=>{
+    const cb=$('mod_'+k); if(cb) cb.checked=p[k]||false;
+  });
+}
+
 function togglePosMode(){
   const mode=$('ns_pos_mode')?.value;
   const autoEl=$('ns_pos_auto'), custEl=$('ns_pos_custom');

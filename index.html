@@ -656,10 +656,11 @@ function renderSessionCard(s, idx) {
   const full = left <= 0;
   const badgeCls = full ? 'b-full' : left<=5 ? 'b-few' : 'b-ok';
   const badgeTxt = full ? '已額滿' : left<=5 ? '剩'+left+'名' : '招募中';
+  const typeIcon = {'市集':'🏪','體驗':'🎨','文化':'🎭','百貨':'🏬'}[s.type||'市集']||'🏪';
   const sidx = sessions.indexOf(s);
   return `<div class="sc">
     <div class="sc-h"><div class="sc-n">${s.name}</div><span class="badge ${badgeCls}">${badgeTxt}</span></div>
-    <div class="sc-i">📅 ${s.dateDisplay||s.date}${s.timeStart?' '+s.timeStart+(s.timeEnd?'-'+s.timeEnd:''):''}　📍 ${s.city} ${s.venue}</div>
+    <div class="sc-i">${typeIcon} ${s.type||'市集'}　📅 ${s.dateDisplay||s.date}${s.timeStart?' '+s.timeStart+(s.timeEnd?'-'+s.timeEnd:''):''}　📍 ${s.city} ${s.venue}</div>
     <div class="sc-p">NT$${s.fee}／攤</div>
     ${s.mapUrl?`<a href="${s.mapUrl}" target="_blank" style="display:inline-block;font-size:14px;color:var(--md);margin-bottom:5px;text-decoration:none">📍 查看地圖</a>`:''}
     ${!full?`<button class="sc-btn" onclick="clickSesWithEntry(${sidx})">我要報名</button>`:`<button class="sc-btn" disabled>已額滿</button>`}
@@ -1030,18 +1031,19 @@ function renderDynamicForm() {
   const s = B.ses;
   const entry = B.entryType || '市集';
 
-  // 依入口類型設定預設模組（後台有設定就用設定，否則依入口推算）
-  const defaultModsByEntry = {
+  // 依場次類型推算預設模組（後台有設定就用設定，否則依場次 type 推算）
+  const defaultModsByType = {
     '市集': { brand:true, sell:true, equip:true },
-    '體驗': { brand:true, course:true, equip:true },
+    '體驗': { brand:true, course:true, equip:true, public:true },
     '文化': { brand:true, partner:true },
     '百貨': { brand:true, sell:true },
   };
 
-  // 後台有設定模組就用後台設定，否則依入口推算預設
+  // 優先順序：後台設定模組 > 場次type > 入口entryType > 預設
   const savedMods = s?.modules || {};
   const hasSavedMods = Object.keys(savedMods).length > 0;
-  const mods = hasSavedMods ? savedMods : (defaultModsByEntry[entry] || { brand:true, sell:true });
+  const sesType = s?.type || entry || '市集';
+  const mods = hasSavedMods ? savedMods : (defaultModsByType[sesType] || defaultModsByType[entry] || { brand:true, sell:true });
 
   let html = '';
 
