@@ -233,10 +233,10 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 <div class="sec">
   <div class="sec-t">選擇活動類型</div>
   <div class="cat-grid">
-    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('市集')"><div class="cat-ic">🏪</div><div class="cat-nm">市集活動</div><div class="cat-ds">攤商・選物・手作・二手</div></div>
-    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('體驗')"><div class="cat-ic">🎨</div><div class="cat-nm">體驗活動</div><div class="cat-ds">手作體驗・親子課程</div></div>
-    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('文化')"><div class="cat-ic">🎭</div><div class="cat-nm">文化企劃</div><div class="cat-ds">Coser・KOL・展演合作</div></div>
-    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('百貨')"><div class="cat-ic">🏬</div><div class="cat-nm">百貨寄賣</div><div class="cat-ds">品牌進駐・選位・抽成</div></div>
+    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('市集')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
+    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('體驗')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
+    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('文化')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
+    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('百貨')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
   </div>
 </div>
 <div class="sec">
@@ -574,10 +574,10 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 <div class="sec">
   <div class="sec-t">選擇活動類型</div>
   <div class="cat-grid">
-    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('市集')"><div class="cat-ic">🏪</div><div class="cat-nm">市集活動</div><div class="cat-ds">攤商・選物・手作・二手</div></div>
-    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('體驗')"><div class="cat-ic">🎨</div><div class="cat-nm">體驗活動</div><div class="cat-ds">手作體驗・親子課程</div></div>
-    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('文化')"><div class="cat-ic">🎭</div><div class="cat-nm">文化企劃</div><div class="cat-ds">Coser・KOL・展演合作</div></div>
-    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('百貨')"><div class="cat-ic">🏬</div><div class="cat-nm">百貨寄賣</div><div class="cat-ds">品牌進駐・選位・抽成</div></div>
+    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('市集')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
+    <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('體驗')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
+    <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('文化')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
+    <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('百貨')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
   </div>
 </div>
 <div class="sec">
@@ -1036,7 +1036,7 @@ function goSessions(type) {
   });
   // 若過濾後完全沒有，顯示全部場次（不讓用戶看到空白頁）
   if(!list.length) list = [...sessions];
-  $('sesTitle').textContent = {'市集':'🏪 市集活動','體驗':'🎨 體驗活動','文化':'🎭 文化企劃','百貨':'🏬 百貨寄賣'}[type]||type;
+  $('sesTitle').textContent = {'市集':'🏪 攤商招募','體驗':'🎨 活動報名','文化':'🎭 合作申請','百貨':'🏬 商場百貨寄賣'}[type]||type;
   $('sesList').innerHTML = list.length
     ? list.map(s=>renderSessionCard(s,sessions.indexOf(s))).join('')
     : '<div style="text-align:center;padding:24px;color:var(--md);font-size:15px">目前無開放報名場次</div>';
