@@ -200,11 +200,20 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   <div class="hero-txt"><div id="heroGreet" style="display:none"></div></div>
 </div>
 
-<div id="debugInfo" style="font-size:11px;color:#999;padding:2px 12px;word-break:break-all"></div>
+<!-- 固定客服按鈕 -->
+<a href="https://lin.ee/RIygewy" target="_blank" id="csBtn"
+  style="position:fixed;top:12px;left:12px;z-index:9999;width:46px;height:46px;background:#FFD700;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.25);text-decoration:none;flex-direction:column;gap:1px">
+  <span style="font-size:18px">★</span>
+  <span style="font-size:9px;font-weight:700;color:#7a5200;line-height:1">客服</span>
+</a>
 
-<div id="memberEntry" style="padding:10px 16px;display:flex;gap:10px">
-  <button onclick="goJoin()" style="flex:1;padding:13px;background:var(--g);border:none;border-radius:11px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🌿 加入共創好朋友</button>
-  <button onclick="if(V.loggedIn){sp('member');renderMemberUI();}else{openModal('mLogin');}" style="flex:1;padding:13px;background:var(--wh);border:1.5px solid var(--g);border-radius:11px;font-size:15px;font-weight:700;color:var(--g);cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">
+<div id="debugInfo"  style="font-size:11px;color:#999;padding:2px 12px;word-break:break-all"></div>
+
+<div id="memberEntry" style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+  <button onclick="goJoin('friend')" style="padding:13px 8px;background:#6FB7B7;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🌿 加入共創好朋友</button>
+  <button onclick="goJoin('vendor')" style="padding:13px 8px;background:#FF60AF;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🏪 填寫攤商資料</button>
+  <button onclick="goJoin('biz')" style="padding:13px 8px;background:#84C1FF;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🤝 商業交流</button>
+  <button id="memberLoginBtn" onclick="if(V.loggedIn){sp('member');renderMemberUI();}else{openModal('mLogin');}" style="padding:13px 8px;background:#A6A6D2;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">
     <span id="memberEntryText">👤 會員登入</span>
   </button>
 </div>
@@ -304,19 +313,21 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
         </div>
       </div>
       <div class="fg"><label class="fl">生日</label><input type="date" id="jBirthday"></div>
-      <div class="fg"><label class="fl">興趣 / 喜好</label><input type="text" id="jInterest" placeholder="可輸入或從選單選擇，可多選用逗號分隔" list="interestList" autocomplete="off">
-        <datalist id="interestList">
-          <option>手工藝</option><option>手作皮革</option><option>刺繡縫紉</option><option>陶藝</option>
-          <option>插畫設計</option><option>攝影</option><option>影像剪輯</option><option>音樂</option>
-          <option>美食料理</option><option>烘焙甜點</option><option>咖啡茶飲</option><option>健康飲食</option>
-          <option>親子活動</option><option>兒童教育</option><option>寵物</option><option>植栽花藝</option>
-          <option>戶外露營</option><option>登山健行</option><option>運動健身</option><option>瑜珈冥想</option>
-          <option>旅遊</option><option>文化藝術</option><option>閱讀</option><option>電影</option>
-          <option>ACG動漫</option><option>Cosplay</option><option>桌遊</option><option>電競</option>
-          <option>時尚穿搭</option><option>保養美妝</option><option>香氛蠟燭</option><option>二手選物</option>
-          <option>永續環保</option><option>社會企業</option><option>公益志工</option><option>創業</option>
-          <option>市集擺攤</option><option>品牌經營</option><option>行銷設計</option><option>程式開發</option>
-        </datalist></div>
+      <div class="fg"><label class="fl">興趣 / 喜好</label><input type="hidden" id="jInterest">
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:6px" id="interestChips">
+          <div class="chip" onclick="toggleInterest(this)">手作工藝</div>
+          <div class="chip" onclick="toggleInterest(this)">攝影影像</div>
+          <div class="chip" onclick="toggleInterest(this)">美食料理</div>
+          <div class="chip" onclick="toggleInterest(this)">親子活動</div>
+          <div class="chip" onclick="toggleInterest(this)">戶外運動</div>
+          <div class="chip" onclick="toggleInterest(this)">文化藝術</div>
+          <div class="chip" onclick="toggleInterest(this)">時尚選物</div>
+          <div class="chip" onclick="toggleInterest(this)">動漫ACG</div>
+          <div class="chip" onclick="toggleInterest(this)">旅遊</div>
+          <div class="chip" onclick="toggleInterest(this)">創業品牌</div>
+          <div class="chip" onclick="toggleInterest(this)">音樂表演</div>
+          <div class="chip" onclick="toggleInterest(this)">永續環保</div>
+        </div></div>
       <div class="fg"><label class="fl">所在地區</label>
         <select id="jRegion"><option value="">請選擇</option><option>北北基</option><option>桃竹苗</option><option>中彰投</option><option>雲嘉南</option><option>高屏</option><option>宜花東</option><option>離島</option><option>海外</option></select>
       </div>
@@ -654,10 +665,11 @@ async function api(payload) { return apiPost(payload); }
 // ── 長按進後台 ──
 let _longTimer = null;
 function heroLongPress() {}
-document.addEventListener('mousedown', e=>{ if(e.target.closest('.hero')){ _longTimer=setTimeout(()=>{ window.location.href='admin.html'; },3000); }});
+document.addEventListener('mousedown', e=>{ if(e.target.closest('.hero')){ _longTimer=setTimeout(()=>{ window.location.href='admin.html'; },5000); }});
 document.addEventListener('mouseup', ()=>{ clearTimeout(_longTimer); });
-document.addEventListener('touchstart', e=>{ if(e.target.closest('.hero')){ _longTimer=setTimeout(()=>{ window.location.href='admin.html'; },3000); }},{passive:true});
+document.addEventListener('touchstart', e=>{ if(e.target.closest('.hero')){ _longTimer=setTimeout(()=>{ window.location.href='admin.html'; },5000); }},{passive:true});
 document.addEventListener('touchend', ()=>{ clearTimeout(_longTimer); });
+document.addEventListener('touchmove', ()=>{ clearTimeout(_longTimer); },{passive:true});
 
 // ── 公告 ──
 async function loadHomeAnnouncements() {
@@ -835,6 +847,7 @@ async function doLogin(email) {
 async function doLogout() {
   saveUser({loggedIn:false});
   V = {loggedIn:false};
+  updateMemberEntryBtn();
   sp('home');
   const greet=$('heroGreet');
   if(greet) greet.style.display='none';
@@ -896,9 +909,9 @@ async function doJoin() {
         fb:$('jFb')?.value.trim()||'', ig:$('jIg')?.value.trim()||'',
         website:$('jWebsite')?.value.trim()||'', points:0, history:[]});
       renderMemberUI();
-      const t=$('memberEntryText'); if(t) t.textContent='👤 '+name+' · 我的報名';
-      sp('success');
-      const sm=$('successMsg'); if(sm) sm.textContent='🎉 歡迎成為共創好朋友！有新活動會通知你。';
+      updateMemberEntryBtn();
+      toast('🎉 歡迎加入共創好朋友！');
+      sp('home');
     } else toast('建立失敗：'+(d.message||''));
   } catch(e){ toast('連線失敗'); }
   finally{ sl(false); }
@@ -918,7 +931,24 @@ async function submitRefund() {
   finally{ sl(false); }
 }
 // ── 加入會員 ──
-function goJoin() { J={step:1,cat:'',subs:[]}; sp('join'); jGoStep(1); }
+function goJoin(type) {
+  J={step:1,cat:type||'friend',subs:[]};
+  sp('join');
+  if(type==='vendor') jGoStep(2);
+  else if(type==='biz') jGoStep(3);
+  else jGoStep(1);
+  // 若已登入，帶入現有資料
+  if(V.loggedIn){
+    if($('jName')) $('jName').value=V.name||'';
+    if($('jEmail')) $('jEmail').value=V.email||'';
+    if($('jPhone')) $('jPhone').value=V.phone||'';
+    if($('jBrand')) $('jBrand').value=V.brand||'';
+    if($('jBrandIntro')) $('jBrandIntro').value=V.brandIntro||'';
+    if($('jFb')) $('jFb').value=V.fb||'';
+    if($('jIg')) $('jIg').value=V.ig||'';
+    if($('jWebsite')) $('jWebsite').value=V.website||'';
+  }
+}
 function joinBack() { if(J.step>1) jGoStep(J.step-1); else sp('home'); }
 function jGoStep(n) {
   J.step = n;
@@ -988,6 +1018,12 @@ function renderEquipSection(s) {
   return html;
 }
 function updateEquip(k,v){ B.equip[k]=parseInt(v)||0; }
+function toggleInterest(el) {
+  el.classList.toggle('on');
+  const chips = Array.from(document.querySelectorAll('#interestChips .chip.on')).map(c=>c.textContent);
+  const el2=$('jInterest'); if(el2) el2.value=chips.join('、');
+}
+
 function toggleChip(el){ el.classList.toggle('on'); }
 function updateChildAges() {
   const cc=parseInt($('childCount')?.value)||0;
