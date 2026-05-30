@@ -228,8 +228,14 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
   <label style="margin-top:10px">Google Maps 連結（選填）</label>
   <input type="url" id="ns_mapurl" placeholder="https://maps.app.goo.gl/...">
   <label style="margin-top:10px">關聯場次（選填）</label>
-  <input type="text" id="ns_related" placeholder="填入相關場次ID，例：SES-001,SES-002（可空白，之後補填）">
-  <div style="font-size:12px;color:var(--md);margin-top:3px">💡 報名成功後會顯示「你也可以報名這些活動」的提示</div>
+  <div id="ns_related_picker" style="background:var(--lt);border-radius:9px;padding:10px;margin-bottom:4px">
+    <div style="font-size:13px;color:var(--md);margin-bottom:6px">勾選關聯場次（報名成功後顯示）：</div>
+    <div id="ns_related_list" style="display:flex;flex-wrap:wrap;gap:6px">
+      <div style="font-size:13px;color:#aaa">載入中...</div>
+    </div>
+  </div>
+  <input type="hidden" id="ns_related">
+  <div style="font-size:12px;color:var(--md);margin-top:3px">💡 只顯示報名中的場次，已關閉不會出現</div>
 
   <!-- 多日期設定 -->
   <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:7px">活動日期時間 *（可新增多天）</div>
@@ -252,7 +258,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <div><label>主辦單位</label><input type="text" id="ns_organizer" placeholder="主辦名稱" list="organizer_list"><datalist id="organizer_list"></datalist></div>
     <div><label>協辦單位</label><input type="text" id="ns_coorg" placeholder="協辦名稱（選填）" list="coorg_list"><datalist id="coorg_list"></datalist></div>
   </div>
-  <div><label>基本配備說明</label><input type="text" id="ns_basicequip" placeholder="例：桌1椅1"></div>
+  <div><label>基本配備說明</label><input type="text" id="ns_basicequip" placeholder="例：有提供延長線、無擺設限制..."></div>
 
   
 
@@ -402,9 +408,33 @@ let ST = {
 const $ = id => document.getElementById(id);
 function sl(v){ $('ov').classList.toggle('on',v); }
 function toast(m){ const t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500); }
+function renderRelatedPicker(currentId) {
+  const el = $('ns_related_list'); if(!el) return;
+  const sessions = (ST.sessions||[]).filter(s =>
+    s.id !== currentId &&
+    (!s.status || s.status === '報名中' || s.status === '開放中')
+  );
+  if(!sessions.length){ el.innerHTML='<div style="font-size:13px;color:#aaa">目前無其他開放場次</div>'; return; }
+  const current = ($('ns_related')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  el.innerHTML = sessions.map(s=>`
+    <label style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #c8ddc8;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:13px">
+      <input type="checkbox" value="${s.id}" ${current.includes(s.id)?'checked':''} onchange="updateRelatedField()" style="accent-color:var(--g)">
+      <span><b>${s.name}</b><br><span style="color:var(--md);font-size:11px">${s.dateDisplay||s.date||''} · ${s.city||''}</span></span>
+    </label>`).join('');
+}
+
+function updateRelatedField() {
+  const checked = Array.from(document.querySelectorAll('#ns_related_list input:checked')).map(cb=>cb.value);
+  const el = $('ns_related'); if(el) el.value = checked.join(',');
+}
+
+
 function openModal(id){
   $(id).classList.add('on');
-  if(id==='mNewSession' && !window._editingSessionId) { initDateRows(); }
+  if(id==='mNewSession'){
+    if(!window._editingSessionId) initDateRows();
+    renderRelatedPicker(window._editingSessionId||null);
+  }
 }
 function closeModal(id){ $(id).classList.remove('on'); }
 function fmtM(n){ return 'NT$'+(parseInt(n)||0).toLocaleString(); }
@@ -971,12 +1001,14 @@ async function editSession(sessionId) {
   $('ns_intro').value = s.intro||'';
   $('ns_city').value = s.city||'高雄';
   $('ns_venue').value = s.venue||'';
+  $('ns_imgurl').value = s.imgUrl||'';
   $('ns_mapurl').value = s.mapUrl||'';
   $('ns_fee').value = s.fee||0;
   $('ns_fee_mode').value = s.feeMode||'場次';
   $('ns_deposit').value = s.deposit||500;
   $('ns_limit').value = s.limit||30;
   $('ns_organizer').value = s.organizer||'';
+  if($('ns_basicequip')) $('ns_basicequip').value = s.basicEquip||'';
   $('ns_coorg').value = s.coOrganizer||'';
   $('ns_open_fire').checked = s.openFire!==false;
   const nr=$('ns_need_review'); if(nr) nr.checked = s.needReview!==false;
