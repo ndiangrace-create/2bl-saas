@@ -1014,10 +1014,11 @@ async function editSession(sessionId) {
   const nr=$('ns_need_review'); if(nr) nr.checked = s.needReview!==false;
 
   // 設備
+  // 設備帶入（依 buildSession 回傳的 equip 物件）
   ['帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'].forEach(k=>{
-    const cb=$('ns_eq_'+k); if(cb) cb.checked=s['equip_'+k]||false;
-    const pr=$('ns_ep_'+k); if(pr) pr.value=s['price_'+k]||'';
-    if(cb) cb.closest('.eq-item')?.classList.toggle('on',cb.checked);
+    const eq = s.equip && s.equip[k];
+    const cb=$('ns_eq_'+k); if(cb){ cb.checked=eq&&eq.open||false; cb.closest('.eq-item')?.classList.toggle('on',cb.checked); }
+    const pr=$('ns_ep_'+k); if(pr) pr.value=eq&&eq.price||'';
   });
   // 標題改為「編輯場次」，送出時帶入 sessionId
   document.querySelector('#mNewSession .mt').textContent = '編輯場次：'+s.name;
@@ -1594,6 +1595,14 @@ async function saveNewSession(){
     modules[key] = cb.checked;
   });
 
+  // 收集設備
+  const equipKeys = ['桌','椅子','桌布','野餐墊','陽傘','帳篷','電','燈'];
+  const equip = {};
+  equipKeys.forEach(k=>{
+    const cb=$('ns_eq_'+k); const pr=$('ns_ep_'+k);
+    equip[k] = { open: cb?cb.checked:false, price: parseInt(pr?.value)||0 };
+  });
+
   const payload={
     action: window._editingSessionId ? 'updateSession' : 'createSession',
     name,type:$('ns_type')?.value||'市集',
@@ -1602,7 +1611,7 @@ async function saveNewSession(){
     imgUrl:$('ns_imgurl')?.value.trim()||'',
     mapUrl:$('ns_mapurl')?.value.trim()||'',
     fee:parseInt($('ns_fee')?.value)||0,
-    feeMode:$('ns_fee_mode')?.value||'場次',
+    feeMode:$('ns_fee_mode')?.value||'場次', // 計價方式
     deposit:parseInt($('ns_deposit')?.value)||500,
     limit:parseInt(limit),
     basicEquip:$('ns_basicequip')?.value.trim()||'',
@@ -1611,7 +1620,7 @@ async function saveNewSession(){
     openFire:$('ns_open_fire')?.checked!==false,
     needReview:$('ns_need_review')?.checked!==false,
     activityDates: actDates.filter(d=>d.date),
-    ...equipPayload,
+    equip,
     modules: JSON.stringify(modules),
     customFields: JSON.stringify(customFieldsData),
     sessionId: window._editingSessionId || ''
