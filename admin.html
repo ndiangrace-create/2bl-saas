@@ -175,6 +175,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
   <div class="bottom-nav">
     <button class="bn-item on" id="nav-dash" onclick="switchTab('dash')"><span class="bn-ic">📊</span>場次總覽</button>
     <button class="bn-item" id="nav-checkin" onclick="switchTab('checkin')"><span class="bn-ic">✅</span>報到</button>
+    <button class="bn-item" id="nav-members" onclick="switchTab('members')"><span class="bn-ic">🌿</span>好朋友</button>
     <button class="bn-item" id="nav-tools" onclick="switchTab('tools')"><span class="bn-ic">⚙️</span>工具</button>
   </div>
 </div>
@@ -316,7 +317,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <div class="eq-item"><input type="checkbox" id="ns_eq_燈" class="mod-cb"><span class="eq-name">💡 燈</span><input type="number" id="ns_ep_燈" placeholder="50" class="eq-price"></div>
     <div class="eq-item"><input type="checkbox" id="ns_eq_陽傘" class="mod-cb"><span class="eq-name">☂️ 陽傘</span><input type="number" id="ns_ep_陽傘" placeholder="450" class="eq-price"></div>
     <div class="eq-item" style="border-color:#ffd0b0"><input type="checkbox" id="ns_open_fire" class="mod-cb"><span class="eq-name" style="color:#c0607a">🔥 明火</span></div>
-    <div class="eq-item" style="border-color:#b0d0ff"><input type="checkbox" id="ns_open_power" class="mod-cb"><span class="eq-name" style="color:#2980B9">⚡ 用電</span></div>
+    
   </div>
 
   <!-- 自訂欄位 -->
@@ -327,22 +328,19 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <button type="button" onclick="addCustomField()" style="width:100%;padding:10px;background:none;border:2px dashed #c8ddc8;border-radius:9px;font-size:14px;color:var(--md);cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:8px">＋ 新增欄位</button>
   </div>
 
-<!-- 子場次設定 -->
-  <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:8px">子場次設定</div>
-  <select id="ns_pos_mode" onchange="togglePosMode()" style="margin-bottom:9px">
-    <option value="none">不設定子場次</option>
-    <option value="auto">自動產生編號（如：A01、B01）</option>
-    <option value="custom">自訂子場次名稱</option>
-  </select>
-  <div id="ns_pos_auto" style="display:none">
-    <div class="fg4">
-      <div><label>前綴</label><input type="text" id="ns_pos_prefix" value="A"></div>
-      <div><label>起始號</label><input type="number" id="ns_pos_start" value="1"></div>
-      <div><label>數量</label><input type="number" id="ns_pos_count" value="30"></div>
+<!-- 是否需要審核 -->
+  <div style="font-size:14px;font-weight:700;color:var(--md);margin-top:14px;margin-bottom:8px">報名審核設定</div>
+  <label class="eq-item" style="display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--gp);border-radius:9px;cursor:pointer;margin-bottom:8px">
+    <input type="checkbox" id="ns_need_review" checked style="width:18px;height:18px;accent-color:var(--g)">
+    <div>
+      <div style="font-size:14px;font-weight:700">此場次需要審核</div>
+      <div style="font-size:12px;color:var(--md)">勾選：報名後進入待審核。取消勾選：報名直接錄取</div>
     </div>
-  </div>
-  <div id="ns_pos_custom" style="display:none">
-    <textarea id="ns_pos_list" placeholder="每行一個名稱，例：&#10;攤位A1&#10;攤位A2"></textarea>
+  </label>
+  <div style="font-size:12px;color:var(--md);background:var(--lt);border-radius:8px;padding:10px;line-height:1.7">
+    💡 占名額規則（系統自動依費用判斷）：<br>
+    ・收費場次：繳費後才占名額<br>
+    ・免費場次：錄取後就占名額
   </div>
 
   <div style="display:flex;gap:10px;margin-top:18px">
@@ -496,7 +494,7 @@ function doLogout(){
 function switchTab(tab){
   if(ST.role==='staff' && tab!=='checkin') tab='checkin';
   ST.currentTab=tab;
-  ['dash','checkin','tools'].forEach(t=>{
+  ['dash','checkin','members','tools'].forEach(t=>{
     const btn=$('nav-'+t);
     if(btn){
       btn.classList.toggle('on',t===tab);
@@ -506,6 +504,7 @@ function switchTab(tab){
   });
   if(tab==='dash') renderDashboard();
   else if(tab==='checkin') renderCheckinWeekly();
+  else if(tab==='members' && ST.role!=='staff') renderMembers();
   else if(tab==='tools' && ST.role!=='staff') renderTools();
 }
 
@@ -565,7 +564,7 @@ async function loadSessionStats(sessionId){
     const paid=d.paid||0;
     const accepted=d.accepted||0;
     const remain=d.remaining!==undefined ? d.remaining : Math.max(0,limit-accepted);
-    const income='NT$'+((paid*(parseInt(s.fee)||0)).toLocaleString());
+    const income='$'+((d.paidAmount||0).toLocaleString());
     const el=$('chips-'+sessionId); if(!el) return;
     el.innerHTML=`
       <span class="sc sc-total">報名 ${d.total||0}</span>
@@ -657,7 +656,7 @@ function renderDashboard_old(){
 function renderSessionRow(s){
   const limit=parseInt(s.limit)||0;
   const remain=Math.max(0,limit-(parseInt(s.accepted)||0));
-  const income=fmtM((parseInt(s.paid)||0)*(parseInt(s.fee)||0));
+  const income=fmtM(s.paidAmount||0);
   const equipIcons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
   const equipStr=s.equip?Object.entries(s.equip).filter(([,v])=>v>0).map(([k,v])=>(equipIcons[k]||'')+k+' x'+v).join('　'):'';
 
@@ -725,7 +724,7 @@ async function loadSessionBody(id,body){
         const s=ST.sessions[idx];
         const limit=parseInt(s.limit)||0;
         const remain=Math.max(0,limit-(s.accepted||0));
-        const income=fmtM((s.paid||0)*(parseInt(s.fee)||0));
+        const income=fmtM(s.paidAmount||0);
         const equipIcons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
   const equipStr=s.equip?Object.entries(s.equip).filter(([,v])=>v>0).map(([k,v])=>(equipIcons[k]||'')+k+' x'+v).join('　'):'';
         const chips=rowEl.querySelector('.stat-chips');
@@ -972,10 +971,6 @@ async function editSession(sessionId) {
   $('ns_name').value = s.name||'';
   $('ns_type').value = s.type||'市集';
   $('ns_intro').value = s.intro||'';
-  $('ns_date_start').value = s.dateStart||'';
-  $('ns_date_end').value = s.dateEnd||'';
-  $('ns_time_start').value = s.timeStart||'10:00';
-  $('ns_time_end').value = s.timeEnd||'18:00';
   $('ns_city').value = s.city||'高雄';
   $('ns_venue').value = s.venue||'';
   $('ns_mapurl').value = s.mapUrl||'';
@@ -986,7 +981,7 @@ async function editSession(sessionId) {
   $('ns_organizer').value = s.organizer||'';
   $('ns_coorg').value = s.coOrganizer||'';
   $('ns_open_fire').checked = s.openFire!==false;
-  $('ns_open_power').checked = s.openPower!==false;
+  const nr=$('ns_need_review'); if(nr) nr.checked = s.needReview!==false;
 
   // 設備
   ['帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'].forEach(k=>{
@@ -1178,24 +1173,88 @@ async function loadCheckinDetail(sessionId, sesName){
   mc.innerHTML='<div class="empty">載入中...</div>';
   try {
     const d = await apiGet({action:'getCheckin', sessionId});
-    const allVendors = d.vendors||[];
-    const arrived = allVendors.filter(v=>v.checkinStatus==='已報到').length;
+    const vendors = d.vendors||[];
+    const sm = d.summary||{};
+    window._checkinVendors = vendors;
+    window._checkinSessionId = sessionId;
+    window._checkinSesName = sesName;
+    const eqStr = Object.entries(sm.equipTotal||{}).map(([k,v])=>k+'×'+v).join('　')||'無';
     mc.innerHTML=`
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <button onclick="renderCheckinWeekly()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--dk)">←</button>
         <div style="font-size:15px;font-weight:700;flex:1">${sesName}</div>
-        <div style="font-size:13px;color:var(--md)" id="checkinCount">${arrived}/${allVendors.length} 已報到</div>
+        <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="downloadCheckinCSV()">⬇️ 下載</button>
       </div>
-      <div style="margin-bottom:10px">
-        <input type="text" id="checkinSearch" placeholder="🔍 搜尋攤位號碼或品牌名稱"
-          style="width:100%;padding:12px 14px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:15px;font-family:'Noto Sans TC',sans-serif;box-sizing:border-box"
-          oninput="filterCheckin()">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="background:var(--gp);border-radius:9px;padding:12px;text-align:center">
+          <div style="font-size:12px;color:var(--md)">出席攤位</div>
+          <div style="font-size:24px;font-weight:900;color:var(--g)">${sm.arrivedBooths||0}<span style="font-size:14px;color:var(--md)">/${sm.totalBooths||0}</span></div>
+        </div>
+        <div style="background:var(--ylp);border-radius:9px;padding:12px;text-align:center">
+          <div style="font-size:12px;color:var(--md)">出席押金總計</div>
+          <div style="font-size:24px;font-weight:900;color:#c08000">$${(sm.depositTotal||0).toLocaleString()}</div>
+        </div>
       </div>
+      <div style="background:var(--lt);border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:13px">
+        <span style="color:var(--md)">出席設備：</span><span style="font-weight:700">${eqStr}</span>
+      </div>
+      <input type="text" id="checkinSearch" placeholder="🔍 搜尋攤位號碼或品牌名稱"
+        style="width:100%;padding:12px 14px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:15px;font-family:'Noto Sans TC',sans-serif;box-sizing:border-box;margin-bottom:10px"
+        oninput="filterCheckin()">
       <div id="checkinList"></div>`;
-    window._checkinVendors = allVendors;
-    window._checkinSessionId = sessionId;
-    renderCheckinCards(allVendors, sessionId);
+    renderCheckinCards(vendors, sessionId);
   } catch(e) { mc.innerHTML='<div class="empty">載入失敗</div>'; }
+}
+
+function renderCheckinCards(vendors, sessionId){
+  const el=$('checkinList'); if(!el) return;
+  if(!vendors.length){ el.innerHTML='<div class="empty">尚無已繳費攤商</div>'; return; }
+  const eqIcons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
+  el.innerHTML=vendors.map(v=>{
+    const eqStr=Object.entries(v.equip||{}).map(([k,q])=>(eqIcons[k]||'')+k+'×'+q).join('　')||'無設備';
+    const arrived=v.checkinStatus==='已報到';
+    const cleared=v.clearStatus==='已清場';
+    const refunded=v.refundStatus==='已退';
+    return `<div class="card" style="margin-bottom:8px;border-left:4px solid ${arrived?'var(--g)':'#ddd'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:15px">${v.booth!=='-'?'<span style="color:var(--g)">['+v.booth+']</span> ':''}${v.brand}</div>
+          <div style="font-size:13px;color:var(--md);margin-top:3px">${eqStr}</div>
+          <div style="font-size:13px;color:#c08000;margin-top:2px">押金 $${(v.deposit||0).toLocaleString()}</div>
+          ${v.checkinTime?`<div style="font-size:12px;color:var(--md);margin-top:2px">進場 ${v.checkinTime}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+          ${!arrived?`<button class="btn-xs" style="background:var(--g);color:#fff" onclick="doCheckin('${v.id}','${sessionId}')">進場</button>`:`<span style="font-size:12px;color:var(--g);font-weight:700">✅ 已報到</span>`}
+          ${arrived&&!cleared?`<button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="doClear('${v.id}','${sessionId}')">清場</button>`:''}
+          ${cleared&&!refunded?`<button class="btn-xs" style="background:var(--ylp);color:#c08000" onclick="doRefund('${v.id}','${sessionId}')">退押金</button>`:''}
+          ${refunded?`<span style="font-size:12px;color:var(--md)">已退押金</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function downloadCheckinCSV(){
+  const vendors=window._checkinVendors||[];
+  if(!vendors.length){ toast('無資料'); return; }
+  const rows=[['攤位編號','品牌','設備','押金','報到狀態','進場時間','清場狀態','押金退款']];
+  vendors.forEach(v=>{
+    const eq=Object.entries(v.equip||{}).map(([k,q])=>k+'×'+q).join(' ');
+    rows.push([v.booth,v.brand,eq,v.deposit,v.checkinStatus,v.checkinTime,v.clearStatus,v.refundStatus]);
+  });
+  const csv='\ufeff'+rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(window._checkinSesName||'報到名單')+'.csv';
+  a.click();
+}
+
+function filterCheckin(){
+  const q=($('checkinSearch')?.value||'').toLowerCase().trim();
+  const vendors=window._checkinVendors||[];
+  const filtered=q?vendors.filter(v=>(v.booth||'').toLowerCase().includes(q)||(v.brand||'').toLowerCase().includes(q)||(v.name||'').toLowerCase().includes(q)):vendors;
+  renderCheckinCards(filtered, window._checkinSessionId);
 }
 
 function filterCheckin() {
@@ -1219,6 +1278,78 @@ async function reloadCheckin(sessionId){
 }
 
 // ══ 工具 ══
+async function renderMembers(){
+  const mc=$('mainContent');
+  mc.innerHTML='<div class="empty">載入中...</div>';
+  try{
+    const d=await apiGet({action:'getMembers'});
+    const members=d.members||[];
+    window._allMembers=members;
+    mc.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:700">🌿 共創好朋友 <span style="color:var(--g)">${members.length}</span></div>
+        <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="downloadMembersCSV()">⬇️ 匯出</button>
+      </div>
+      <input type="text" id="memberSearch" placeholder="🔍 搜尋姓名/品牌/Email/產業/地區" oninput="filterMembers()"
+        style="width:100%;padding:12px 14px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:15px;font-family:'Noto Sans TC',sans-serif;box-sizing:border-box;margin-bottom:10px">
+      <div id="memberList"></div>`;
+    renderMemberCards(members);
+  }catch(e){ mc.innerHTML='<div class="empty">載入失敗</div>'; }
+}
+
+function renderMemberCards(members){
+  const el=$('memberList'); if(!el) return;
+  if(!members.length){ el.innerHTML='<div class="empty">尚無會員</div>'; return; }
+  el.innerHTML=members.map(m=>{
+    const typeColor={'共創好朋友':'var(--gp)','攤商':'var(--blp)','商業夥伴':'var(--ylp)'}[m.memberType]||'var(--gp)';
+    return `<div class="card" style="margin-bottom:8px" onclick="showMemberDetail('${m.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:15px">${m.name}${m.brand?' · '+m.brand:''}</div>
+          <div style="font-size:13px;color:var(--md);margin-top:2px">${m.email} · ${m.phone}</div>
+          <div style="font-size:12px;color:var(--md);margin-top:2px">${m.region||''}${m.industry?' · '+m.industry:''}</div>
+        </div>
+        <span style="font-size:11px;background:${typeColor};padding:3px 8px;border-radius:6px;white-space:nowrap">${m.memberType}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterMembers(){
+  const q=($('memberSearch')?.value||'').toLowerCase().trim();
+  const members=window._allMembers||[];
+  const f=q?members.filter(m=>
+    [m.name,m.brand,m.email,m.industry,m.region,m.company].some(v=>(v||'').toLowerCase().includes(q))
+  ):members;
+  renderMemberCards(f);
+}
+
+function showMemberDetail(id){
+  const m=(window._allMembers||[]).find(x=>x.id===id);
+  if(!m) return;
+  const rows=[
+    ['會員編號',m.id],['姓名',m.name],['Email',m.email],['手機',m.phone],
+    ['性別',m.gender],['生日',m.birthday],['興趣',m.interest],['地區',m.region],
+    ['品牌',m.brand],['品牌介紹',m.brandIntro],['粉專',m.fb],['IG',m.ig],['官網',m.website],
+    ['公司',m.company],['統編',m.taxId],['產業',m.industry],['合作提案',m.proposal],['報價互惠',m.resource],
+    ['會員類型',m.memberType],['加入時間',m.joinTime],['累積點數',m.points]
+  ].filter(([,v])=>v);
+  alert(rows.map(([k,v])=>k+'：'+v).join('\n'));
+}
+
+function downloadMembersCSV(){
+  const members=window._allMembers||[];
+  if(!members.length){ toast('無資料'); return; }
+  const cols=['會員編號','姓名','Email','手機','性別','生日','興趣','地區','品牌','品牌介紹','粉專','IG','官網','公司','統編','產業','合作提案','報價互惠','會員類型','加入時間'];
+  const keys=['id','name','email','phone','gender','birthday','interest','region','brand','brandIntro','fb','ig','website','company','taxId','industry','proposal','resource','memberType','joinTime'];
+  const rows=[cols];
+  members.forEach(m=>rows.push(keys.map(k=>m[k]||'')));
+  const csv='\ufeff'+rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='共創好朋友名單.csv'; a.click();
+}
+
 function renderTools(){
   const mc=$('mainContent');
   mc.innerHTML=`
@@ -1411,12 +1542,6 @@ function initDateRows(){
   renderDateRows();
 }
 
-function togglePosMode(){
-  const mode=$('ns_pos_mode')?.value;
-  const autoEl=$('ns_pos_auto'), custEl=$('ns_pos_custom');
-  if(autoEl) autoEl.style.display=mode==='auto'?'block':'none';
-  if(custEl) custEl.style.display=mode==='custom'?'block':'none';
-}
 document.addEventListener('change',e=>{
   if(e.target.id==='ns_theme') { const area=$('nsThemeArea'); if(area) area.style.display=e.target.checked?'block':'none'; }
   if(e.target.id==='ns_eq_帳篷'||e.target.id==='ns_eq_椅子'||e.target.id==='ns_eq_桌'||e.target.id==='ns_eq_野餐墊'||e.target.id==='ns_eq_桌布'||e.target.id==='ns_eq_電'||e.target.id==='ns_eq_燈'||e.target.id==='ns_eq_陽傘'){
@@ -1432,54 +1557,6 @@ async function saveNewSession(){
   if(!name||!validDates.length||!venue||!limit){toast('請填寫場次名稱、至少一個日期、場地名稱和名額上限');return;}
   const themeItemsRaw=$('ns_theme_items')?.value||'';
   const themeItems=themeItemsRaw.split('\n').map(s=>s.trim()).filter(Boolean);
-  let positions=[];
-  const mode=$('ns_pos_mode')?.value||'none';
-  if(mode==='auto'){
-    const prefix=$('ns_pos_prefix')?.value||'A';
-    const start=parseInt($('ns_pos_start')?.value)||1;
-    const count=parseInt($('ns_pos_count')?.value)||30;
-    for(let i=0;i<count;i++) positions.push({name:prefix+String(start+i).padStart(2,'0'),zone:prefix+'區',commission:''});
-  }else if(mode==='custom'){
-    ($('ns_pos_list')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean).forEach(n=>positions.push({name:n,zone:'',commission:''}));
-  }
-  const defaultPrices={'帳篷':800,'椅子':20,'桌':350,'野餐墊':50,'桌布':50,'電':100,'燈':50,'陽傘':450};
-  const equipPayload={};
-  ['帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'].forEach(k=>{
-    const checked=$('ns_eq_'+k)?.checked||false;
-    const price=parseInt($('ns_ep_'+k)?.value)||defaultPrices[k];
-    equipPayload['equip_'+k]=checked;
-    equipPayload['price_'+k]=price;
-  });
-  // 收集模組設定
-  const modules = {
-    // 品牌/攤商
-    brand: $('mod_brand')?.checked||false,
-    brandIntro: $('mod_brand_intro')?.checked||false,
-    sellItem: $('mod_sell_item')?.checked||false,
-    sellLink: $('mod_sell_link')?.checked||false,
-    sellCat: $('mod_sell_cat')?.checked||false,
-    photo: $('mod_photo')?.checked||false,
-    // 報名資料
-    adult: $('mod_adult')?.checked||false,
-    child: $('mod_child')?.checked||false,
-    diet: $('mod_diet')?.checked||false,
-    access: $('mod_access')?.checked||false,
-    // 活動資料
-    actName: $('mod_act_name')?.checked||false,
-    actContent: $('mod_act_content')?.checked||false,
-    actMax: $('mod_act_max')?.checked||false,
-    actFee: $('mod_act_fee')?.checked||false,
-    // 合作資料
-    collabType: $('mod_collab_type')?.checked||false,
-    collabSocial: $('mod_collab_social')?.checked||false,
-    collabPortfolio: $('mod_collab_portfolio')?.checked||false,
-    collabMethod: $('mod_collab_method')?.checked||false,
-    collabPrice: $('mod_collab_price')?.checked||false,
-    remark: $('mod_remark')?.checked||false,
-    // 自訂
-    custom: $('mod_custom')?.checked||false,
-  };
-
   const payload={
     action: window._editingSessionId ? 'updateSession' : 'createSession',
     name,type:$('ns_type')?.value||'市集',
@@ -1498,9 +1575,8 @@ async function saveNewSession(){
     organizer:$('ns_organizer')?.value.trim()||'',
     coOrganizer:$('ns_coorg')?.value.trim()||'',
     openFire:$('ns_open_fire')?.checked!==false,
-    openPower:$('ns_open_power')?.checked!==false,
+    needReview:$('ns_need_review')?.checked!==false,
     activityDates: actDates.filter(d=>d.date),
-    positions,
     ...equipPayload,
     modules: JSON.stringify(modules),
     customFields: JSON.stringify(customFieldsData),
