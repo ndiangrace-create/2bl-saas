@@ -200,20 +200,11 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   <div class="hero-txt"><div id="heroGreet" style="display:none"></div></div>
 </div>
 
-<!-- 固定客服按鈕 -->
-<a href="https://lin.ee/RIygewy" target="_blank" id="csBtn"
-  style="position:fixed;top:12px;left:12px;z-index:9999;width:46px;height:46px;background:#FFD700;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.25);text-decoration:none;flex-direction:column;gap:1px">
-  <span style="font-size:18px">★</span>
-  <span style="font-size:9px;font-weight:700;color:#7a5200;line-height:1">客服</span>
-</a>
-
 <div id="debugInfo"  style="font-size:11px;color:#999;padding:2px 12px;word-break:break-all"></div>
 
-<div id="memberEntry" style="padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-  <button onclick="goJoin('friend')" style="padding:13px 8px;background:#6FB7B7;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🌿 加入共創好朋友</button>
-  <button onclick="goJoin('vendor')" style="padding:13px 8px;background:#FF60AF;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🏪 填寫攤商資料</button>
-  <button onclick="goJoin('biz')" style="padding:13px 8px;background:#84C1FF;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🤝 商業交流</button>
-  <button id="memberLoginBtn" onclick="if(V.loggedIn){sp('member');renderMemberUI();}else{openModal('mLogin');}" style="padding:13px 8px;background:#A6A6D2;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">
+<div id="memberEntry" style="padding:10px 16px;display:flex;gap:10px">
+  <button onclick="goJoin()" style="flex:1;padding:14px 8px;background:#6FB7B7;border:none;border-radius:11px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🌿 加入會員</button>
+  <button id="memberLoginBtn" onclick="if(V.loggedIn){sp('member');renderMemberUI();}else{openModal('mLogin');}" style="flex:1;padding:14px 8px;background:#A6A6D2;border:none;border-radius:11px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">
     <span id="memberEntryText">👤 會員登入</span>
   </button>
 </div>
@@ -263,11 +254,16 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   </div>
 </div>
 
-<div style="background:var(--g);color:#fff;padding:20px 16px 30px;margin-top:8px;text-align:center">
+<div style="background:var(--g);color:#fff;padding:20px 16px 0;margin-top:8px;text-align:center">
   <div style="font-size:16px;font-weight:700;margin-bottom:4px">兔彼樂共創活動有限公司</div>
   <div style="font-size:13px;opacity:0.85;margin-bottom:8px">ToBeloved Co-Creation Event Ltd.</div>
   <div style="font-size:12px;opacity:0.7">統編：90279650 ｜ 台中市</div>
   <div style="font-size:11px;opacity:0.6;margin-top:8px">© 2025 ToBeloved Co-Creation Event Ltd. All rights reserved.</div>
+  <div style="display:flex;gap:0;margin-top:16px">
+    <button onclick="goJoin()" style="flex:1;padding:14px 6px;background:#CE8CFF;border:none;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif">🌿 加入</button>
+    <button onclick="if(V.loggedIn){sp('member');renderMemberUI();}else{openModal('mLogin');}" style="flex:1;padding:14px 6px;background:#00C7C7;border:none;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif">👤 登入</button>
+    <a href="https://lin.ee/RIygewy" target="_blank" style="flex:1;padding:14px 6px;background:#FFA1A1;border:none;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;text-align:center;text-decoration:none;display:block">💬 客服</a>
+  </div>
 </div>
 
 </div>
@@ -282,6 +278,85 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 </div>
 
 <!-- ══ 加入會員 ══ -->
+<div class="page" id="p-join">
+<div class="topbar">
+  <button class="back" onclick="sp('home')">←</button>
+  <div class="tb-t" id="joinPageTitle">加入會員</div>
+  <button class="hw" onclick="sp('home')">🏠</button>
+</div>
+<div class="wrap" style="padding-bottom:30px">
+
+  <div style="font-size:13px;color:var(--md);text-align:center;margin-bottom:16px">填多少算多少，隨時可以補。儲存後直接覆蓋更新。</div>
+
+  <!-- 基本資料 -->
+  <div class="card">
+    <div class="card-t">👤 基本資料</div>
+    <div class="fg"><label class="fl">姓名</label><input type="text" id="jName" placeholder="你的名字"></div>
+    <div class="fg"><label class="fl">Email</label><input type="email" id="jEmail" placeholder="作為登入識別，請填正確" inputmode="email"></div>
+    <div class="fg"><label class="fl">手機</label><input type="tel" id="jPhone" placeholder="09xxxxxxxx" inputmode="tel"></div>
+    <div class="fg"><label class="fl">性別</label>
+      <div style="display:flex;gap:14px;margin-top:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer"><input type="radio" name="jGender" value="male" style="accent-color:var(--g)"> 男</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer"><input type="radio" name="jGender" value="female" style="accent-color:var(--g)"> 女</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer"><input type="radio" name="jGender" value="other" style="accent-color:var(--g)"> 不公開</label>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">生日</label><input type="date" id="jBirthday"></div>
+    <div class="fg"><label class="fl">所在地區</label>
+      <select id="jRegion"><option value="">請選擇</option><option>北北基</option><option>桃竹苗</option><option>中彰投</option><option>雲嘉南</option><option>高屏</option><option>宜花東</option><option>離島</option><option>海外</option></select>
+    </div>
+    <div class="fg"><label class="fl">興趣 / 喜好</label>
+      <input type="hidden" id="jInterest">
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:6px" id="interestChips">
+        <div class="chip" onclick="toggleInterest(this)">手作工藝</div>
+        <div class="chip" onclick="toggleInterest(this)">攝影影像</div>
+        <div class="chip" onclick="toggleInterest(this)">美食料理</div>
+        <div class="chip" onclick="toggleInterest(this)">親子活動</div>
+        <div class="chip" onclick="toggleInterest(this)">戶外運動</div>
+        <div class="chip" onclick="toggleInterest(this)">文化藝術</div>
+        <div class="chip" onclick="toggleInterest(this)">時尚選物</div>
+        <div class="chip" onclick="toggleInterest(this)">動漫ACG</div>
+        <div class="chip" onclick="toggleInterest(this)">旅遊</div>
+        <div class="chip" onclick="toggleInterest(this)">創業品牌</div>
+        <div class="chip" onclick="toggleInterest(this)">音樂表演</div>
+        <div class="chip" onclick="toggleInterest(this)">永續環保</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 攤商資料 -->
+  <div class="card">
+    <div class="card-t">🏪 攤商資料</div>
+    <div class="fg"><label class="fl">品牌名稱</label><input type="text" id="jBrand" placeholder="你的品牌或攤位名稱"></div>
+    <div class="fg"><label class="fl">品牌介紹</label><textarea id="jBrandIntro" placeholder="簡短介紹你的品牌..." rows="3" style="border:1.5px solid #c8ddc8;border-radius:9px;padding:11px;font-size:15px;font-family:'Noto Sans TC',sans-serif;resize:vertical;width:100%;box-sizing:border-box"></textarea></div>
+    <div class="fg"><label class="fl">販售類別</label><input type="text" id="jSellCat" placeholder="例：手工飾品、選物、烘焙"></div>
+    <div class="fg"><label class="fl">FB 粉專</label><input type="url" id="jFb" placeholder="https://www.facebook.com/..."></div>
+    <div class="fg"><label class="fl">IG</label><input type="url" id="jIg" placeholder="https://www.instagram.com/..."></div>
+    <div class="fg"><label class="fl">官方網站</label><input type="url" id="jWebsite" placeholder="官網或其他平台"></div>
+    <div class="fg"><label class="fl">備註</label><textarea id="jVendorNote" placeholder="其他想說的..." rows="2" style="border:1.5px solid #c8ddc8;border-radius:9px;padding:11px;font-size:15px;font-family:'Noto Sans TC',sans-serif;resize:vertical;width:100%;box-sizing:border-box"></textarea></div>
+  </div>
+
+  <!-- 商業交流 -->
+  <div class="card">
+    <div class="card-t">🤝 商業交流</div>
+    <div class="fg"><label class="fl">公司名稱</label><input type="text" id="jCompany" placeholder="公司／工作室名稱"></div>
+    <div class="fg"><label class="fl">統一編號</label><input type="text" id="jTaxId" placeholder="8 碼統編" inputmode="numeric"></div>
+    <div class="fg"><label class="fl">主要產業</label>
+      <input type="text" id="jIndustry" placeholder="例：技術服務、設備商、通路商..." list="industryList">
+      <datalist id="industryList">
+        <option>技術服務</option><option>設備商</option><option>通路商</option><option>製造商</option>
+        <option>餐飲</option><option>文創手作</option><option>媒體行銷</option><option>活動策劃</option>
+      </datalist>
+    </div>
+    <div class="fg"><label class="fl">合作提案</label><textarea id="jProposal" placeholder="想提供或尋求什麼合作？" rows="3" style="border:1.5px solid #c8ddc8;border-radius:9px;padding:11px;font-size:15px;font-family:'Noto Sans TC',sans-serif;resize:vertical;width:100%;box-sizing:border-box"></textarea></div>
+    <div class="fg"><label class="fl">報價 / 互惠資源</label><input type="text" id="jResource" placeholder="例：可提供場地、設備、異業合作"></div>
+  </div>
+
+  <button class="btn btn-p mt12" onclick="submitJoin()" style="width:100%;font-size:16px;padding:16px">✅ 儲存資料</button>
+
+</div>
+</div>
+
 <div class="page" id="p-join">
 <div class="topbar">
   <button class="back" onclick="joinBack()">←</button>
@@ -888,31 +963,50 @@ function jNext() {
   jGoStep(2);
 }
 async function doJoin() {
-  const name=$('jName')?.value.trim(), phone=$('jPhone')?.value.trim(), email=$('jEmail')?.value.trim();
-  if(!name||!phone||!email||!email.includes('@')){ toast('請填寫姓名、手機、Email'); jGoStep(1); return; }
+  const email=$('jEmail')?.value.trim();
+  const name=$('jName')?.value.trim();
+  if(!email||!email.includes('@')){ toast('請填寫正確 Email'); return; }
   sl(true);
   try {
     const d = await api({
-      action:'register', regType:'member', name, phone, email,
+      action:'register', regType:'member',
+      name: name||V.name||'',
+      phone: $('jPhone')?.value.trim()||'',
+      email,
       gender: document.querySelector('input[name="jGender"]:checked')?.value||'',
-      birthday: $('jBirthday')?.value||'', interest: $('jInterest')?.value.trim()||'',
-      region: $('jRegion')?.value||'', brand: $('jBrand')?.value.trim()||'',
-      fb: $('jFb')?.value.trim()||'', ig: $('jIg')?.value.trim()||'',
-      website: $('jWebsite')?.value.trim()||'', brandIntro: $('jBrandIntro')?.value.trim()||'',
-      company: $('jCompany')?.value.trim()||'', taxId: $('jTaxId')?.value.trim()||'',
-      industry: $('jIndustry')?.value.trim()||'', proposal: $('jProposal')?.value.trim()||'',
+      birthday: $('jBirthday')?.value||'',
+      interest: $('jInterest')?.value||'',
+      region: $('jRegion')?.value||'',
+      brand: $('jBrand')?.value.trim()||'',
+      brandIntro: $('jBrandIntro')?.value.trim()||'',
+      sellCat: $('jSellCat')?.value.trim()||'',
+      fb: $('jFb')?.value.trim()||'',
+      ig: $('jIg')?.value.trim()||'',
+      website: $('jWebsite')?.value.trim()||'',
+      vendorNote: $('jVendorNote')?.value.trim()||'',
+      company: $('jCompany')?.value.trim()||'',
+      taxId: $('jTaxId')?.value.trim()||'',
+      industry: $('jIndustry')?.value.trim()||'',
+      proposal: $('jProposal')?.value.trim()||'',
       resource: $('jResource')?.value.trim()||'',
     });
     if(d.success||d.vendorId){
-      saveUser({loggedIn:true, vendorId:d.vendorId||'', name, phone, email,
+      const n = name||V.name||email;
+      saveUser({loggedIn:true, vendorId:d.vendorId||V.vendorId||'', name:n, phone:$('jPhone')?.value.trim()||V.phone||'', email,
         brand:$('jBrand')?.value.trim()||'', brandIntro:$('jBrandIntro')?.value.trim()||'',
+        sellCat:$('jSellCat')?.value.trim()||'',
         fb:$('jFb')?.value.trim()||'', ig:$('jIg')?.value.trim()||'',
-        website:$('jWebsite')?.value.trim()||'', points:0, history:[]});
+        website:$('jWebsite')?.value.trim()||'',
+        company:$('jCompany')?.value.trim()||'',
+        taxId:$('jTaxId')?.value.trim()||'',
+        industry:$('jIndustry')?.value.trim()||'',
+        resource:$('jResource')?.value.trim()||'',
+        points:V.points||0, history:V.history||[]});
       renderMemberUI();
       updateMemberEntryBtn();
-      toast('🎉 歡迎加入共創好朋友！');
+      toast('✅ 資料已更新');
       sp('home');
-    } else toast('建立失敗：'+(d.message||''));
+    } else toast('失敗：'+(d.message||'請稍後再試'));
   } catch(e){ toast('連線失敗'); }
   finally{ sl(false); }
 }
@@ -931,13 +1025,10 @@ async function submitRefund() {
   finally{ sl(false); }
 }
 // ── 加入會員 ──
-function goJoin(type) {
-  J={step:1,cat:type||'friend',subs:[]};
+function goJoin() {
+  J={step:1,cat:'friend',subs:[]};
   sp('join');
-  if(type==='vendor') jGoStep(2);
-  else if(type==='biz') jGoStep(3);
-  else jGoStep(1);
-  // 若已登入，帶入現有資料
+  $('joinPageTitle').textContent = V.loggedIn ? '我的資料' : '加入會員';
   if(V.loggedIn){
     if($('jName')) $('jName').value=V.name||'';
     if($('jEmail')) $('jEmail').value=V.email||'';
@@ -947,233 +1038,12 @@ function goJoin(type) {
     if($('jFb')) $('jFb').value=V.fb||'';
     if($('jIg')) $('jIg').value=V.ig||'';
     if($('jWebsite')) $('jWebsite').value=V.website||'';
+    if($('jSellCat')) $('jSellCat').value=V.sellCat||'';
+    if($('jCompany')) $('jCompany').value=V.company||'';
+    if($('jTaxId')) $('jTaxId').value=V.taxId||'';
+    if($('jIndustry')) $('jIndustry').value=V.industry||'';
+    if($('jResource')) $('jResource').value=V.resource||'';
   }
-}
-function joinBack() { if(J.step>1) jGoStep(J.step-1); else sp('home'); }
-function jGoStep(n) {
-  J.step = n;
-  [1,2,3].forEach(i=>{ const el=$('jS'+i); if(el) el.style.display = i===n?'block':'none'; });
-  [1,2,3].forEach(i=>{ const st=$('js'+i); if(st) st.classList.toggle('on', i<=n); });
-}
-
-
-function goBook() {
-  if(!V.loggedIn){openModal('mLogin');return;}
-  const prevSes = B.ses;
-  const prevEntry = B.entryType||'';
-  B={ses:prevSes,identity:'',entryType:prevEntry,equip:{},booths:1,fire:'no',power:'none',gift:'',deptFees:{},childAges:[]};
-  sp('book');
-  if(B.ses) {
-    if(!B.identity) B.identity='攤商';
-    renderDynamicForm();
-    bGoStep(2);
-  } else {
-    const infoCard=$('bSesInfoCard'), listCard=$('bSesListCard');
-    if(infoCard) infoCard.style.display='none';
-    if(listCard) listCard.style.display='block';
-    bGoStep(1);
-    renderBookSessions();
-  }
-}
-function bookBack() {
-  if(B.step>1) bGoStep(B.step-1);
-  else sp(V.loggedIn?'member':'home');
-}
-function bGoStep(n) {
-  B.step=n;
-  [1,2,3].forEach(i=>{ const el=$('bS'+i); if(el) el.style.display=i===n?'block':'none'; });
-}
-function renderBookSessions() {
-  const el=$('bSesList'); if(!el) return;
-  const open=sessions.filter(s=>s.enrolled<s.limit);
-  el.innerHTML=open.length?open.map((s,i)=>`
-    <div class="sc" style="margin-bottom:8px" onclick="quickBook(sessions.indexOf(this._s))">
-      <div class="sc-n">${s.name}</div>
-      <div class="sc-i">${s.city||''} · ${s.dateDisplay||s.date||''}</div>
-    </div>`).join(''):'<div class="empty">暫無開放場次</div>';
-  open.forEach((s,i)=>{ const el2=el.children[i]; if(el2) el2._s=s; });
-}
-function quickBook(idx) { B.ses=sessions[idx]; goBook(); }
-
-// ── 動態表單 ──
-function renderEquipSection(s) {
-  if(!s||!s.equip) return '';
-  const equipList=Object.entries(s.equip).filter(([k,v])=>v&&v.open);
-  if(!equipList.length) return '';
-  const icons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
-  let html='<div class="card"><div class="card-t">🪑 設備加購（選填）</div>';
-  equipList.forEach(([k,v])=>{
-    html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gp)">
-      <span style="font-size:15px">${icons[k]||''}　${k}</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:13px;color:var(--md)">NT$${v.price||0}/件</span>
-        <input type="number" id="eq_${k}" value="0" min="0" max="10"
-          style="width:60px;text-align:center;padding:8px;border:1.5px solid #c8ddc8;border-radius:8px;font-size:15px"
-          oninput="updateEquip('${k}',this.value)">
-      </div></div>`;
-  });
-  if(s.openFire) html+=`<label style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer"><input type="checkbox" id="f_fire" style="width:18px;height:18px;accent-color:var(--g)"><span style="font-size:15px">🔥 申請明火使用</span></label>`;
-  if(s.openPower) html+=`<label style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer"><input type="checkbox" id="f_power" style="width:18px;height:18px;accent-color:var(--g)"><span style="font-size:15px">⚡ 申請用電</span></label>`;
-  html+='</div>';
-  return html;
-}
-function updateEquip(k,v){ B.equip[k]=parseInt(v)||0; }
-function toggleInterest(el) {
-  el.classList.toggle('on');
-  const chips = Array.from(document.querySelectorAll('#interestChips .chip.on')).map(c=>c.textContent);
-  const el2=$('jInterest'); if(el2) el2.value=chips.join('、');
-}
-
-function toggleChip(el){ el.classList.toggle('on'); }
-function updateChildAges() {
-  const cc=parseInt($('childCount')?.value)||0;
-  const area=$('childAgesArea'); if(!area) return;
-  area.innerHTML=cc<=0?'':Array.from({length:cc},(_,i)=>
-    `<div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-      <label style="font-size:14px;color:var(--md);white-space:nowrap">第${i+1}個小孩歲數</label>
-      <input type="number" id="childAge${i}" min="0" max="17" placeholder="歲" style="width:80px;padding:10px;border:1.5px solid #c8ddc8;border-radius:9px;font-size:15px">
-    </div>`).join('');
-}
-
-// ── 動態表單渲染 ──
-function renderDynamicForm() {
-  const s=B.ses;
-  const entry=B.entryType||'攤商招募';
-  const defaultModsByType={
-    '攤商招募':{brand:true,sellItem:true,sellCat:true},
-    '活動報名':{adult:true,child:true,diet:true,actName:true,actContent:true,actMax:true,actFee:true},
-    '合作申請':{brand:true,brandIntro:true,collabType:true,collabSocial:true,collabPortfolio:true,collabMethod:true,collabPrice:true},
-    '商場百貨寄賣':{brand:true,sellItem:true,sellLink:true,sellCat:true,photo:true},
-    '市集':{brand:true,sellItem:true,sellCat:true},
-    '體驗':{adult:true,child:true,diet:true,actName:true,actContent:true,actMax:true,actFee:true},
-    '文化':{brand:true,brandIntro:true,collabType:true,collabSocial:true},
-    '百貨':{brand:true,sellItem:true,sellLink:true,sellCat:true},
-  };
-  const savedMods=s?.modules||{};
-  const hasSaved=Object.keys(savedMods).length>0;
-  const sesType=s?.type||entry;
-  const mods=hasSaved?savedMods:(defaultModsByType[sesType]||defaultModsByType[entry]||{brand:true,sellItem:true});
-  let html='';
-
-  html+=`<div class="card"><div class="card-t">👤 基本資料</div>
-    <label>代表人姓名 *</label><input type="text" id="f_name" value="${V.name||''}" placeholder="代表人姓名">
-    <div class="em" id="fe_name"></div>
-    <label>手機 *</label><input type="tel" id="f_phone" value="${V.phone||''}" placeholder="0912-345-678" inputmode="tel">
-    <div class="em" id="fe_phone"></div>
-    <label>Email *</label><input type="email" id="f_email" value="${V.email||''}" placeholder="your@email.com" inputmode="email">
-    <div class="em" id="fe_email"></div>
-  </div>`;
-
-  // 多日期選擇（場次有多天才顯示）
-  if(s?.activityDates && s.activityDates.length > 1){
-    html+='<div class="card"><div class="card-t">📅 選擇參加日期</div>';
-    s.activityDates.forEach((d,i)=>{
-      html+=`<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gp);cursor:pointer">
-        <input type="checkbox" id="f_date_${i}" checked style="width:18px;height:18px;accent-color:var(--g)">
-        <span style="font-size:15px">${d.date} ${d.start||''}${d.end?'-'+d.end:''}</span>
-      </label>`;
-    });
-    html+='<div style="font-size:12px;color:var(--md);margin-top:6px">可參加多天，各天名額分開計算</div></div>';
-  }
-
-  const hasBrand=true; // 品牌基本資料固定帶出，本次活動欄位看 sell_link
-  // 品牌/攤商資料：固定帶出，不依 mods 判斷
-  html+=`<div class="card"><div class="card-t">🏷️ 品牌 / 攤商資料</div>
-    <label>品牌名稱</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱（從會員資料帶入）">
-    <label>品牌介紹</label><textarea id="f_brand_intro" placeholder="品牌介紹（從會員資料帶入）">${V.brandIntro||''}</textarea>
-    <label>販售類別</label><input type="text" id="f_sell_cat" value="${V.sellCat||''}" placeholder="例：手工飾品、選物、美食（從會員資料帶入，可修改）">
-  </div>`;
-  if(mods.sellLink) html+=`<div class="card"><div class="card-t">🔗 本次活動商品連結（選填）</div>
-    <input type="url" id="f_sell_link" placeholder="本次販售商品頁或社群連結">
-  </div>`;
-
-  const hasReg=mods.adult||mods.child||mods.diet||mods.access;
-  if(hasReg){
-    html+='<div class="card"><div class="card-t">📋 報名資料</div>';
-    if(mods.adult||mods.child){
-      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-      if(mods.adult) html+=`<div><label>大人人數 *</label><input type="number" id="adultCount" value="1" min="1" oninput="updateChildAges()"></div>`;
-      if(mods.child) html+=`<div><label>小孩人數</label><input type="number" id="childCount" value="0" min="0" oninput="updateChildAges()"></div>`;
-      html+='</div><div id="childAgesArea"></div>';
-    }
-    if(mods.diet) html+=`<label>飲食需求</label><select id="f_diet"><option value="">無特殊需求</option><option>素食</option><option>全素</option><option>清真</option><option>其他</option></select>`;
-    if(mods.access) html+=`<label>無障礙需求</label><input type="text" id="f_access" placeholder="如有特殊需求請說明">`;
-    html+='</div>';
-  }
-
-  const hasAct=mods.actName||mods.actContent||mods.actMax||mods.actFee;
-  if(hasAct){
-    html+='<div class="card"><div class="card-t">🎯 活動資料</div>';
-    if(mods.actName) html+=`<label>活動名稱 *</label><input type="text" id="f_act_name" placeholder="活動名稱">`;
-    if(mods.actContent) html+=`<label>活動內容</label><textarea id="f_act_content" placeholder="活動內容介紹..."></textarea>`;
-    if(mods.actMax||mods.actFee){
-      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-      if(mods.actMax) html+=`<div><label>招收人數</label><input type="number" id="f_act_max" placeholder="10" min="1"></div>`;
-      if(mods.actFee) html+=`<div><label>材料費/人</label><input type="number" id="f_act_fee" placeholder="0" min="0"></div>`;
-      html+='</div>';
-    }
-    html+='</div>';
-  }
-
-  if(s&&s.equip&&Object.values(s.equip).some(e=>e&&e.open)) html+=renderEquipSection(s);
-
-  const hasCollab=mods.collabType||mods.collabSocial||mods.collabPortfolio||mods.collabMethod||mods.collabPrice||mods.remark;
-  if(hasCollab){
-    html+='<div class="card"><div class="card-t">🤝 合作資料</div>';
-    if(mods.collabType) html+=`<label>合作類型</label><input type="text" id="f_collab_type" placeholder="例：Coser、攝影師、KOL...">`;
-    if(mods.collabSocial) html+=`<label>社群連結 *</label><input type="url" id="f_collab_social" placeholder="FB/IG/TikTok 主頁">`;
-    if(mods.collabPortfolio) html+=`<label>作品集</label><input type="url" id="f_collab_portfolio" placeholder="作品集連結（選填）">`;
-    if(mods.collabMethod) html+=`<label>希望合作方式</label><textarea id="f_collab_method" placeholder="說明合作方式..."></textarea>`;
-    if(mods.collabPrice) html+=`<label>報價 / 互惠條件</label><input type="text" id="f_collab_price" placeholder="例：NT$3000 或 場次免費換宣傳">`;
-    if(mods.remark) html+=`<label>備註</label><textarea id="f_remark" placeholder="其他說明..."></textarea>`;
-    html+='</div>';
-  }
-
-  if(mods.custom&&s?.customFields?.length){
-    html+='<div class="card"><div class="card-t">📝 其他資料</div>';
-    s.customFields.forEach((cf,i)=>{
-      html+=`<label>${cf.label||''}${cf.required?' *':''}</label>`;
-      if(cf.type==='number') html+=`<input type="number" id="cf_${i}"${cf.required?' required':''}>`;
-      else if(cf.type==='date') html+=`<input type="date" id="cf_${i}"${cf.required?' required':''}>`;
-      else if(cf.type==='single'){const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);html+=`<select id="cf_${i}"><option value="">請選擇</option>${opts.map(o=>'<option>'+o+'</option>').join('')}</select>`;}
-      else if(cf.type==='multi'){const opts=(cf.options||'').split(',').map(o=>o.trim()).filter(Boolean);html+=`<div class="chips" id="cf_${i}_chips">${opts.map(o=>'<div class="chip" onclick="toggleChip(this)">'+o+'</div>').join('')}</div>`;}
-      else html+=`<input type="text" id="cf_${i}" placeholder="${cf.label||''}"${cf.required?' required':''}>`;
-    });
-    html+='</div>';
-  }
-
-  $('bFormContent').innerHTML = html;
-}
-
-// ── 報名驗證與送出 ──
-function bNext2() {
-  let ok=true;
-  const name=$('f_name')?.value.trim(), phone=$('f_phone')?.value.trim(), email=$('f_email')?.value.trim();
-  if(!name){se('fe_name',true);ok=false;}else se('fe_name',false);
-  if(!phone){se('fe_phone',true);ok=false;}else se('fe_phone',false);
-  if(!email||!email.includes('@')){se('fe_email',true);ok=false;}else se('fe_email',false);
-  const brandEl=$('f_brand'); if(brandEl&&!brandEl.value.trim()){se('fe_fb',true);ok=false;}else se('fe_fb',false);
-  const sellEl=$('f_sell_item'); if(sellEl&&!sellEl.value.trim()){se('fe_sell',true);ok=false;}else se('fe_sell',false);
-  if(!ok) return;
-  buildConfirm();
-  bGoStep(3);
-}
-
-function buildConfirm() {
-  const s=B.ses;
-  const fee=(parseInt(s?.fee)||0);
-  const deposit=(parseInt(s?.deposit)||500);
-  const equipFee=Object.entries(B.equip).reduce((sum,[k,q])=>{ if(q>0&&s?.equip?.[k]) return sum+q*(s.equip[k].price||0); return sum; },0);
-  const total=fee+deposit+equipFee;
-  const mapLink=s?.mapUrl?` <a href="${s.mapUrl}" target="_blank" style="color:var(--g)">📍地圖</a>`:'';
-  $('bS2SesDetail').innerHTML=`📍 ${s?.city||''} · 📅 ${s?.dateDisplay||s?.date||''} · ${s?.venue||''}${mapLink}`;
-  $('bS3SesName').textContent=s?.name||'';
-  $('bTotalFee').textContent='NT$'+(fee+equipFee).toLocaleString();
-  $('bDepositFee').textContent='NT$'+deposit.toLocaleString();
-  $('bGrandTotal').textContent='NT$'+total.toLocaleString();
-  // 設備明細
-  const equipItems=Object.entries(B.equip).filter(([,q])=>q>0);
-  $('bEquipDetail').innerHTML=equipItems.length?equipItems.map(([k,q])=>`<div style="font-size:13px;color:var(--md)">${k} × ${q} = NT$${q*(s?.equip?.[k]?.price||0)}</div>`).join(''):'';
 }
 
 async function submitBook() {
@@ -1290,6 +1160,58 @@ function goPos(sessionId, regId, sessionName, booth) {
   sp('pos');
   const el=$('posContent');
   if(el) el.innerHTML=`<div class="card"><div class="card-t">📍 選位</div><div style="font-size:15px;color:var(--md)">選位系統開發中，請聯繫官方LINE確認攤位。</div><a href="${LINE_URL}" target="_blank" class="btn btn-p mt12" style="display:block;text-align:center;text-decoration:none">聯繫官方LINE</a></div>`;
+}
+
+function toggleInterest(el) {
+  el.classList.toggle('on');
+  const chips = Array.from(document.querySelectorAll('#interestChips .chip.on')).map(c=>c.textContent);
+  const el2=$('jInterest'); if(el2) el2.value=chips.join('、');
+}
+function joinBack() { sp('home'); }
+function jGoStep(n) {
+  // 保留向後相容（p-join 已改一頁式，但其他地方可能還有呼叫）
+}
+
+function goBook() {
+  if(!V.loggedIn){openModal('mLogin');return;}
+  const prevSes = B.ses;
+  const prevEntry = B.entryType||'';
+  B={ses:prevSes,identity:'',entryType:prevEntry,equip:{},booths:1,fire:'no',power:'none',gift:'',deptFees:{},childAges:[]};
+  sp('book');
+  if(B.ses) {
+    if(!B.identity) B.identity='攤商';
+    renderDynamicForm();
+    bGoStep(2);
+  } else {
+    const infoCard=$('bSesInfoCard'), listCard=$('bSesListCard');
+    if(infoCard) infoCard.style.display='none';
+    if(listCard) listCard.style.display='block';
+    bGoStep(1);
+    renderBookSessions();
+  }
+}
+
+function bookBack() {
+  if(B.step>1) bGoStep(B.step-1);
+  else sp(V.loggedIn?'member':'home');
+}
+
+function bGoStep(n) {
+  B.step=n;
+  [1,2,3].forEach(i=>{ const el=$('bS'+i); if(el) el.style.display=i===n?'block':'none'; });
+}
+
+function bNext2() {
+  let ok=true;
+  const name=$('f_name')?.value.trim(), phone=$('f_phone')?.value.trim(), email=$('f_email')?.value.trim();
+  if(!name){se('fe_name',true);ok=false;}else se('fe_name',false);
+  if(!phone){se('fe_phone',true);ok=false;}else se('fe_phone',false);
+  if(!email||!email.includes('@')){se('fe_email',true);ok=false;}else se('fe_email',false);
+  const brandEl=$('f_brand'); if(brandEl&&!brandEl.value.trim()){se('fe_fb',true);ok=false;}else se('fe_fb',false);
+  const sellEl=$('f_sell_item'); if(sellEl&&!sellEl.value.trim()){se('fe_sell',true);ok=false;}else se('fe_sell',false);
+  if(!ok) return;
+  buildConfirm();
+  bGoStep(3);
 }
 
 // ── window.onload ──
