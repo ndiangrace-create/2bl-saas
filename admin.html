@@ -357,32 +357,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
   <div class="mbox"><div class="mh"></div><div id="vendorDetailContent"></div></div>
 </div>
 
-  <!-- 新增子場次浮層 -->
-  <div class="modal" id="mAddSubSession" onclick="if(event.target===this)closeModal('mAddSubSession')">
-  <div class="mbox">
-    <div class="mh"></div>
-    <div class="mt" id="mSubSesTitle">新增子場次</div>
-    <input type="hidden" id="sub_parent_id">
-    <label>子場次名稱 *</label>
-    <input type="text" id="sub_name" placeholder="例：市集攤商、民眾體驗、走秀報名">
-    <label>活動日期 *</label>
-    <input type="date" id="sub_date">
-    <div class="fg2">
-      <div><label>開始時間</label><input type="time" id="sub_time_start" value="10:00"></div>
-      <div><label>結束時間</label><input type="time" id="sub_time_end" value="18:00"></div>
-    </div>
-    <div class="fg2">
-      <div><label>費用（0=免費）</label><input type="number" id="sub_fee" value="0" placeholder="500"></div>
-      <div><label>保證金</label><input type="number" id="sub_deposit" value="500"></div>
-    </div>
-    <div><label>名額上限</label><input type="number" id="sub_limit" placeholder="30"></div>
-    <div><label>說明（選填）</label><textarea id="sub_intro" placeholder="子場次說明..."></textarea></div>
-    <button class="btn btn-p mt12" onclick="saveSubSession()">建立子場次</button>
-    <button class="btn btn-s mt8" onclick="closeModal('mAddSubSession')">取消</button>
-  </div>
-  </div>
-
-<!-- 新增公告 -->
+  <!-- 新增公告 -->
 <div class="modal" id="mAddAnnouncement" onclick="if(event.target===this)closeModal('mAddAnnouncement')">
 <div class="mbox">
   <div class="mh"></div>
@@ -572,7 +547,6 @@ function renderSessionCard2(s){
       <button class="btn-xs" style="background:var(--g);color:#fff" onclick="loadVendors('${s.id}')">📋 審核</button>
       <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="switchTab('checkin');setTimeout(()=>loadCheckinDetail('${s.id}','${s.name}'),200)">✅ 報到</button>
       <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="editSession('${s.id}')">✏️ 編輯</button>
-      <button class="btn-xs" style="background:var(--gp);color:var(--g)" onclick="openAddSubSession('${s.id}','${s.name}')">➕ 子場次</button>
       <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="copySession('${s.id}','${s.name}')">📋 複製</button>
       <button class="btn-xs" style="background:var(--ylp);color:var(--yl)" onclick="toggleSessionStatus('${s.id}','${s.status||"報名中"}')">
         ${s.status==='關閉'?'🔓 開放':'🔒 關閉'}
@@ -1047,47 +1021,6 @@ async function editSession(sessionId) {
   openModal('mNewSession');
 }
 
-function openAddSubSession(parentId, parentName) {
-  $('sub_parent_id').value = parentId;
-  $('mSubSesTitle').textContent = '新增子場次：' + parentName;
-  $('sub_name').value = '';
-  $('sub_date').value = '';
-  $('sub_time_start').value = '10:00';
-  $('sub_time_end').value = '18:00';
-  $('sub_fee').value = '0';
-  $('sub_deposit').value = '500';
-  $('sub_limit').value = '30';
-  $('sub_intro').value = '';
-  openModal('mAddSubSession');
-}
-
-async function saveSubSession() {
-  const parentId = $('sub_parent_id')?.value;
-  const name = $('sub_name')?.value.trim();
-  const date = $('sub_date')?.value;
-  if(!parentId||!name||!date) { toast('請填寫子場次名稱和日期'); return; }
-  sl(true);
-  try {
-    const d = await apiPost({
-      action: 'createSubSession',
-      parentId,
-      name,
-      date,
-      timeStart: $('sub_time_start')?.value || '10:00',
-      timeEnd: $('sub_time_end')?.value || '18:00',
-      fee: parseInt($('sub_fee')?.value)||0,
-      deposit: parseInt($('sub_deposit')?.value)||500,
-      limit: parseInt($('sub_limit')?.value)||30,
-      intro: $('sub_intro')?.value||'',
-    });
-    if(d.success) {
-      toast('✅ 子場次已建立');
-      closeModal('mAddSubSession');
-    } else toast('建立失敗：'+(d.message||''));
-  } catch(e) { toast('操作失敗'); }
-  finally { sl(false); }
-}
-
 async function copySession(sessionId, sessionName) {
   if(!confirm(`複製「${sessionName}」場次？將建立相同設定的新場次。`)) return;
   sl(true);
@@ -1138,6 +1071,71 @@ async function deleteSession(sessionId, sessionName) {
   } catch(e){toast('操作失敗');}
   finally{sl(false);}
 }
+
+// ── 報到頁（依權限顯示指定場次）──
+async function renderCheckinWeekly(){
+  const mc=$('mainContent');
+  mc.innerHTML='<div class="empty">載入中...</div>';
+  try{
+    // 取得可報到的場次（依權限）
+    const allSessions = ST.sessions||[];
+    if(!allSessions.length){
+      mc.innerHTML='<div class="empty" style="padding:40px 20px;text-align:center"><div style="font-size:36px">📭</div><div style="margin-top:8px">尚無可報到場次</div></div>';
+      return;
+    }
+    mc.innerHTML='<div style="font-size:15px;font-weight:700;margin-bottom:12px">✅ 選擇報到場次</div>'+
+      allSessions.map(s=>`
+        <div class="card" style="border-left:4px solid var(--g);margin-bottom:10px;cursor:pointer" onclick="loadCheckinDetail('${s.id}','${(s.name||'').replace(/'/g,'')}')">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700;font-size:15px">${s.name}</div>
+              <div style="font-size:13px;color:var(--md);margin-top:2px">📅 ${s.dateDisplay||s.date||''} · ${s.city||''} ${s.venue||''}</div>
+            </div>
+            <div style="font-size:13px;color:var(--g);font-weight:700">報到管理 →</div>
+          </div>
+        </div>`).join('');
+  }catch(e){ mc.innerHTML='<div class="empty">載入失敗</div>'; }
+}
+
+// ── 管理員管理 ──
+async function addStaffMember(){
+  const email=$('newStaffEmail')?.value.trim();
+  const role=$('newStaffRole')?.value||'staff';
+  if(!email||!email.includes('@')){toast('請輸入正確 Email');return;}
+  sl(true);
+  try{
+    const d=await apiPost({action:'addStaff', email, role, sessionIds:(ST.sessions||[]).map(s=>s.id)});
+    if(d.success){
+      toast('✅ 管理員已新增，通知信已寄出');
+      $('newStaffEmail').value='';
+      loadStaffList();
+    } else toast('新增失敗：'+(d.message||''));
+  }catch(e){ toast('操作失敗'); }
+  finally{ sl(false); }
+}
+
+async function removeStaff(email){
+  if(!confirm('確定移除管理員「'+email+'」？')) return;
+  sl(true);
+  try{
+    const d=await apiPost({action:'removeStaff', email});
+    if(d.success){ toast('已移除'); loadStaffList(); }
+    else toast('移除失敗');
+  }catch(e){ toast('操作失敗'); }
+  finally{ sl(false); }
+}
+
+async function toggleStaffStatus(email, action){
+  sl(true);
+  try{
+    const d=await apiPost({action:'toggleStaff', email, disabled: action==='disable'});
+    if(d.success){ toast(action==='disable'?'已停用':'已啟用'); loadStaffList(); }
+    else toast('操作失敗');
+  }catch(e){ toast('操作失敗'); }
+  finally{ sl(false); }
+}
+
+
 
 // ── 管理員設定 ──
 async function loadStaffList() {
