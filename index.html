@@ -202,12 +202,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 
 <div id="debugInfo"  style="font-size:11px;color:#999;padding:2px 12px;word-break:break-all"></div>
 
-<div id="memberEntry" style="padding:10px 16px;display:flex;gap:10px">
-  <button onclick="goJoin()" style="flex:1;padding:14px 8px;background:#6FB7B7;border:none;border-radius:11px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">🌿 加入會員</button>
-  <button id="memberLoginBtn" onclick="if(V.loggedIn){sp('member');renderMemberUI();}else{openModal('mLogin');}" style="flex:1;padding:14px 8px;background:#A6A6D2;border:none;border-radius:11px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:'Noto Sans TC',sans-serif;box-shadow:var(--sh)">
-    <span id="memberEntryText">👤 會員登入</span>
-  </button>
-</div>
+
 
 <div class="sec">
   <div class="sec-t">📢 公告欄</div>
@@ -247,7 +242,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 <div class="sec">
   <div style="background:var(--g);color:#fff;border-radius:9px;padding:11px 16px;font-size:16px;font-weight:700;text-align:center;margin-bottom:12px;letter-spacing:1px">活動報名</div>
   <div class="cat-grid">
-    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('攤商招募')"><div class="cat-ic">🏪</div><div class="cat-nm">攤商招募</div><div class="cat-ds">攤商招募・選物・手作</div></div>
+    <div class="cat-c" style="--cc:var(--g)" onclick="goSessions('市集場次')"><div class="cat-ic">🏪</div><div class="cat-nm">市集場次</div><div class="cat-ds">市集・選物・手作</div></div>
     <div class="cat-c" style="--cc:var(--bl)" onclick="goSessions('活動報名')"><div class="cat-ic">🎨</div><div class="cat-nm">活動報名</div><div class="cat-ds">體驗活動・親子課程</div></div>
     <div class="cat-c" style="--cc:var(--pk)" onclick="goSessions('合作申請')"><div class="cat-ic">🎭</div><div class="cat-nm">合作申請</div><div class="cat-ds">合作夥伴・KOL・展演</div></div>
     <div class="cat-c" style="--cc:var(--gd)" onclick="goSessions('商場百貨寄賣')"><div class="cat-ic">🏬</div><div class="cat-nm">商場百貨寄賣</div><div class="cat-ds">品牌進駐・商場寄賣</div></div>
@@ -788,19 +783,19 @@ async function goSessions(type) {
     await loadSessions();
   }
   const typeAliases = {
-    '市集':['市集','攤商招募'], '攤商招募':['市集','攤商招募'],
-    '體驗':['體驗','活動報名'], '活動報名':['體驗','活動報名'],
-    '文化':['文化','合作申請'], '合作申請':['文化','合作申請'],
-    '百貨':['百貨','商場百貨寄賣'], '商場百貨寄賣':['百貨','商場百貨寄賣'],
+    '市集場次':['市集場次','市集','攤商招募'],
+    '活動報名':['活動報名','體驗'],
+    '合作申請':['合作申請','文化'],
+    '商場百貨寄賣':['商場百貨寄賣','百貨'],
   };
   const allowed = typeAliases[type]||[type];
   let list = sessions.filter(s=>{ const t=(s.type||'').trim(); return allowed.includes(t)||t===''; });
   if(!list.length) list = [...sessions];
   const titleMap = {
-    '市集':'🏪 攤商招募','攤商招募':'🏪 攤商招募',
-    '體驗':'🎨 活動報名','活動報名':'🎨 活動報名',
-    '文化':'🎭 合作申請','合作申請':'🎭 合作申請',
-    '百貨':'🏬 商場百貨寄賣','商場百貨寄賣':'🏬 商場百貨寄賣',
+    '市集場次':'🏪 市集場次','市集':'🏪 市集場次','攤商招募':'🏪 市集場次',
+    '活動報名':'🎨 活動報名','體驗':'🎨 活動報名',
+    '合作申請':'🎭 合作申請','文化':'🎭 合作申請',
+    '商場百貨寄賣':'🏬 商場百貨寄賣','百貨':'🏬 商場百貨寄賣',
   };
   const titleEl = $('sesTitle');
   if(titleEl) titleEl.textContent = titleMap[type]||type;
@@ -816,7 +811,7 @@ function renderSessionCard(s, sidx) {
   const full = left <= 0;
   const badgeCls = full ? 'b-full' : left<=5 ? 'b-few' : 'b-ok';
   const badgeTxt = full ? '已額滿' : left<=5 ? '剩'+left+'名' : '招募中';
-  const typeIcon = {'攤商招募':'🏪','活動報名':'🎨','合作申請':'🎭','商場百貨寄賣':'🏬','市集':'🏪','體驗':'🎨','文化':'🎭','百貨':'🏬'}[s.type||'攤商招募']||'🏪';
+  const typeIcon = {'市集場次':'🏪','攤商招募':'🏪','市集':'🏪','活動報名':'🎨','合作申請':'🎭','商場百貨寄賣':'🏬','市集':'🏪','體驗':'🎨','文化':'🎭','百貨':'🏬'}[s.type||'攤商招募']||'🏪';
   return `<div class="sc">
     ${s.imgUrl?`<img src="${s.imgUrl}" alt="${s.name}" style="width:calc(100% + 30px);height:160px;object-fit:cover;border-radius:9px 9px 0 0;display:block;margin:-15px -15px 10px" onerror="this.style.display='none'">`:''}
     <div class="sc-h">
@@ -1215,6 +1210,15 @@ function bNext2() {
 }
 
 // ── window.onload ──
+function updateMemberEntryBtn(){
+  const bt=$('bottomLoginText');
+  if(bt) bt.textContent = V.loggedIn ? '我的資料' : '登入';
+  const btn=$('bottomLoginBtn');
+  if(btn) btn.onclick = V.loggedIn
+    ? function(){ sp('member'); renderMemberUI(); }
+    : function(){ openModal('mLogin'); };
+}
+
 window.onload = async () => {
   const urlParams = new URLSearchParams(window.location.search);
   if(urlParams.get('paid')==='1') {

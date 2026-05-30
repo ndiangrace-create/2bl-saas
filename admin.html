@@ -997,7 +997,7 @@ async function editSession(sessionId) {
   if(!s){toast('找不到場次');return;}
   // 填入現有資料到新增場次浮層
   $('ns_name').value = s.name||'';
-  $('ns_type').value = s.type||'市集';
+  $('ns_type').value = s.type||'市集場次';
   $('ns_intro').value = s.intro||'';
   $('ns_city').value = s.city||'高雄';
   $('ns_venue').value = s.venue||'';
@@ -1605,7 +1605,7 @@ async function saveNewSession(){
 
   const payload={
     action: window._editingSessionId ? 'updateSession' : 'createSession',
-    name,type:$('ns_type')?.value||'市集',
+    name,type:$('ns_type')?.value||'市集場次',
     intro:$('ns_intro')?.value.trim()||'',
     city:$('ns_city')?.value||'高雄',venue,
     imgUrl:$('ns_imgurl')?.value.trim()||'',
