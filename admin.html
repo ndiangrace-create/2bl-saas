@@ -266,14 +266,12 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
   </div>
 
   <!-- 品牌資料 -->
-  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:6px">品牌 / 攤商資料</div>
+  <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:6px">本次活動專用</div>
+  <div style="font-size:12px;color:var(--md);background:var(--lt);border-radius:8px;padding:8px 10px;margin-bottom:8px">
+    姓名、電話、Email、品牌名稱、品牌介紹、粉專、IG、官網、販售類別 → 自動從會員資料帶出
+  </div>
   <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
-    <label class="mod-label"><input type="checkbox" id="mod_brand" class="mod-cb"> 品牌名稱</label>
-    <label class="mod-label"><input type="checkbox" id="mod_brand_intro" class="mod-cb"> 品牌介紹</label>
-    <label class="mod-label"><input type="checkbox" id="mod_sell_item" class="mod-cb"> 主要販售商品</label>
-    <label class="mod-label"><input type="checkbox" id="mod_sell_link" class="mod-cb"> 販售商品連結</label>
-    <label class="mod-label"><input type="checkbox" id="mod_sell_cat" class="mod-cb"> 販售類別</label>
-    <label class="mod-label"><input type="checkbox" id="mod_photo" class="mod-cb"> 出攤照片連結</label>
+    <label class="mod-label"><input type="checkbox" id="mod_sell_link" class="mod-cb"> 本次販售商品連結</label>
   </div>
 
   <!-- 報名資料（原民眾/參與資料）-->
@@ -1557,13 +1555,17 @@ async function saveNewSession(){
   if(!name||!validDates.length||!venue||!limit){toast('請填寫場次名稱、至少一個日期、場地名稱和名額上限');return;}
   const themeItemsRaw=$('ns_theme_items')?.value||'';
   const themeItems=themeItemsRaw.split('\n').map(s=>s.trim()).filter(Boolean);
+  // 收集表單模組勾選
+  const modules = {};
+  document.querySelectorAll('.mod-cb').forEach(cb => {
+    const key = cb.id.replace('mod_','');
+    modules[key] = cb.checked;
+  });
+
   const payload={
     action: window._editingSessionId ? 'updateSession' : 'createSession',
     name,type:$('ns_type')?.value||'市集',
     intro:$('ns_intro')?.value.trim()||'',
-    dateStart,dateEnd:$('ns_date_end')?.value||'',
-    timeStart:$('ns_time_start')?.value||'10:00',
-    timeEnd:$('ns_time_end')?.value||'18:00',
     city:$('ns_city')?.value||'高雄',venue,
     imgUrl:$('ns_imgurl')?.value.trim()||'',
     mapUrl:$('ns_mapurl')?.value.trim()||'',

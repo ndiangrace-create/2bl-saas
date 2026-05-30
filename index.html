@@ -304,7 +304,19 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
         </div>
       </div>
       <div class="fg"><label class="fl">生日</label><input type="date" id="jBirthday"></div>
-      <div class="fg"><label class="fl">興趣 / 喜好</label><input type="text" id="jInterest" placeholder="例：手作、攝影、親子活動、美食"></div>
+      <div class="fg"><label class="fl">興趣 / 喜好</label><input type="text" id="jInterest" placeholder="可輸入或從選單選擇，可多選用逗號分隔" list="interestList" autocomplete="off">
+        <datalist id="interestList">
+          <option>手工藝</option><option>手作皮革</option><option>刺繡縫紉</option><option>陶藝</option>
+          <option>插畫設計</option><option>攝影</option><option>影像剪輯</option><option>音樂</option>
+          <option>美食料理</option><option>烘焙甜點</option><option>咖啡茶飲</option><option>健康飲食</option>
+          <option>親子活動</option><option>兒童教育</option><option>寵物</option><option>植栽花藝</option>
+          <option>戶外露營</option><option>登山健行</option><option>運動健身</option><option>瑜珈冥想</option>
+          <option>旅遊</option><option>文化藝術</option><option>閱讀</option><option>電影</option>
+          <option>ACG動漫</option><option>Cosplay</option><option>桌遊</option><option>電競</option>
+          <option>時尚穿搭</option><option>保養美妝</option><option>香氛蠟燭</option><option>二手選物</option>
+          <option>永續環保</option><option>社會企業</option><option>公益志工</option><option>創業</option>
+          <option>市集擺攤</option><option>品牌經營</option><option>行銷設計</option><option>程式開發</option>
+        </datalist></div>
       <div class="fg"><label class="fl">所在地區</label>
         <select id="jRegion"><option value="">請選擇</option><option>北北基</option><option>桃竹苗</option><option>中彰投</option><option>雲嘉南</option><option>高屏</option><option>宜花東</option><option>離島</option><option>海外</option></select>
       </div>
@@ -809,6 +821,7 @@ async function doLogin(email) {
       closeModal('mLogin');
       renderMemberUI();
       if(B.ses) goBook();
+      else sp('member');
     } else {
       // 不存在→引導加入會員
       J.prefillEmail = email;
@@ -1027,17 +1040,16 @@ function renderDynamicForm() {
     html+='<div style="font-size:12px;color:var(--md);margin-top:6px">可參加多天，各天名額分開計算</div></div>';
   }
 
-  const hasBrand=mods.brand||mods.brandIntro||mods.sellItem||mods.sellLink||mods.sellCat||mods.photo;
-  if(hasBrand){
-    html+='<div class="card"><div class="card-t">🏷️ 品牌 / 攤商資料</div>';
-    if(mods.brand) html+=`<label>品牌名稱 *</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱"><div class="em" id="fe_fb"></div>`;
-    if(mods.brandIntro) html+=`<label>品牌介紹</label><textarea id="f_brand_intro" placeholder="簡介你的品牌...">${V.brandIntro||''}</textarea>`;
-    if(mods.sellItem) html+=`<label>本次販售商品 *</label><input type="text" id="f_sell_item" placeholder="例：手工皮革錢包、韓系選品"><div class="em" id="fe_sell"></div>`;
-    if(mods.sellLink) html+=`<label>販售商品連結</label><input type="url" id="f_sell_link" placeholder="商品頁或社群連結">`;
-    if(mods.sellCat) html+=`<label>販售類別</label><div class="chips" id="sellTypeChips" style="margin-top:6px">${['文創手作','飾品金工','潮流選品','動漫ACG','美食飲品','生活選物','花藝植栽','伴手禮','親子','二手','其他'].map(t=>'<div class="chip" onclick="toggleChip(this)">'+t+'</div>').join('')}</div>`;
-    if(mods.photo) html+=`<label>出攤照片連結</label><input type="url" id="f_photo" value="${V.photo||''}" placeholder="照片連結"><div style="font-size:12px;color:var(--md);margin-top:2px">💡 新手可拍模擬擺設照上傳後貼連結</div>`;
-    html+='</div>';
-  }
+  const hasBrand=true; // 品牌基本資料固定帶出，本次活動欄位看 sell_link
+  // 品牌/攤商資料：固定帶出，不依 mods 判斷
+  html+=`<div class="card"><div class="card-t">🏷️ 品牌 / 攤商資料</div>
+    <label>品牌名稱</label><input type="text" id="f_brand" value="${V.brand||''}" placeholder="品牌名稱（從會員資料帶入）">
+    <label>品牌介紹</label><textarea id="f_brand_intro" placeholder="品牌介紹（從會員資料帶入）">${V.brandIntro||''}</textarea>
+    <label>販售類別</label><input type="text" id="f_sell_cat" value="${V.sellCat||''}" placeholder="例：手工飾品、選物、美食（從會員資料帶入，可修改）">
+  </div>`;
+  if(mods.sellLink) html+=`<div class="card"><div class="card-t">🔗 本次活動商品連結（選填）</div>
+    <input type="url" id="f_sell_link" placeholder="本次販售商品頁或社群連結">
+  </div>`;
 
   const hasReg=mods.adult||mods.child||mods.diet||mods.access;
   if(hasReg){
