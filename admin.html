@@ -193,7 +193,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.6}
     <div><label>場次名稱 *</label><input type="text" id="ns_name" placeholder="例：耶市集07月"></div>
     <div><label>活動類型 *</label>
       <select id="ns_type" onchange="updateFormModulesByType()">
-        <option value="攤商招募">🏪 攤商招募</option>
+        <option value="市集場次">🏪 市集場次</option>
         <option value="活動報名">🎨 活動報名</option>
         <option value="合作申請">🎭 合作申請</option>
         <option value="商場百貨寄賣">🏬 商場百貨寄賣</option>
@@ -603,6 +603,38 @@ async function loadSessionStats(sessionId){
   }catch(e){}
 }
 
+
+async function doAccept(regId, sessionId) {
+  if(!confirm('確定錄取？')) return;
+  sl(true);
+  try {
+    const d = await apiPost({action:'updateStatus', regId, status:'錄取', sessionId});
+    if(d.success){ toast('✅ 已錄取'); await reloadVendors(sessionId); }
+    else toast('操作失敗');
+  } catch(e){ toast('操作失敗'); } finally{ sl(false); }
+}
+
+async function doReject(regId, sessionId) {
+  if(!confirm('確定不錄取？')) return;
+  sl(true);
+  try {
+    const d = await apiPost({action:'updateStatus', regId, status:'不錄取', sessionId});
+    if(d.success){ toast('已設為不錄取'); await reloadVendors(sessionId); }
+    else toast('操作失敗');
+  } catch(e){ toast('操作失敗'); } finally{ sl(false); }
+}
+
+
+async function doCancelReg(regId, sessionId) {
+  if(!confirm('確定取消這筆報名？')) return;
+  sl(true);
+  try {
+    const d = await apiPost({action:'cancelRegistration', regId, reason:'管理員取消', sessionId});
+    if(d.success){ toast('已取消'); await reloadVendors(sessionId); }
+    else toast('取消失敗：'+(d.message||''));
+  } catch(e){ toast('操作失敗'); } finally{ sl(false); }
+}
+
 async function loadVendors(sessionId){
   ST.currentSessionId=sessionId;
   ST.filter='all';
@@ -670,139 +702,6 @@ async function doBatchResend(sessionId){
   await batchEmail();
 }
 
-function renderDashboard_old(){
-  const mc=$('mainContent');
-  if(!ST.sessions.length){
-    mc.innerHTML=`<div class="no-sessions"><div class="ns-ic">📭</div><div class="ns-t">尚無場次</div><div class="ns-s">點下方「場次」新增第一個活動</div></div>`;
-    return;
-  }
-  const sorted=[...ST.sessions].sort((a,b)=>(a.dateStart||'').localeCompare(b.dateStart||''));
-  mc.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--md);margin-bottom:8px;padding:4px 2px">場次總覽（點展開）</div>'+
-    sorted.map(s=>renderSessionRow(s)).join('');
-}
-
-function renderSessionRow(s){
-  const limit=parseInt(s.limit)||0;
-  const remain=Math.max(0,limit-(parseInt(s.accepted)||0));
-  const income=fmtM(s.paidAmount||0);
-  const equipIcons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
-  const equipStr=s.equip?Object.entries(s.equip).filter(([,v])=>v>0).map(([k,v])=>(equipIcons[k]||'')+k+' x'+v).join('　'):'';
-
-  return `<div class="session-row" id="sr-${s.id}">
-    <div class="sr-header" onclick="toggleRow('${s.id}')">
-      <div class="sr-date">${s.dateDisplay||''}</div>
-      <div class="sr-name">
-        <span style="font-size:12px;color:var(--md);font-weight:400;margin-right:5px">${s.city||''}</span>${s.name}
-        <small>${s.venue||''}</small>
-      </div>
-      <div class="sr-arrow" id="arrow-${s.id}">›</div>
-    </div>
-    <div class="stat-chips">
-      <span class="sc sc-total">報名 ${s.enrolled||0}</span>
-      <span class="sc sc-paid">繳費 ${s.paid||0}</span>
-      ${remain>0?`<span class="sc sc-remain">缺 ${remain}</span>`:'<span class="sc sc-remain" style="background:var(--rdp);color:var(--rd)">額滿</span>'}
-      ${(s.pending||0)>0?`<span class="sc sc-pending" onclick="openSessionFilter('${s.id}','pending')">待審 ${s.pending}</span>`:''}
-      <span class="sc sc-income">${income}</span>
-    </div>
-    <div class="sr-body" id="srb-${s.id}"></div>
-  </div>`;
-}
-
-async function toggleRow(id){
-  const body=$('srb-'+id);
-  const arrow=$('arrow-'+id);
-  if(body.classList.contains('open')){
-    body.classList.remove('open');
-    if(arrow) arrow.classList.remove('open');
-    return;
-  }
-  document.querySelectorAll('.sr-body.open').forEach(b=>b.classList.remove('open'));
-  document.querySelectorAll('.sr-arrow.open').forEach(a=>a.classList.remove('open'));
-  body.classList.add('open');
-  if(arrow) arrow.classList.add('open');
-  if(!body.innerHTML.trim()) await loadSessionBody(id,body);
-}
-
-async function openSessionFilter(id, filter){
-  await toggleRow(id);
-  ST.filter=filter;
-  setTimeout(()=>renderVendorList(),300);
-}
-
-async function loadSessionBody(id,body){
-  body.innerHTML='<div class="empty">載入中...</div>';
-  try{
-    const [dash,vendData]=await Promise.all([
-      apiGet({action:'getDashboard',sessionId:id}),
-      apiGet({action:'getVendors',sessionId:id})
-    ]);
-    ST.currentSessionId=id;
-    ST.vendors=vendData.vendors||[];
-    // 更新 session 統計
-    const idx=ST.sessions.findIndex(s=>s.id===id);
-    if(idx>=0 && dash){
-      ST.sessions[idx]={...ST.sessions[idx],
-        enrolled:dash.total||0, pending:dash.pending||0,
-        paid:dash.paid||0, accepted:dash.accepted||0,
-        equip:dash.equipment||{}
-      };
-      // 更新儀表板那一行
-      const rowEl=$('sr-'+id);
-      if(rowEl){
-        const s=ST.sessions[idx];
-        const limit=parseInt(s.limit)||0;
-        const remain=Math.max(0,limit-(s.accepted||0));
-        const income=fmtM(s.paidAmount||0);
-        const equipIcons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
-  const equipStr=s.equip?Object.entries(s.equip).filter(([,v])=>v>0).map(([k,v])=>(equipIcons[k]||'')+k+' x'+v).join('　'):'';
-        const chips=rowEl.querySelector('.stat-chips');
-        if(chips){
-          chips.innerHTML=`
-            <span class="sc sc-total">報名 ${s.enrolled||0}</span>
-            <span class="sc sc-paid">繳費 ${s.paid||0}</span>
-            ${remain>0?`<span class="sc sc-remain">缺 ${remain}</span>`:'<span class="sc sc-remain" style="background:var(--rdp);color:var(--rd)">額滿</span>'}
-            ${(s.pending||0)>0?`<span class="sc sc-pending" onclick="openSessionFilter('${s.id}','pending')">待審 ${s.pending}</span>`:''}
-            <span class="sc sc-income">${income}</span>`;
-        }
-      }
-    }
-    body.innerHTML=renderSessionDetail(dash,vendData.vendors||[],id);
-    // 事件綁定
-    body.querySelectorAll('[data-filter]').forEach(el=>{
-      el.onclick=()=>{filterVendors(el.dataset.filter,el);};
-    });
-  }catch(e){ body.innerHTML='<div class="empty">載入失敗</div>'; }
-}
-
-function renderSessionDetail(d,vendors,sessionId){
-  const equipKeys=['帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'];
-  const equipIcons={'帳篷':'⛺','椅子':'🪑','桌':'🪵','野餐墊':'🧺','桌布':'🎀','電':'⚡','燈':'💡','陽傘':'☂️'};
-  const equipStr=equipKeys.filter(k=>(d.equipment||{})[k]>0).map(k=>equipIcons[k]+k+' x'+(d.equipment||{})[k]).join('、')||'無加購';
-
-  return `
-  <div class="filters" id="vendorFilters">
-    <div class="ftab on" data-filter="all">全部</div>
-    <div class="ftab" data-filter="pending">待審核</div>
-    <div class="ftab" data-filter="accepted">已錄取</div>
-    <div class="ftab" data-filter="waitlist">備取</div>
-    <div class="ftab" data-filter="paid">已付款</div>
-    <div class="ftab" data-filter="overdue">逾期</div>
-  </div>
-  <div style="display:flex;gap:7px;padding:8px 14px;background:var(--lt);border-bottom:1px solid var(--gp)" id="batchBar">
-    <button class="btn-xs" style="background:var(--g);color:#fff" onclick="batchAccept()">✓ 批次錄取</button>
-    <button class="btn-xs" style="background:var(--blp);color:#2980B9" onclick="batchEmail()">📧 批次寄信</button>
-    <button class="btn-xs" style="background:var(--ylp);color:var(--yl)" onclick="batchWaitlist()">備取全部</button>
-    <button class="btn-xs" style="background:var(--rdp);color:var(--rd)" onclick="batchCancel()">✗ 批次取消</button>
-    <span style="font-size:15px;color:var(--md);align-self:center" id="batchCount"></span>
-  </div>
-  <div id="vendorList"></div>
-  <div style="padding:10px 14px">
-    <div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:6px">🪑 設備統計</div>
-    <div style="font-size:14px;color:var(--dk)">${equipStr}</div>
-  </div>`;
-}
-
-// ── 審核 ──
 function filterVendors(filter,el){
   ST.filter=filter;
   document.querySelectorAll('#vendorFilters .ftab').forEach(t=>t.classList.remove('on'));
@@ -858,7 +757,7 @@ async function doStatus(vendorId,status){
   sl(true);
   try{
     const d=await apiPost({action:'updateStatus',vendorId,status,sessionId:ST.currentSessionId});
-    if(d.success){toast(status==='錄取'?'✅ 已錄取，通知信已寄出':'已更新');await reloadSession();}
+    if(d.success){toast(status==='錄取'?'✅ 已錄取，通知信已寄出':status==='已付款'?'✅ 已標記付款':'已更新');await reloadSession();}
     else toast('更新失敗：'+(d.message||''));
   }catch(e){toast('操作失敗');}finally{sl(false);}
 }
@@ -1281,13 +1180,6 @@ function downloadCheckinCSV(){
   a.click();
 }
 
-function filterCheckin(){
-  const q=($('checkinSearch')?.value||'').toLowerCase().trim();
-  const vendors=window._checkinVendors||[];
-  const filtered=q?vendors.filter(v=>(v.booth||'').toLowerCase().includes(q)||(v.brand||'').toLowerCase().includes(q)||(v.name||'').toLowerCase().includes(q)):vendors;
-  renderCheckinCards(filtered, window._checkinSessionId);
-}
-
 function filterCheckin() {
   const q=($('checkinSearch')?.value||'').toLowerCase().trim();
   const vendors=window._checkinVendors||[];
@@ -1642,70 +1534,6 @@ async function saveNewSession(){
 }
 
 // ── 下載 ──
-async function downloadAllSessions(){
-  if(!ST.sessions.length){toast('目前無場次');return;}
-  sl(true);
-  try{
-    for(const s of ST.sessions){
-      const d=await apiGet({action:'getVendors',sessionId:s.id});
-      const vendors=d.vendors||[];
-      if(!vendors.length) continue;
-      exportCSV(vendors,s.name+'_完整名單');
-      await new Promise(r=>setTimeout(r,800));
-    }
-    toast('全部下載完成');
-  }catch(e){toast('下載失敗');}finally{sl(false);}
-}
-
-
-function exportCSV(vendors,filename,type){
-  const NL=String.fromCharCode(10);
-  const COMMA=',';
-  let headers,rows;
-  if(type==='checkin'){
-    headers=['攤位','品牌','身份','Email','手機','審核','付款'];
-    rows=vendors.filter(v=>v.payStatus==='已付款').map(v=>[v.booth||'-',v.brand,v.identityType||'攤商',v.email,v.phone||'',v.reviewStatus,v.payStatus]);
-  }else if(type==='equip'){
-    headers=['品牌','帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'];
-    rows=vendors.filter(v=>Object.values(v.equipment||{}).some(q=>q>0)).map(v=>[v.brand,...['帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'].map(k=>v.equipment[k]||0)]);
-  }else{
-    headers=['品牌','代表人','身份','Email','手機','類別','審核','付款','攤位','攤數','設備','明火','用電','報名時間','應付','押金'];
-    rows=vendors.map(v=>[v.brand,v.name||'',v.identityType||'攤商',v.email,v.phone||'',v.category||'',v.reviewStatus,v.payStatus,v.booth||'',v.boothCount||1,Object.entries(v.equipment||{}).filter(([,q])=>q>0).map(([k,q])=>k+'x'+q).join(' ')||'無',v.fire==='yes'?'是':'否',v.power||'',v.regTime||'',v.totalFee||'',v.deposit||'']);
-  }
-  const q=c=>('"'+String(c||'').replace(/"/g,'""')+'"');
-  const csvRows=[headers,...rows].map(r=>r.map(q).join(COMMA));
-  const csv='﻿'+csvRows.join(NL);
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=filename+'_'+new Date().toLocaleDateString('zh-TW').replace(/\//g,'')+'.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function downloadCSV(type){
-  if(!ST.currentSessionId){toast('請先在儀表板選擇場次');return;}
-  sl(true);
-  try{
-    const d=await apiGet({action:'getVendors',sessionId:ST.currentSessionId});
-    const vendors=d.vendors||[];
-    const s=ST.sessions.find(x=>x.id===ST.currentSessionId)||{name:'場次'};
-    let headers=[],rows=[];
-    if(type==='checkin'){
-      headers=['攤位','品牌','身份','Email','手機','審核','付款','進場','清場','押金退還'];
-      rows=vendors.filter(v=>v.payStatus==='已付款').map(v=>[v.booth||'-',v.brand,v.identityType||'攤商',v.email,v.phone||'',v.reviewStatus,v.payStatus,'','',v.refundStatus||'未退']);
-    }else if(type==='roster'){
-      headers=['品牌','代表人','身份','Email','手機','類別','審核','付款','攤位','攤數','設備','明火','用電','報名時間','應付','押金'];
-      rows=vendors.map(v=>[v.brand,v.name||'',v.identityType||'攤商',v.email,v.phone||'',v.category||'',v.reviewStatus,v.payStatus,v.booth||'',v.boothCount||1,Object.entries(v.equipment||{}).filter(([,q])=>q>0).map(([k,q])=>k+'x'+q).join('、')||'無',v.fire==='yes'?'是':'否',v.power||'',v.regTime||'',v.totalFee||'',v.deposit||'']);
-    }else if(type==='equip'){
-      headers=['品牌','帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'];
-      rows=vendors.filter(v=>Object.values(v.equipment||{}).some(q=>q>0)).map(v=>[v.brand,...['帳篷','椅子','桌','野餐墊','桌布','電','燈','陽傘'].map(k=>v.equipment[k]||0)]);
-    }
-    exportCSV(vendors,s.name+'_'+type,type);
-    toast('下載完成');
-  }catch(e){toast('下載失敗');}finally{sl(false);}
-}
 </script>
 </body>
 </html>
