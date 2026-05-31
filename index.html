@@ -1329,6 +1329,22 @@ function updateChildAges() {
 
 function toggleChip(el){ el.classList.toggle('on'); }
 
+
+// ── 底部導覽列 ──
+(function(){
+  var nav = document.createElement('div');
+  nav.id = 'bottomNav';
+  nav.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:54px;background:#fff;border-top:1px solid #e8e8e8;display:flex;z-index:999;box-shadow:0 -2px 8px rgba(0,0,0,0.08)';
+  nav.innerHTML = '<button onclick="sp(\'home\')" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#997700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:\'Noto Sans TC\',sans-serif"><span style="font-size:20px">🏠</span><span>回首頁</span></button>'
+    + '<button onclick="goJoin()" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#33CCFF;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:\'Noto Sans TC\',sans-serif"><span style="font-size:20px">🌿</span><span>加入</span></button>'
+    + '<button id="bottomLoginBtn" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#FF79BC;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:\'Noto Sans TC\',sans-serif"><span style="font-size:20px">👤</span><span id="bottomLoginText">登入</span></button>'
+    + '<a href="https://lin.ee/RIygewy" target="_blank" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#01B468;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;text-decoration:none;font-family:\'Noto Sans TC\',sans-serif"><span style="font-size:20px">💬</span><span>客服</span></a>';
+  document.body.appendChild(nav);
+  document.getElementById('bottomLoginBtn').onclick = function(){
+    if(V.loggedIn){ sp('member'); renderMemberUI(); } else { openModal('mLogin'); }
+  };
+})();
+
 window.onload = async () => {
   const urlParams = new URLSearchParams(window.location.search);
   if(urlParams.get('paid')==='1') {
@@ -1344,13 +1360,5 @@ window.onload = async () => {
   }
 };
 </script>
-
-else{openModal('mLogin');}" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#FF79BC;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:'Noto Sans TC',sans-serif">
-    <span style="font-size:20px">👤</span><span id="bottomLoginText">登入</span>
-  </button>
-  <a href="https://lin.ee/RIygewy" target="_blank" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#01B468;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;text-decoration:none;font-family:'Noto Sans TC',sans-serif">
-    <span style="font-size:20px">💬</span><span>客服</span>
-  </a>
-</div>
 </body>
 </html>
