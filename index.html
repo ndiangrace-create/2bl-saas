@@ -1314,6 +1314,8 @@ window.onload = async () => {
     const t=$('memberEntryText'); if(t) t.textContent='👤 '+(V.name||V.email||'會員')+' · 我的報名';
   }
 };
+
+
 </script>
 
 <!-- 底部固定導覽列 -->
@@ -2081,22 +2083,5 @@ window.onload = async () => {
     const t=$('memberEntryText'); if(t) t.textContent='👤 '+(V.name||V.email||'會員')+' · 我的報名';
   }
 };
-</script>
-
-<!-- 底部固定導覽列 -->
-<div id="bottomNav" style="position:fixed;bottom:0;left:0;right:0;height:54px;background:#fff;border-top:1px solid #e8e8e8;display:flex;z-index:999;box-shadow:0 -2px 8px rgba(0,0,0,0.08)">
-  <button onclick="sp('home')" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#FFDD55;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:'Noto Sans TC',sans-serif;-webkit-text-stroke:0.3px #b8a000">
-    <span style="font-size:20px">🏠</span><span style="color:#997700">回首頁</span>
-  </button>
-  <button onclick="goJoin()" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#33CCFF;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:'Noto Sans TC',sans-serif">
-    <span style="font-size:20px">🌿</span><span>加入</span>
-  </button>
-  <button id="bottomLoginBtn" onclick="if(V.loggedIn){sp('member');renderMemberUI();}else{openModal('mLogin');}" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#FF79BC;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:'Noto Sans TC',sans-serif">
-    <span style="font-size:20px">👤</span><span id="bottomLoginText">登入</span>
-  </button>
-  <a href="https://lin.ee/RIygewy" target="_blank" style="flex:1;border:none;background:none;font-size:11px;font-weight:700;color:#01B468;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;text-decoration:none;font-family:'Noto Sans TC',sans-serif">
-    <span style="font-size:20px">💬</span><span>客服</span>
-  </a>
-</div>
 </body>
 </html>
