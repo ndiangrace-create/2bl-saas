@@ -357,12 +357,31 @@ textarea{min-height:64px;resize:vertical}
   <div class="modal">
     <div class="modal-title" id="sesModalTitle">新增場次</div>
     <input type="hidden" id="sm_id">
+
+    <!-- 活動 -->
     <label>選擇活動 *</label>
     <div style="display:flex;gap:8px;align-items:center">
       <select id="sm_eventId" style="flex:1"><option value="">請選擇活動</option></select>
       <button class="btn btn-s btn-sm" onclick="quickAddEvent()" type="button" style="white-space:nowrap;flex-shrink:0">＋ 新增活動</button>
     </div>
+
+    <!-- 基本 -->
     <label>場次名稱 *</label><input type="text" id="sm_name" placeholder="例：耶市集 07月場">
+    <div class="form-row">
+      <div>
+        <label>地區 *</label>
+        <select id="sm_region">
+          <option value="">請選擇</option>
+          <option value="台北">台北</option>
+          <option value="台中">台中</option>
+          <option value="高雄">高雄</option>
+          <option value="台南">台南</option>
+          <option value="新竹">新竹</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div><label>場地名稱 *</label><input type="text" id="sm_venue"></div>
+    </div>
     <label>場次類型</label>
     <select id="sm_type" onchange="updateModPresets()">
       <option value="市集場次">🏪 市集場次</option>
@@ -370,23 +389,38 @@ textarea{min-height:64px;resize:vertical}
       <option value="合作申請">🤝 合作申請</option>
       <option value="百貨寄賣">🏬 百貨寄賣</option>
     </select>
-    <div class="form-row">
-      <div><label>活動日期 *</label><input type="date" id="sm_date"></div>
-      <div><label>場地名稱 *</label><input type="text" id="sm_venue"></div>
+
+    <!-- 多日期時段 -->
+    <div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700;color:var(--md)">活動日期 & 時段 *</div>
+        <button class="btn btn-g btn-xs" onclick="addDateSlot()" type="button">＋ 新增日期</button>
+      </div>
+      <div id="dateSlots"></div>
     </div>
-    <div class="form-row">
-      <div><label>開始時間</label><input type="time" id="sm_start" value="10:00"></div>
-      <div><label>結束時間</label><input type="time" id="sm_end" value="18:00"></div>
-    </div>
-    <div class="form-row">
+
+    <!-- 費用 -->
+    <div class="form-row" style="margin-top:10px">
       <div><label>費用（0=免費）</label><input type="number" id="sm_fee" value="0" inputmode="numeric"></div>
-      <div><label>保證金</label><input type="number" id="sm_deposit" value="500" inputmode="numeric"></div>
+      <div><label>保證金</label><input type="number" id="sm_deposit" value="0" inputmode="numeric"></div>
     </div>
     <div class="form-row">
-      <div><label>名額上限</label><input type="number" id="sm_limit" value="30" inputmode="numeric"></div>
+      <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"></div>
+      <div><label>最大攤數/人</label><input type="number" id="sm_maxStalls" value="1" min="1" inputmode="numeric"></div>
+    </div>
+    <div class="form-row">
       <div><label>主辦單位</label><input type="text" id="sm_organizer"></div>
+      <div><label>協辦單位</label><input type="text" id="sm_coorg"></div>
+    </div>
+    <label>場次說明</label><textarea id="sm_desc" placeholder="對外顯示的場次介紹" rows="3"></textarea>
+    <label>場次圖片連結（1:1）</label>
+    <input type="url" id="sm_cover" placeholder="https://..." oninput="previewSesCover(this.value)">
+    <div id="sesCoverPreview" style="display:none;margin-top:6px">
+      <img id="sesCoverImg" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #e0e0e0">
     </div>
     <label>基本配備說明</label><input type="text" id="sm_basicEquip" placeholder="例：有提供延長線">
+
+    <!-- 需要審核 -->
     <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px;border:1.5px solid #e0e0e0;border-radius:8px">
       <input type="checkbox" id="sm_review" style="width:16px;height:16px;accent-color:var(--g)" checked>
       <div>
@@ -394,6 +428,8 @@ textarea{min-height:64px;resize:vertical}
         <div style="font-size:11px;color:var(--lt)">不勾選→報名後直接錄取</div>
       </div>
     </div>
+
+    <!-- 顯示入口 -->
     <div style="margin-top:12px;padding:11px;border:1.5px solid #e0e0e0;border-radius:8px">
       <div style="font-size:12px;font-weight:700;margin-bottom:8px">顯示在哪個入口（可複選）</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
@@ -411,14 +447,37 @@ textarea{min-height:64px;resize:vertical}
         </label>
       </div>
     </div>
+
+    <!-- 報名表模組 -->
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
       <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">報名表欄位</div>
       <div class="mod-grid" id="modGrid"></div>
     </div>
+
+    <!-- 自訂欄位 -->
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--md)">自訂欄位（可無限新增）</div>
+        <button class="btn btn-g btn-xs" onclick="addCustomField()" type="button">＋ 新增欄位</button>
+      </div>
+      <div id="customFieldsList"></div>
+    </div>
+
+    <!-- 加購選項 -->
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--md)">加購選項（可無限新增）</div>
+        <button class="btn btn-g btn-xs" onclick="addAddon()" type="button">＋ 新增加購</button>
+      </div>
+      <div id="addonsList"></div>
+    </div>
+
+    <!-- 設備加購 -->
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
       <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">設備加購</div>
       <div id="equipDefs"></div>
     </div>
+
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('sesModal')" style="flex:1">取消</button>
       <button class="btn btn-g" onclick="saveSession()" style="flex:2">儲存場次</button>
@@ -611,8 +670,8 @@ function renderOverview(){
       <td>${thumb}</td>
       <td>
         <div class="ses-name-cell" style="display:block">
-          <div style="font-weight:700;font-size:13px"><span class="status-dot ${dot}"></span>${s.name}</div>
-          <div style="font-size:11px;color:var(--lt)">${s.eventName}　${s.date||''}　${s.venue||''}</div>
+          <div style="font-weight:700;font-size:13px"><span class="status-dot ${dot}"></span>${s.region?`[${s.region}] `:''}${s.name}</div>
+          <div style="font-size:11px;color:var(--lt)">${s.eventName}　${s.dates&&s.dates.length?s.dates[0].date:s.date||''}　${s.venue||''}</div>
         </div>
       </td>
       <td>${s.date||'-'}</td>
@@ -686,8 +745,8 @@ function renderEventsWithSessions(){
             return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #f8f8f8">
               <span class="status-dot ${dot}" style="flex-shrink:0"></span>
               <div style="flex:1;min-width:0">
-                <div style="font-size:13px;font-weight:700">${s.name}</div>
-                <div style="font-size:11px;color:var(--lt)">${s.date||''}　${s.venue||''}　報名${s.total}　費用${s.fee>0?'NT$'+s.fee:'免費'}</div>
+                <div style="font-size:13px;font-weight:700">${s.region?`[${s.region}] `:''}${s.name}</div>
+                <div style="font-size:11px;color:var(--lt)">${s.dates&&s.dates.length?s.dates[0].date:s.date||''}　${s.venue||''}　報名${s.total}　費用${s.fee>0?'NT$'+s.fee:'免費'}</div>
               </div>
               <div style="display:flex;gap:4px;flex-shrink:0">
                 <button class="btn btn-y btn-xs" onclick="toggleSes('${s.id}','${s.status}')">${s.status==='關閉'?'開放':'關閉'}</button>
@@ -815,42 +874,158 @@ function quickAddEvent(){
 }
 function openSesModal(){resetSesModal();openModal('sesModal');}
 function resetSesModal(){
-  $('sm_id').value='';$('sm_name').value='';$('sm_date').value='';$('sm_venue').value='';
-  $('sm_fee').value=0;$('sm_deposit').value=500;$('sm_limit').value=30;
-  $('sm_start').value='10:00';$('sm_end').value='18:00';
-  $('sm_organizer').value='';$('sm_basicEquip').value='';
+  $('sm_id').value='';$('sm_name').value='';$('sm_venue').value='';
+  $('sm_region').value='';$('sm_fee').value=0;$('sm_deposit').value=0;
+  $('sm_limit').value=0;$('sm_maxStalls').value=1;
+  $('sm_organizer').value='';$('sm_coorg').value='';
+  $('sm_basicEquip').value='';$('sm_desc').value='';$('sm_cover').value='';
+  $('sesCoverPreview').style.display='none';
   $('sm_review').checked=true;$('sm_type').value='市集場次';
-  ['portal_market','portal_activity','portal_dept','portal_collab'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  ['portal_market','portal_activity','portal_dept','portal_collab'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.checked=false;
+  });
   $('sesModalTitle').textContent='新增場次';
+  $('dateSlots').innerHTML='';
+  $('customFieldsList').innerHTML='';
+  $('addonsList').innerHTML='';
+  addDateSlot(); // 預設一個日期欄
   updateModPresets();buildEquipDefs({});
 }
+
+function previewSesCover(url){
+  if(url){$('sesCoverImg').src=url;$('sesCoverPreview').style.display='block';}
+  else{$('sesCoverPreview').style.display='none';}
+}
+
+// ── 多日期時段 ──
+let dateSlotIdx=0;
+function addDateSlot(date='',start='10:00',end='18:00'){
+  const idx=dateSlotIdx++;
+  const div=document.createElement('div');
+  div.id='ds_'+idx;
+  div.style='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap';
+  div.innerHTML=`
+    <input type="date" id="ds_date_${idx}" value="${date}" style="flex:1;min-width:120px;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <input type="time" id="ds_start_${idx}" value="${start}" style="width:90px;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <span style="font-size:12px;color:#aaa">~</span>
+    <input type="time" id="ds_end_${idx}" value="${end}" style="width:90px;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <button onclick="document.getElementById('ds_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+  `;
+  $('dateSlots').appendChild(div);
+}
+function getDateSlots(){
+  const slots=[];
+  $('dateSlots').querySelectorAll('[id^=ds_date_]').forEach(el=>{
+    const idx=el.id.replace('ds_date_','');
+    const d=$('ds_date_'+idx)?.value;
+    const s=$('ds_start_'+idx)?.value||'';
+    const e=$('ds_end_'+idx)?.value||'';
+    if(d) slots.push({date:d,start:s,end:e});
+  });
+  return slots;
+}
+
+// ── 自訂欄位 ──
+let cfIdx=0;
+function addCustomField(data={}){
+  const idx=cfIdx++;
+  const div=document.createElement('div');
+  div.id='cf_'+idx;
+  div.style='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding:8px;border:1px solid #e8e8e8;border-radius:8px';
+  div.innerHTML=`
+    <input type="text" id="cf_label_${idx}" value="${data.label||''}" placeholder="欄位名稱" style="flex:2;min-width:100px;padding:7px;border:1.5px solid #d0e8d8;border-radius:7px;font-size:13px">
+    <select id="cf_type_${idx}" style="flex:1;min-width:80px;padding:7px;border:1.5px solid #d0e8d8;border-radius:7px;font-size:13px">
+      <option value="text" ${data.type==='text'?'selected':''}>文字</option>
+      <option value="url" ${data.type==='url'?'selected':''}>連結</option>
+      <option value="select" ${data.type==='select'?'selected':''}>選擇</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:4px;font-size:12px;margin:0;cursor:pointer;flex-shrink:0">
+      <input type="checkbox" id="cf_req_${idx}" ${data.required?'checked':''} style="width:14px;height:14px;accent-color:var(--g)"> 必填
+    </label>
+    <input type="text" id="cf_opts_${idx}" value="${data.options||''}" placeholder="選項（逗號分隔）" style="flex:2;min-width:100px;padding:7px;border:1.5px solid #d0e8d8;border-radius:7px;font-size:12px" ${data.type==='select'?'':'style="display:none"'}>
+    <button onclick="document.getElementById('cf_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;flex-shrink:0">✕</button>
+  `;
+  $('customFieldsList').appendChild(div);
+}
+function getCustomFields(){
+  const fields=[];
+  $('customFieldsList').querySelectorAll('[id^=cf_label_]').forEach(el=>{
+    const idx=el.id.replace('cf_label_','');
+    const label=$('cf_label_'+idx)?.value?.trim();
+    if(!label)return;
+    fields.push({
+      label,
+      type:$('cf_type_'+idx)?.value||'text',
+      required:!!$('cf_req_'+idx)?.checked,
+      options:$('cf_opts_'+idx)?.value||'',
+    });
+  });
+  return fields;
+}
+
+// ── 加購選項 ──
+let addonIdx=0;
+function addAddon(data={}){
+  const idx=addonIdx++;
+  const div=document.createElement('div');
+  div.id='addon_'+idx;
+  div.style='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap';
+  div.innerHTML=`
+    <input type="text" id="addon_name_${idx}" value="${data.name||''}" placeholder="加購名稱" style="flex:2;min-width:100px;padding:7px;border:1.5px solid #d0e8d8;border-radius:7px;font-size:13px">
+    <input type="number" id="addon_price_${idx}" value="${data.price||0}" placeholder="單價" style="width:80px;padding:7px;border:1.5px solid #d0e8d8;border-radius:7px;font-size:13px" inputmode="numeric">
+    <button onclick="document.getElementById('addon_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+  `;
+  $('addonsList').appendChild(div);
+}
+function getAddons(){
+  const addons=[];
+  $('addonsList').querySelectorAll('[id^=addon_name_]').forEach(el=>{
+    const idx=el.id.replace('addon_name_','');
+    const name=$('addon_name_'+idx)?.value?.trim();
+    if(!name)return;
+    addons.push({name,price:Number($('addon_price_'+idx)?.value)||0});
+  });
+  return addons;
+}
 async function editSes(id){
-  // 先從本地找，沒有才打 API
   let s=ST.sdData.find(x=>x.id===id);
-  if(!s){
-    s=await api({action:'getSession',id});
-    if(s.error){toast('❌ '+s.error);return;}
-  }
+  if(!s){s=await api({action:'getSession',id});if(s.error){toast('❌ '+s.error);return;}}
+  resetSesModal();
   $('sm_id').value=s.id;
   $('sm_eventId').value=s.eventId||'';
   $('sm_name').value=s.name||'';
   $('sm_type').value=s.type||'市集場次';
-  $('sm_date').value=toInputDate(s.date);
+  $('sm_region').value=s.region||'';
   $('sm_venue').value=s.venue||'';
-  $('sm_start').value=toInputTime(s.startTime)||'10:00';
-  $('sm_end').value=toInputTime(s.endTime)||'18:00';
   $('sm_fee').value=Math.max(0,Number(s.fee)||0);
   $('sm_deposit').value=Math.max(0,Number(s.deposit)||0);
   $('sm_limit').value=Math.max(0,Number(s.limit)||0);
+  $('sm_maxStalls').value=Math.max(1,Number(s.maxStalls)||1);
   $('sm_organizer').value=s.organizer||'';
+  $('sm_coorg').value=s.coorg||'';
   $('sm_basicEquip').value=s.basicEquip||'';
+  $('sm_desc').value=s.desc||'';
+  $('sm_cover').value=s.cover||'';
+  if(s.cover){$('sesCoverImg').src=s.cover;$('sesCoverPreview').style.display='block';}
   $('sm_review').checked=s.needReview!==false;
-  // 入口勾選
+  // 日期
+  $('dateSlots').innerHTML='';dateSlotIdx=0;
+  if(s.dates&&s.dates.length){
+    s.dates.forEach(d=>addDateSlot(d.date||'',d.start||'10:00',d.end||'18:00'));
+  } else {
+    addDateSlot();
+  }
+  // 入口
   const portals=s.portals||[];
-  ['portal_market','portal_activity','portal_dept','portal_collab'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.checked=portals.includes(el.value);
+  ['portal_market','portal_activity','portal_dept','portal_collab'].forEach(pid=>{
+    const el=document.getElementById(pid);if(el)el.checked=portals.includes(el.value);
   });
+  // 自訂欄位
+  $('customFieldsList').innerHTML='';cfIdx=0;
+  (s.customFields||[]).forEach(f=>addCustomField(f));
+  // 加購
+  $('addonsList').innerHTML='';addonIdx=0;
+  (s.addons||[]).forEach(a=>addAddon(a));
   buildModGrid(s.modules||{});
   buildEquipDefs(s.equip||{});
   $('sesModalTitle').textContent='編輯場次';
@@ -860,20 +1035,31 @@ async function saveSession(){
   const id=$('sm_id').value;
   const name=$('sm_name').value.trim();
   const eventId=$('sm_eventId').value;
-  const date=$('sm_date').value;
   const venue=$('sm_venue').value.trim();
-  if(!name||!eventId||!date||!venue){toast('請填寫必填欄位（活動、名稱、日期、場地）');return;}
-  const res=await apiPost({
+  const region=$('sm_region').value;
+  const dates=getDateSlots();
+  if(!name||!eventId||!venue||!region){toast('請填寫必填欄位（活動、名稱、地區、場地）');return;}
+  if(!dates.length){toast('請至少新增一個活動日期');return;}
+  const body={
     action:id?'updateSession':'createSession',id,eventId,name,
-    type:$('sm_type').value,date,venue,
-    startTime:$('sm_start').value,endTime:$('sm_end').value,
+    type:$('sm_type').value,region,dates,venue,
     fee:parseInt($('sm_fee').value)||0,deposit:parseInt($('sm_deposit').value)||0,
-    limit:parseInt($('sm_limit').value)||30,
-    organizer:$('sm_organizer').value.trim(),basicEquip:$('sm_basicEquip').value.trim(),
+    limit:parseInt($('sm_limit').value)||0,
+    maxStalls:parseInt($('sm_maxStalls').value)||1,
+    organizer:$('sm_organizer').value.trim(),
+    coorg:$('sm_coorg').value.trim(),
+    basicEquip:$('sm_basicEquip').value.trim(),
+    desc:$('sm_desc').value.trim(),
+    cover:$('sm_cover').value.trim(),
     needReview:$('sm_review').checked,
-    portals:(()=>{const ids=['portal_market','portal_activity','portal_dept','portal_collab'];return ids.filter(id=>{const el=document.getElementById(id);return el&&el.checked;}).map(id=>{const el=document.getElementById(id);return el?el.value:'';}).filter(Boolean);})(),
-    modules:getModulesJson(),equip:getEquipJson(),status:'報名中',
-  });
+    portals:(()=>{const ids=['portal_market','portal_activity','portal_dept','portal_collab'];return ids.filter(pid=>{const el=document.getElementById(pid);return el&&el.checked;}).map(pid=>{const el=document.getElementById(pid);return el?el.value:'';}).filter(Boolean);})(),
+    modules:getModulesJson(),
+    equip:getEquipJson(),
+    customFields:getCustomFields(),
+    addons:getAddons(),
+    status:'報名中',
+  };
+  const res=await apiPost(body);
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 場次已儲存');closeModal('sesModal');
   await loadAllData();
@@ -956,22 +1142,28 @@ function renderRegs(){
 function toggleAll(el){document.querySelectorAll('.reg-chk').forEach(c=>c.checked=el.checked);}
 function getChecked(){return[...document.querySelectorAll('.reg-chk:checked')].map(e=>e.dataset.id);}
 
-function openRegDetail(id){
+async function openRegDetail(id){
   const r=ST.regs.find(x=>x.id===id)||ST.allRegs.find(x=>x.id===id);
   if(!r)return;
   ST.currentReg=r;
   let equip={};try{equip=JSON.parse(r.equip||'{}');}catch(e){}
-  const eqStr=Object.entries(equip).filter(([k,v])=>v>0).map(([k,v])=>`${k}×${v}`).join('、');
-  // 找場次圖片
+  const eqStr=Object.entries(equip).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join('、');
   const sd=ST.sdData.find(s=>s.id===r.sessionId);
-  const coverHtml=sd?.eventCover?`<img src="${sd.eventCover}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px">`:'' ;
+  const coverHtml=sd?.eventCover?`<img src="${sd.eventCover}" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:12px">`:'';
+  const memberInfo=await api({action:'getMember',email:r.email});
+  const fbUrl=memberInfo?.fb||'';
+  const igUrl=memberInfo?.ig||'';
   $('regDetail').innerHTML=`
     ${coverHtml}
     <div style="display:grid;gap:7px;font-size:13px">
       <div><strong>報名 ID：</strong>${r.id}</div>
-      <div><strong>姓名：</strong>${r.name}　<strong>手機：</strong>${r.phone||'-'}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span><strong>姓名：</strong>${r.name}　<strong>手機：</strong>${r.phone||'-'}</span>
+        ${fbUrl?`<a href="${fbUrl}" target="_blank" style="background:#1877F2;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:700">FB ↗</a>`:''}
+        ${igUrl?`<a href="${igUrl}" target="_blank" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:700">IG ↗</a>`:''}
+      </div>
       <div><strong>Email：</strong>${r.email}</div>
-      <div><strong>品牌：</strong>${r.brand||'-'}　<strong>類別：</strong>${r.sellCat||'-'}</div>
+      <div><strong>品牌：</strong>${r.brand||'-'}</div>
       ${r.photo?`<div><strong>出攤照：</strong><a href="${r.photo}" target="_blank" style="color:var(--bl)">查看照片 ↗</a></div>`:''}
       ${eqStr?`<div><strong>設備：</strong>${eqStr}</div>`:''}
       <div><strong>審核：</strong>${r.status}　<strong>付款：</strong>${r.payStatus||'-'}　<strong>金額：</strong>NT$${r.amount||0}</div>

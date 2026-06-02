@@ -258,6 +258,16 @@ textarea{min-height:72px;resize:vertical}
     </div>
   </div>
 
+  <!-- 場次總覽 -->
+  <div style="padding:8px 16px 20px">
+    <div class="section-hd" style="margin-bottom:12px">
+      <span class="section-deco">📋</span>
+      <div class="section-title" style="font-size:16px">場次總覽</div>
+      <span class="section-deco">📋</span>
+    </div>
+    <div id="allSessionsList"></div>
+  </div>
+
 </div>
 
 <!-- ══ 場次頁 ══ -->
@@ -344,6 +354,8 @@ textarea{min-height:72px;resize:vertical}
     <label>品牌名稱</label><input type="text" id="editBrand">
     <label>品牌介紹</label><textarea id="editBrandIntro"></textarea>
     <label>出攤照連結</label><input type="url" id="editPhoto" placeholder="https://...">
+    <label>FB 粉絲專頁</label><input type="url" id="editFb" placeholder="https://facebook.com/...">
+    <label>IG 帳號</label><input type="url" id="editIg" placeholder="https://instagram.com/...">
     <label>LINE ID</label><input type="text" id="editLineId">
     <div class="modal-actions">
       <button class="btn-s2" onclick="closeModal('editModal')" style="flex:1">取消</button>
@@ -392,9 +404,16 @@ function backToSessions(){navTo('session');}
 
 // ── 首頁載入 ──
 async function loadHome(){
-  const events = await api({action:'getEvents'});
+  const [events, sessions] = await Promise.all([
+    api({action:'getEvents'}),
+    api({action:'getSessionDashboard', email:'', token:''}).catch(()=>({error:'no auth'})),
+  ]);
   ST.events = events||[];
+  // 場次總覽用公開 getSessions
+  const allSes = await api({action:'getSessions'});
+  ST.allSessionsData = allSes||[];
   renderEvents();
+  renderAllSessions();
 }
 
 function filterCat(type, el){
@@ -438,50 +457,95 @@ async function openEvent(eventId){
   renderSessions();
 }
 
+function renderSessionCard(s, onclick=true){
+  const full=s.limit>0&&s.count>=s.limit;
+  const closed=s.status==='關閉'||full;
+  const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>`${d.date} ${d.start||''}${d.end?'–'+d.end:''}`).join(' / '):(s.date||'');
+  const clickFn=(!closed&&onclick)?`openSession('${s.id}')`:'';
+  return `<div class="session-card ${closed?'closed':''}" ${clickFn?`onclick="${clickFn}"`:'style="cursor:default"'}>
+    <div class="session-card-inner">
+      <div class="session-name">${s.name}</div>
+      <div class="session-tags">
+        ${s.region?`<span class="tag">📍 ${s.region}</span>`:''}
+        <span class="tag">${s.type}</span>
+        ${dateStr?`<span class="tag">${dateStr}</span>`:''}
+        ${s.venue?`<span class="tag">${s.venue}</span>`:''}
+        ${closed?`<span class="tag red">${full?'名額已滿':'已關閉'}</span>`:''}
+      </div>
+      <div class="session-fee">${s.fee>0?'NT$ '+s.fee:'免費'}</div>
+      ${s.limit>0?`<div class="session-slots">剩餘名額 ${Math.max(0,s.limit-s.count)} / ${s.limit}</div>`:''}
+    </div>
+  </div>`;
+}
+
 function renderSessions(){
   const el=$('sessionsList');
   if(!ST.sessions.length){el.innerHTML='<div style="padding:24px;text-align:center;color:#aaa;font-size:13px">目前無開放場次</div>';return;}
-  el.innerHTML=ST.sessions.map(s=>{
-    const full=s.limit>0&&s.count>=s.limit;
-    const closed=s.status==='關閉'||full;
-    return `<div class="session-card ${closed?'closed':''}" onclick="${closed?'':'openSession(\''+s.id+'\')'}">
-      <div class="session-card-inner">
-        <div class="session-name">${s.name}</div>
-        <div class="session-tags">
-          <span class="tag">${s.type}</span>
-          ${s.date?`<span class="tag">${s.date}</span>`:''}
-          ${s.startTime?`<span class="tag">${s.startTime}${s.endTime?'–'+s.endTime:''}</span>`:''}
-          ${s.venue?`<span class="tag">📍 ${s.venue}</span>`:''}
-          ${closed?`<span class="tag red">${full?'名額已滿':'已關閉'}</span>`:''}
-        </div>
-        <div class="session-fee">${s.fee>0?'NT$ '+s.fee:'免費'}</div>
-        ${s.limit>0?`<div class="session-slots">剩餘名額 ${Math.max(0,s.limit-s.count)} / ${s.limit}</div>`:''}
+  el.innerHTML=ST.sessions.map(s=>renderSessionCard(s)).join('');
+}
+
+function renderAllSessions(){
+  const el=$('allSessionsList');
+  if(!el)return;
+  if(!ST.events.length){el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:12px">載入中…</div>';return;}
+  // 從所有活動取得場次（用 getSessionDashboard 資料）
+  if(!ST.allSessionsData||!ST.allSessionsData.length){
+    el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:12px">目前無場次</div>';return;
+  }
+  const list=ST.allSessionsData.filter(s=>s.status==='報名中');
+  if(!list.length){el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:12px">目前無開放場次</div>';return;}
+  el.innerHTML=list.map(s=>{
+    const dateStr=(s.dates&&s.dates.length)?s.dates[0].date:'';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:12px;margin-bottom:6px;box-shadow:0 1px 6px rgba(0,0,0,.06);cursor:pointer" onclick="openSessionDirect('${s.id}')">
+      ${s.cover?`<img src="${s.cover}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">`:`<div style="width:44px;height:44px;border-radius:8px;background:var(--gp);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎪</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;color:var(--g)">${s.region||''}</div>
+        <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+        <div style="font-size:11px;color:var(--md)">${dateStr||''}　${s.fee>0?'NT$'+s.fee:'免費'}　名額${s.limit>0?s.limit:'不限'}</div>
       </div>
+      <div style="font-size:12px;color:var(--g);font-weight:700;flex-shrink:0">報名 →</div>
     </div>`;
   }).join('');
 }
 
+async function openSessionDirect(sessionId){
+  const s=ST.allSessionsData&&ST.allSessionsData.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
+  if(!s||s.error)return;
+  ST.currentSession=s;ST.equipQty={};ST.stallCount=1;
+  const cover=s.cover||'';
+  buildFormHero(s,cover);
+  navTo('form');
+  renderDynForm(s);
+  updateFee();
+}
+
+
 // ── 報名表 ──
-async function openSession(sessionId){
-  const s=ST.sessions.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
-  ST.currentSession=s; ST.equipQty={}; ST.stallCount=1;
-  // Hero 圖
-  const evt=ST.events.find(e=>e.id===s.eventId);
-  const cover=evt?.cover||'';
+function buildFormHero(s, cover){
+  const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>d.date+(d.start?' '+d.start:'')+(d.end?'–'+d.end:'')).join(' / '):(s.date||'');
+  const meta=[dateStr,s.venue].filter(Boolean).join('　');
   if(cover){
     $('formHero').innerHTML=`
       <img class="form-hero-img" src="${cover}" alt="" onerror="this.parentElement.innerHTML='<div class=form-hero-placeholder>🎪</div>'">
       <div class="form-hero-overlay">
         <div class="form-hero-title">${s.name}</div>
-        <div class="form-hero-meta">${[s.date,s.startTime,s.venue].filter(Boolean).join('　')}</div>
+        <div class="form-hero-meta">${meta}</div>
       </div>`;
   } else {
     $('formHero').innerHTML=`<div class="form-hero-placeholder">🎪</div>
       <div class="form-hero-overlay">
         <div class="form-hero-title">${s.name}</div>
-        <div class="form-hero-meta">${[s.date,s.startTime,s.venue].filter(Boolean).join('　')}</div>
+        <div class="form-hero-meta">${meta}</div>
       </div>`;
   }
+}
+
+async function openSession(sessionId){
+  const s=ST.sessions.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
+  ST.currentSession=s; ST.equipQty={}; ST.stallCount=1;
+  const evt=ST.events.find(e=>e.id===s.eventId);
+  const cover=s.cover||evt?.cover||'';
+  buildFormHero(s,cover);
   navTo('form');
   renderDynForm(s);
   updateFee();
@@ -513,6 +577,8 @@ function renderDynForm(s){
     html+=`<div class="fcard"><div class="fcard-t">🏷️ 品牌資料</div><div class="fcard-body">`;
     html+=`<label>品牌名稱</label><input type="text" id="f_brand" value="${esc(V.brand||'')}" placeholder="品牌名稱">`;
     html+=`<label>品牌介紹</label><textarea id="f_brandIntro" placeholder="簡短介紹品牌或商品">${esc(V.brandIntro||'')}</textarea>`;
+    html+=`<label>FB 粉絲專頁</label><input type="url" id="f_fb" value="${esc(V.fb||'')}" placeholder="https://facebook.com/...">`;
+    html+=`<label>IG 帳號</label><input type="url" id="f_ig" value="${esc(V.ig||'')}" placeholder="https://instagram.com/...">`;
     html+=`</div></div>`;
   }
 
@@ -597,6 +663,41 @@ function renderDynForm(s){
     html+=`</div></div>`;
   }
 
+  // 自訂欄位
+  const cfs=s.customFields||[];
+  if(cfs.length>0){
+    html+=`<div class="fcard"><div class="fcard-t">📋 其他資料</div><div class="fcard-body">`;
+    cfs.forEach((cf,i)=>{
+      html+=`<label>${cf.label}${cf.required?' *':''}</label>`;
+      if(cf.type==='select'&&cf.options){
+        const opts=cf.options.split(',').map(o=>o.trim()).filter(Boolean);
+        html+=`<select id="cf_${i}"><option value="">請選擇</option>${opts.map(o=>`<option>${o}</option>`).join('')}</select>`;
+      } else if(cf.type==='url'){
+        html+=`<input type="url" id="cf_${i}" placeholder="https://...">`;
+      } else {
+        html+=`<input type="text" id="cf_${i}" placeholder="${cf.label}">`;
+      }
+    });
+    html+=`</div></div>`;
+  }
+
+  // 加購選項
+  const addons=s.addons||[];
+  if(addons.length>0){
+    html+=`<div class="fcard"><div class="fcard-t">🛒 加購選項（選填）</div><div class="fcard-body">`;
+    addons.forEach((a,i)=>{
+      html+=`<div class="equip-row">
+        <div class="equip-info"><div class="equip-name">${a.name}</div><div class="equip-price">NT$ ${a.price}/件</div></div>
+        <div class="equip-ctrl">
+          <button class="eq-btn" onclick="adjAddon(${i},-1)">−</button>
+          <div class="eq-num" id="addon_num_${i}">0</div>
+          <button class="eq-btn" onclick="adjAddon(${i},1)">＋</button>
+        </div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
+
   $('dynForm').innerHTML=html;
 }
 
@@ -607,6 +708,15 @@ function selectStall(el,n){
   updateFee();
 }
 
+function adjAddon(i,delta){
+  if(!ST.addonQty)ST.addonQty={};
+  const cur=ST.addonQty[i]||0;
+  const next=Math.max(0,cur+delta);
+  ST.addonQty[i]=next;
+  const el=document.getElementById('addon_num_'+i);
+  if(el)el.textContent=next;
+  updateFee();
+}
 function adjEquip(k,delta){
   const cur=ST.equipQty[k]||0;
   const next=Math.max(0,Math.min(10,cur+delta));
@@ -625,7 +735,11 @@ function updateFee(){
   Object.entries(s.equip||{}).forEach(([k,v])=>{
     if(v&&v.open&&ST.equipQty[k]) equipTotal+=(v.price||0)*ST.equipQty[k];
   });
-  const total=fee+dep+equipTotal;
+  let addonTotal=0;
+  (s.addons||[]).forEach((a,i)=>{
+    addonTotal+=(a.price||0)*(ST.addonQty&&ST.addonQty[i]||0);
+  });
+  const total=fee+dep+equipTotal+addonTotal;
   $('feeBase').textContent='NT$'+fee;
   $('feeEquip').textContent='NT$'+equipTotal;
   $('feeDeposit').textContent='NT$'+dep;
@@ -655,7 +769,11 @@ async function submitReg(){
     sellLink:$('f_sellLink')?.value.trim()||'',
     photo:$('f_photo')?.value.trim()||'',
     equip:{...ST.equipQty},
+    addonQty:{...ST.addonQty},
+    fb:$('f_fb')?.value.trim()||'',
+    ig:$('f_ig')?.value.trim()||'',
     remark:$('f_remark')?.value.trim()||'',
+    customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     customFields:{},
   };
   try{
@@ -681,6 +799,13 @@ async function memberLogin(){
   $('memberLoginArea').style.display='none';
   $('memberArea').style.display='block';
   $('memberName').textContent=(member?.name||email)+' 的報名紀錄';
+  // 顯示 FB/IG 連結
+  const socialHtml=(member?.fb?`<a href="${member.fb}" target="_blank" style="font-size:18px;text-decoration:none;margin-right:6px" title="FB">f</a>`:'')
+    +(member?.ig?`<a href="${member.ig}" target="_blank" style="font-size:18px;text-decoration:none" title="IG">📷</a>`:'');
+  if(socialHtml){
+    const nameEl=$('memberName');
+    nameEl.innerHTML=nameEl.textContent+' '+socialHtml;
+  }
   renderMyRegs(regs||[]);
 }
 
@@ -716,7 +841,9 @@ function showMemberEdit(){
   const m=ST.member||{};
   $('editName').value=m.name||'';$('editPhone').value=m.phone||'';
   $('editBrand').value=m.brand||'';$('editBrandIntro').value=m.brandIntro||'';
-  $('editPhoto').value=m.photo||'';$('editLineId').value=m.lineId||'';
+  $('editPhoto').value=m.photo||'';
+  $('editFb').value=m.fb||'';$('editIg').value=m.ig||'';
+  $('editLineId').value=m.lineId||'';
   $('editModal').classList.add('show');
 }
 
@@ -724,7 +851,9 @@ async function saveMemberEdit(){
   const body={action:'saveMember',email:ST.memberEmail,
     name:$('editName').value.trim(),phone:$('editPhone').value.trim(),
     brand:$('editBrand').value.trim(),brandIntro:$('editBrandIntro').value.trim(),
-    photo:$('editPhoto').value.trim(),lineId:$('editLineId').value.trim()};
+    photo:$('editPhoto').value.trim(),
+    fb:$('editFb').value.trim(),ig:$('editIg').value.trim(),
+    lineId:$('editLineId').value.trim()};
   const res=await apiPost(body);
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 資料已儲存');
