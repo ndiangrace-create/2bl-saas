@@ -246,6 +246,15 @@ textarea{min-height:72px;resize:vertical}
     </div>
   </div>
 
+  <!-- Portal 場次展開區（四大入口，在分類按鈕正下方） -->
+  <div id="portalSessionArea" style="display:none;padding:0 12px 12px">
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 4px 10px">
+      <button onclick="closePortalSessions()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--g);padding:0">←</button>
+      <div style="font-size:16px;font-weight:700" id="portalSessionTitle"></div>
+    </div>
+    <div id="portalSessionList"></div>
+  </div>
+
   <!-- 近期活動 -->
   <div class="events-section">
     <div class="section-hd">
@@ -256,15 +265,6 @@ textarea{min-height:72px;resize:vertical}
     <div class="events-scroll" id="eventsList">
       <div style="padding:20px;color:#aaa;font-size:13px">載入中…</div>
     </div>
-  </div>
-
-  <!-- Portal 場次展開區（四大入口） -->
-  <div id="portalSessionArea" style="display:none;padding:0 12px 8px">
-    <div style="display:flex;align-items:center;gap:8px;padding:14px 4px 10px">
-      <button onclick="closePortalSessions()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--g);padding:0">←</button>
-      <div style="font-size:16px;font-weight:700" id="portalSessionTitle"></div>
-    </div>
-    <div id="portalSessionList"></div>
   </div>
 
   <!-- Inline 場次展開區 -->
@@ -413,7 +413,7 @@ function backToHome(){navTo('home');}
 function closePortalSessions(){
   $('portalSessionArea').style.display='none';
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
-  window.scrollTo({top:0,behavior:'smooth'});
+  document.querySelector('.cats-section').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function closeInlineSessions(){
   $('inlineSessionArea').style.display='none';
