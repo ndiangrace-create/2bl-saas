@@ -406,7 +406,16 @@ textarea{min-height:64px;resize:vertical}
     </div>
     <div class="form-row">
       <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"></div>
-      <div><label>最大攤數/人</label><input type="number" id="sm_maxStalls" value="1" min="1" inputmode="numeric"></div>
+      <div>
+  <label>攤數選擇</label>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+    <input type="checkbox" id="sm_enableStalls" style="width:16px;height:16px;accent-color:var(--g)">
+    <span style="font-size:13px">開放選攤數</span>
+  </div>
+  <div id="sm_stallsConfig" style="display:none;margin-top:6px">
+    <input type="number" id="sm_maxStalls" value="3" inputmode="numeric" placeholder="最多幾攤">
+  </div>
+</div>
     </div>
     <div class="form-row">
       <div><label>主辦單位</label><input type="text" id="sm_organizer"></div>
@@ -892,6 +901,11 @@ function resetSesModal(){
   updateModPresets();buildEquipDefs({});
 }
 
+document.addEventListener('change', function(e){
+  if(e.target.id==='sm_enableStalls'){
+    document.getElementById('sm_stallsConfig').style.display=e.target.checked?'block':'none';
+  }
+});
 function previewSesCover(url){
   if(url){$('sesCoverImg').src=url;$('sesCoverPreview').style.display='block';}
   else{$('sesCoverPreview').style.display='none';}
@@ -905,10 +919,10 @@ function addDateSlot(date='',start='10:00',end='18:00'){
   div.id='ds_'+idx;
   div.style='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap';
   div.innerHTML=`
-    <input type="date" id="ds_date_${idx}" value="${date}" style="flex:1;min-width:120px;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
-    <input type="time" id="ds_start_${idx}" value="${start}" style="width:90px;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <input type="date" id="ds_date_${idx}" value="${date}" style="width:130px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <input type="time" id="ds_start_${idx}" value="${start}" style="width:85px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
     <span style="font-size:12px;color:#aaa">~</span>
-    <input type="time" id="ds_end_${idx}" value="${end}" style="width:90px;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <input type="time" id="ds_end_${idx}" value="${end}" style="width:85px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
     <button onclick="document.getElementById('ds_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
   `;
   $('dateSlots').appendChild(div);
@@ -988,8 +1002,9 @@ function getAddons(){
   return addons;
 }
 async function editSes(id){
-  let s=ST.sdData.find(x=>x.id===id);
-  if(!s){s=await api({action:'getSession',id});if(s.error){toast('❌ '+s.error);return;}}
+  // 強制從 API 取完整資料確保地區/日期等新欄位有帶出
+  const s=await api({action:'getSession',id,email:ST.email,token:ST.token});
+  if(!s||s.error){toast('❌ '+(s?.error||'找不到場次'));return;}
   resetSesModal();
   $('sm_id').value=s.id;
   $('sm_eventId').value=s.eventId||'';
@@ -1000,7 +1015,10 @@ async function editSes(id){
   $('sm_fee').value=Math.max(0,Number(s.fee)||0);
   $('sm_deposit').value=Math.max(0,Number(s.deposit)||0);
   $('sm_limit').value=Math.max(0,Number(s.limit)||0);
-  $('sm_maxStalls').value=Math.max(1,Number(s.maxStalls)||1);
+  const hasStalls=s.maxStalls>0;
+  $('sm_enableStalls').checked=hasStalls;
+  $('sm_stallsConfig').style.display=hasStalls?'block':'none';
+  $('sm_maxStalls').value=s.maxStalls||3;
   $('sm_organizer').value=s.organizer||'';
   $('sm_coorg').value=s.coorg||'';
   $('sm_basicEquip').value=s.basicEquip||'';
@@ -1038,14 +1056,13 @@ async function saveSession(){
   const venue=$('sm_venue').value.trim();
   const region=$('sm_region').value;
   const dates=getDateSlots();
-  if(!name||!eventId||!venue||!region){toast('請填寫必填欄位（活動、名稱、地區、場地）');return;}
-  if(!dates.length){toast('請至少新增一個活動日期');return;}
+  if(!name||!eventId){toast('請填寫場次名稱');return;}
   const body={
     action:id?'updateSession':'createSession',id,eventId,name,
     type:$('sm_type').value,region,dates,venue,
     fee:parseInt($('sm_fee').value)||0,deposit:parseInt($('sm_deposit').value)||0,
     limit:parseInt($('sm_limit').value)||0,
-    maxStalls:parseInt($('sm_maxStalls').value)||1,
+    maxStalls:$('sm_enableStalls').checked?(parseInt($('sm_maxStalls').value)||3):0,
     organizer:$('sm_organizer').value.trim(),
     coorg:$('sm_coorg').value.trim(),
     basicEquip:$('sm_basicEquip').value.trim(),

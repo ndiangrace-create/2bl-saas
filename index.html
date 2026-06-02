@@ -99,7 +99,7 @@ img{display:block;max-width:100%}
 
 /* ── 報名表 ── */
 .form-hero{position:relative;overflow:hidden}
-.form-hero-img{width:100%;aspect-ratio:1/1;object-fit:cover;max-height:260px}
+.form-hero-img{width:100%;aspect-ratio:1/1;object-fit:cover}
 .form-hero-placeholder{width:100%;height:200px;background:linear-gradient(135deg,var(--gp),#d4f0e0);display:flex;align-items:center;justify-content:center;font-size:60px}
 .form-hero-overlay{position:absolute;bottom:0;left:0;right:0;padding:16px;background:linear-gradient(0deg,rgba(0,0,0,.6) 0%,transparent 100%)}
 .form-hero-title{color:#fff;font-size:18px;font-weight:700;line-height:1.3}
@@ -284,7 +284,7 @@ textarea{min-height:72px;resize:vertical}
 <div id="pageForm" class="page" style="display:none">
   <div class="back-bar" onclick="backToSessions()">
     <span class="arrow">←</span>
-    <span class="title">報名表</span>
+    <span class="title" id="formBackTitle">報名表</span>
   </div>
   <div class="form-hero" id="formHero">
     <div class="form-hero-placeholder">🎪</div>
@@ -566,6 +566,9 @@ async function openSession(sessionId){
   const evt=ST.events.find(e=>e.id===s.eventId);
   const cover=s.cover||evt?.cover||'';
   buildFormHero(s,cover);
+  // 更新標題列
+  const titleEl=$('formBackTitle');
+  if(titleEl) titleEl.textContent=s.name||'報名表';
   $('inlineSessionArea').style.display='none';
   $('pageForm').style.display='block';
   $('pageForm').scrollIntoView({behavior:'smooth',block:'start'});
@@ -586,12 +589,12 @@ function renderDynForm(s){
   html+=`<div class="err" id="e_phone"></div>`;
   html+=`<label>Email *</label><input type="email" id="f_email" value="${esc(ST.memberEmail||V.email||'')}" placeholder="your@email.com" inputmode="email">`;
   html+=`<div class="err" id="e_email"></div>`;
-  html+=`<label>攤位數量</label>
-    <div class="stall-picker">
-      <div class="stall-opt on" onclick="selectStall(this,1)">1 攤</div>
-      <div class="stall-opt" onclick="selectStall(this,2)">2 攤</div>
-      <div class="stall-opt" onclick="selectStall(this,3)">3 攤</div>
-    </div>`;
+  // 攤位數：後台開放才顯示
+  if(s.maxStalls>0){
+    const maxS=s.maxStalls||3;
+    const stallOpts=Array.from({length:maxS},(_,i)=>`<div class="stall-opt ${i===0?'on':''}" onclick="selectStall(this,${i+1})">${i+1} 攤</div>`).join('');
+    html+=`<label>攤位數量</label><div class="stall-picker">${stallOpts}</div>`;
+  }
   html+=`</div></div>`;
 
   // 品牌資料（自動帶出會員資料）
@@ -644,11 +647,12 @@ function renderDynForm(s){
     html+=`<div class="fcard"><div class="fcard-t">📋 報名資料</div><div class="fcard-body">`;
     if(mods.adult||mods.child){
       html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">`;
-      if(mods.adult) html+=`<div><label>大人人數 *</label><input type="number" id="f_adult" value="1" min="1" inputmode="numeric" oninput="updateFee()"></div>`;
-      if(mods.child) html+=`<div><label>小孩人數</label><input type="number" id="f_child" value="0" min="0" inputmode="numeric"></div>`;
+      if(mods.adult) html+=`<div><label>大人人數 *</label><input type="number" id="f_adult" value="1" inputmode="numeric" oninput="updateFee()"></div>`;
+      if(mods.child) html+=`<div><label>小孩人數</label><input type="number" id="f_child" value="0" inputmode="numeric" oninput="toggleChildAge(this.value)"></div>`;
       html+=`</div>`;
     }
     if(mods.diet) html+=`<label>飲食需求</label><select id="f_diet"><option value="">無特殊需求</option><option>素食</option><option>全素</option><option>清真</option></select>`;
+    html+=`<div id="childAgeArea" style="display:none"><label>小孩年齡（請填寫每位小孩年齡，以逗號分隔）</label><input type="text" id="f_childAge" placeholder="例：5,8,10"></div>`;
     html+=`</div></div>`;
   }
 
@@ -658,7 +662,7 @@ function renderDynForm(s){
     html+=`<div class="fcard"><div class="fcard-t">🎯 活動資料</div><div class="fcard-body">`;
     if(mods.act_name) html+=`<label>活動名稱 *</label><input type="text" id="f_actName" placeholder="您的活動名稱">`;
     if(mods.act_content) html+=`<label>活動內容</label><textarea id="f_actContent" placeholder="活動說明…"></textarea>`;
-    if(mods.act_fee) html+=`<label>材料費/人</label><input type="number" id="f_actFee" placeholder="0" min="0" inputmode="numeric" oninput="updateFee()">`;
+    if(mods.act_fee) html+=`<label>材料費/人</label><input type="number" id="f_actFee" placeholder="0" inputmode="numeric" oninput="updateFee()">`;
     html+=`</div></div>`;
   }
 
@@ -741,6 +745,10 @@ function selectStall(el,n){
   updateFee();
 }
 
+function toggleChildAge(val){
+  const area=$('childAgeArea');
+  if(area) area.style.display=(parseInt(val)>0)?'block':'none';
+}
 function adjAddon(i,delta){
   if(!ST.addonQty)ST.addonQty={};
   const cur=ST.addonQty[i]||0;
