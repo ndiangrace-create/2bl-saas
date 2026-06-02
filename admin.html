@@ -175,7 +175,7 @@ textarea{min-height:64px;resize:vertical}
       <div class="nav-section">總覽</div>
       <div class="nav-item active" id="nav-overview" onclick="goPage('overview')"><span class="nav-icon">📊</span>場次總覽</div>
       <div class="nav-section">管理</div>
-      <div class="nav-item" id="nav-events" onclick="goPage('events')"><span class="nav-icon">🎪</span>活動管理</div>
+
       <div class="nav-item" id="nav-regs" onclick="goPage('regs')"><span class="nav-icon">📋</span>報名審核</div>
       <div class="nav-item" id="nav-payments" onclick="goPage('payments')"><span class="nav-icon">💰</span>付款管理</div>
       <div class="nav-section">其他</div>
@@ -188,21 +188,25 @@ textarea{min-height:64px;resize:vertical}
 
       <!-- ── 場次總覽 ── -->
       <div id="page-overview" class="tab-page active">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-          <div class="page-title" style="margin:0">場次總覽</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-s btn-sm" onclick="goPage('events')">＋ 活動</button>
-            <button class="btn btn-g btn-sm" onclick="openSesModal()">＋ 場次</button>
-          </div>
+        <!-- 活動區塊 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div class="page-title" style="margin:0;font-size:14px;color:var(--md)">活動</div>
+          <button class="btn btn-g btn-sm" onclick="openEventModal()">＋ 新增活動</button>
         </div>
-        <div class="filter-bar">
-          <select class="filter-sel" id="ovEventFilter" onchange="renderOverview()">
-            <option value="">所有活動</option>
-          </select>
-          <select class="filter-sel" id="ovStatusFilter" onchange="renderOverview()">
-            <option value="">全部狀態</option>
-            <option>報名中</option><option>關閉</option>
-          </select>
+        <div id="eventsWithSessions" style="margin-bottom:20px"></div>
+
+        <!-- 場次數據總覽 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div class="page-title" style="margin:0;font-size:14px;color:var(--md)">場次數據總覽</div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-sel" id="ovEventFilter" onchange="renderOverview()">
+              <option value="">所有活動</option>
+            </select>
+            <select class="filter-sel" id="ovStatusFilter" onchange="renderOverview()">
+              <option value="">全部狀態</option>
+              <option>報名中</option><option>關閉</option>
+            </select>
+          </div>
         </div>
         <div class="card">
           <div class="table-wrap">
@@ -354,7 +358,10 @@ textarea{min-height:64px;resize:vertical}
     <div class="modal-title" id="sesModalTitle">新增場次</div>
     <input type="hidden" id="sm_id">
     <label>選擇活動 *</label>
-    <select id="sm_eventId"><option value="">請選擇活動</option></select>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="sm_eventId" style="flex:1"><option value="">請選擇活動</option></select>
+      <button class="btn btn-s btn-sm" onclick="quickAddEvent()" type="button" style="white-space:nowrap;flex-shrink:0">＋ 新增活動</button>
+    </div>
     <label>場次名稱 *</label><input type="text" id="sm_name" placeholder="例：耶市集 07月場">
     <label>場次類型</label>
     <select id="sm_type" onchange="updateModPresets()">
@@ -564,6 +571,7 @@ async function loadAllData(){
   ST.sdData=sd||[];
   fillEventSelects();
   renderOverview();
+  renderEventsWithSessions();
   await loadAllRegs();
 }
 
@@ -792,6 +800,19 @@ function getEquipJson(){
   const obj={};EQUIP_LIST.forEach(eq=>{obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked,price:parseInt($('eq_price_'+eq.k)?.value)||0};});return obj;
 }
 
+function quickAddEvent(){
+  const name=prompt('請輸入活動名稱：');
+  if(!name)return;
+  const location=prompt('地點（可空白）：')||'';
+  apiPost({action:'createEvent',title:name,location,desc:'',cover:'',status:'開放中'}).then(res=>{
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 活動已建立：'+name);
+    loadAllData().then(()=>{
+      fillEventSelects();
+      $('sm_eventId').value=res.id;
+    });
+  });
+}
 function openSesModal(){resetSesModal();openModal('sesModal');}
 function resetSesModal(){
   $('sm_id').value='';$('sm_name').value='';$('sm_date').value='';$('sm_venue').value='';
