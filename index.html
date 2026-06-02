@@ -431,7 +431,9 @@ async function openEvent(eventId){
   $('sessionEventName').textContent=evt?evt.title:'場次列表';
   $('sessionsList').innerHTML='<div style="padding:24px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
   navTo('session');
-  const sessions=await api({action:'getSessions',eventId});
+  const params={action:'getSessions',eventId};
+  if(ST.currentCatFilter) params.portal=ST.currentCatFilter;
+  const sessions=await api(params);
   ST.sessions=sessions||[];
   renderSessions();
 }

@@ -387,6 +387,23 @@ textarea{min-height:64px;resize:vertical}
         <div style="font-size:11px;color:var(--lt)">不勾選→報名後直接錄取</div>
       </div>
     </div>
+    <div style="margin-top:12px;padding:11px;border:1.5px solid #e0e0e0;border-radius:8px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">顯示在哪個入口（可複選）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer">
+          <input type="checkbox" id="portal_market" value="市集報名" style="width:15px;height:15px;accent-color:var(--g)"> 市集報名
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer">
+          <input type="checkbox" id="portal_activity" value="體驗活動" style="width:15px;height:15px;accent-color:var(--g)"> 體驗活動
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer">
+          <input type="checkbox" id="portal_dept" value="百貨寄賣" style="width:15px;height:15px;accent-color:var(--g)"> 百貨寄賣
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer">
+          <input type="checkbox" id="portal_collab" value="合作洽詢" style="width:15px;height:15px;accent-color:var(--g)"> 合作洽詢
+        </label>
+      </div>
+    </div>
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
       <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">報名表欄位</div>
       <div class="mod-grid" id="modGrid"></div>
@@ -782,6 +799,7 @@ function resetSesModal(){
   $('sm_start').value='10:00';$('sm_end').value='18:00';
   $('sm_organizer').value='';$('sm_basicEquip').value='';
   $('sm_review').checked=true;$('sm_type').value='市集場次';
+  ['portal_market','portal_activity','portal_dept','portal_collab'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   $('sesModalTitle').textContent='新增場次';
   updateModPresets();buildEquipDefs({});
 }
@@ -806,6 +824,12 @@ async function editSes(id){
   $('sm_organizer').value=s.organizer||'';
   $('sm_basicEquip').value=s.basicEquip||'';
   $('sm_review').checked=s.needReview!==false;
+  // 入口勾選
+  const portals=s.portals||[];
+  ['portal_market','portal_activity','portal_dept','portal_collab'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.checked=portals.includes(el.value);
+  });
   buildModGrid(s.modules||{});
   buildEquipDefs(s.equip||{});
   $('sesModalTitle').textContent='編輯場次';
@@ -826,6 +850,7 @@ async function saveSession(){
     limit:parseInt($('sm_limit').value)||30,
     organizer:$('sm_organizer').value.trim(),basicEquip:$('sm_basicEquip').value.trim(),
     needReview:$('sm_review').checked,
+    portals:(()=>{const ids=['portal_market','portal_activity','portal_dept','portal_collab'];return ids.filter(id=>{const el=document.getElementById(id);return el&&el.checked;}).map(id=>{const el=document.getElementById(id);return el?el.value:'';}).filter(Boolean);})(),
     modules:getModulesJson(),equip:getEquipJson(),status:'報名中',
   });
   if(res.error){toast('❌ '+res.error);return;}
