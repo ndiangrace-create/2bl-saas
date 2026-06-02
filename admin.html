@@ -508,6 +508,14 @@ textarea{min-height:64px;resize:vertical}
       <button class="btn btn-y btn-sm" onclick="checkinReg()">📍 報到</button>
       <button class="btn btn-s btn-sm" onclick="markClearReg()">清場</button>
     </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px;background:var(--ylp);border-radius:8px" id="fastPassArea">
+      <input type="checkbox" id="fastPassChk" style="width:16px;height:16px;accent-color:var(--g)">
+      <div>
+        <div style="font-size:13px;font-weight:700">快速通關</div>
+        <div style="font-size:11px;color:var(--md)">勾選後，此攤友下次報名自動錄取</div>
+      </div>
+      <button class="btn btn-g btn-xs" onclick="saveFastPass()" style="margin-left:auto">儲存</button>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('regModal')" style="flex:1">關閉</button>
       <button class="btn btn-g" onclick="sendSingleNotify()" style="flex:1">✉️ 發通知</button>
@@ -1188,9 +1196,20 @@ async function openRegDetail(id){
       <div style="font-size:11px;color:var(--lt)">報名時間：${r.createdAt?.slice(0,16)||'-'}</div>
     </div>`;
   $('regNote').value=r.adminNote||'';
+  // 快速通關狀態
+  api({action:'getMember',email:r.email}).then(m=>{
+    $('fastPassChk').checked=m?.fastPass||false;
+  });
   openModal('regModal');
 }
 
+async function saveFastPass(){
+  if(!ST.currentReg)return;
+  const enable=$('fastPassChk').checked;
+  const res=await apiPost({action:'setFastPass',targetEmail:ST.currentReg.email,enable});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast(enable?'✅ 已開啟快速通關':'✅ 已關閉快速通關');
+}
 async function approveReg(){await updateStatus(ST.currentReg?.id,'已錄取');closeModal('regModal');}
 async function rejectReg(){await updateStatus(ST.currentReg?.id,'不錄取');closeModal('regModal');}
 async function quickApprove(id){await updateStatus(id,'已錄取');}
@@ -1320,18 +1339,54 @@ async function deleteAnn(id){
 }
 
 // ── 管理員 ──
+const PERM_DEFS=[
+  {k:'view_regs',label:'查看報名'},
+  {k:'review',label:'審核報名'},
+  {k:'pay',label:'確認付款'},
+  {k:'sessions',label:'管理場次'},
+  {k:'events',label:'管理活動'},
+  {k:'notify',label:'發送通知'},
+  {k:'announce',label:'管理公告'},
+  {k:'admin',label:'管理員帳號'},
+];
+
 async function loadStaff(){
   const list=await api({action:'getStaff',email:ST.email,token:ST.token});
   const el=$('staffList');
   if(!(list||[]).length){el.innerHTML='<div style="color:var(--lt)">無管理員</div>';return;}
-  el.innerHTML=(list||[]).map(s=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f5">
-      <div>
-        <div style="font-weight:700;font-size:14px">${s.name||s.email}</div>
-        <div style="font-size:12px;color:var(--lt)">${s.email}　${s.role}</div>
+  el.innerHTML=(list||[]).map(s=>{
+    let perms={};
+    try{perms=JSON.parse(s.permsJson||s.role==='superadmin'?'{}':s.permsJson||'{}');}catch(e){}
+    const isSuperAdmin=s.role==='superadmin';
+    const permHtml=isSuperAdmin
+      ?'<div style="font-size:11px;color:var(--g);margin-top:4px">✅ 超級管理員（全部權限）</div>'
+      :PERM_DEFS.map(p=>`<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;margin:2px 4px 2px 0;cursor:pointer">
+          <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${perms[p.k]||isSuperAdmin?'checked':''} style="width:12px;height:12px;accent-color:var(--g)" onchange="updatePerm('${s.email}',this)">
+          ${p.label}
+        </label>`).join('');
+    return `<div style="padding:12px 0;border-bottom:1px solid #f5f5f5">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:14px">${s.name||s.email}</div>
+          <div style="font-size:12px;color:var(--lt)">${s.email}</div>
+          <div style="margin-top:6px">${permHtml}</div>
+        </div>
+        ${!isSuperAdmin?`<button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button>`:''}
       </div>
-      <button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+async function updatePerm(email, chk){
+  const perm=chk.dataset.perm;
+  const enable=chk.checked;
+  // 收集此人所有權限
+  const allChks=document.querySelectorAll(`[data-email="${email}"]`);
+  const perms={};
+  allChks.forEach(c=>{perms[c.dataset.perm]=c.checked;});
+  const res=await apiPost({action:'updateStaffPerms',targetEmail:email,perms});
+  if(res.error){toast('❌ '+res.error);chk.checked=!enable;return;}
+  toast('✅ 權限已更新');
 }
 function openAddStaffModal(){
   $('sf_email').value='';$('sf_name').value='';$('sf_role').value='staff';openModal('staffModal');
