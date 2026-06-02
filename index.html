@@ -258,6 +258,15 @@ textarea{min-height:72px;resize:vertical}
     </div>
   </div>
 
+  <!-- Portal 場次展開區（四大入口） -->
+  <div id="portalSessionArea" style="display:none;padding:0 12px 8px">
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 4px 10px">
+      <button onclick="closePortalSessions()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--g);padding:0">←</button>
+      <div style="font-size:16px;font-weight:700" id="portalSessionTitle"></div>
+    </div>
+    <div id="portalSessionList"></div>
+  </div>
+
   <!-- Inline 場次展開區 -->
   <div id="inlineSessionArea" style="display:none;padding:0 12px 8px">
     <div style="display:flex;align-items:center;gap:8px;padding:12px 4px 8px">
@@ -401,14 +410,25 @@ function navTo(tab){
   window.scrollTo(0,0);
 }
 function backToHome(){navTo('home');}
+function closePortalSessions(){
+  $('portalSessionArea').style.display='none';
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function closeInlineSessions(){
   $('inlineSessionArea').style.display='none';
   ST.sessions=[];
 }
 function backToSessions(){
   $('pageForm').style.display='none';
-  $('inlineSessionArea').style.display='block';
-  $('inlineSessionArea').scrollIntoView({behavior:'smooth',block:'start'});
+  // 判斷從哪裡來的
+  if($('portalSessionArea').style.display!=='none'){
+    $('portalSessionArea').scrollIntoView({behavior:'smooth',block:'start'});
+  } else if($('inlineSessionArea').style.display!=='none'){
+    $('inlineSessionArea').scrollIntoView({behavior:'smooth',block:'start'});
+  } else {
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
 }
 
 // ── 首頁載入 ──
@@ -425,11 +445,42 @@ async function loadHome(){
   renderAllSessions();
 }
 
-function filterCat(type, el){
+async function filterCat(type, el){
   ST.currentCatFilter = type;
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
-  renderEvents();
+
+  // 展開該入口的所有場次
+  const portalArea=$('portalSessionArea');
+  const portalList=$('portalSessionList');
+  const portalTitle=$('portalSessionTitle');
+  if(!portalArea) return;
+
+  portalTitle.textContent=type;
+  portalList.innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
+  portalArea.style.display='block';
+  portalArea.scrollIntoView({behavior:'smooth',block:'start'});
+
+  const sessions=await api({action:'getSessions',portal:type});
+  const list=sessions||[];
+  if(!list.length){
+    portalList.innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">目前無開放場次</div>';
+    return;
+  }
+  portalList.innerHTML=list.map(s=>{
+    const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>d.date).join('/'):(s.date||'');
+    return `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:#fff;border-radius:12px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.07)">
+      <div style="font-size:13px;font-weight:700;color:var(--g);min-width:32px;flex-shrink:0">${s.region||''}</div>
+      ${s.cover
+        ?`<img src="${s.cover}" style="width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0">`
+        :`<div style="width:52px;height:52px;border-radius:8px;background:var(--gp);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎪</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+        <div style="font-size:11px;color:var(--md);margin-top:2px">${dateStr}　${s.limit>0?'共'+s.limit+'攤':'不限攤'}　${s.fee>0?'NT$'+s.fee:'免費'}</div>
+      </div>
+      <button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">報名</button>
+    </div>`;
+  }).join('');
 }
 
 function renderEvents(){
