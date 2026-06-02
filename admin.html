@@ -240,7 +240,10 @@ textarea{min-height:64px;resize:vertical}
 
       <!-- ── 報名審核 ── -->
       <div id="page-regs" class="tab-page">
-        <div class="page-title" id="regsTitle">報名審核</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <button class="btn btn-s btn-sm" id="regsBackBtn" onclick="backToOverview()" style="display:none">← 返回總覽</button>
+          <div class="page-title" id="regsTitle" style="margin:0">報名審核</div>
+        </div>
         <div class="filter-bar">
           <select class="filter-sel" id="regEventFilter" onchange="onRegEventChange()">
             <option value="">所有活動</option>
@@ -609,8 +612,10 @@ function renderOverview(){
 function openRegsBySes(sesId, sesName, statusFilter){
   goPage('regs');
   $('regsTitle').textContent='報名審核：'+sesName;
+  $('regsBackBtn').style.display='inline-flex';
   ST.regs=ST.allRegs.filter(r=>r.sessionId===sesId);
   if(statusFilter){$('regStatusFilter').value=statusFilter;}
+  else{$('regStatusFilter').value='';}
   renderRegs();
 }
 
@@ -672,6 +677,29 @@ function renderEventsWithSessions(){
   }).join('');
 }
 
+function toInputDate(v){
+  if(!v) return '';
+  // 已是 YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return v;
+  // Date 物件或 timestamp
+  try{
+    const d = new Date(v);
+    if(!isNaN(d)){
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+  }catch(e){}
+  return String(v).slice(0,10);
+}
+function toInputTime(v){
+  if(!v) return '';
+  const s = String(v);
+  if(/^\d{2}:\d{2}/.test(s)) return s.slice(0,5);
+  try{
+    const d = new Date(v);
+    if(!isNaN(d)) return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }catch(e){}
+  return '';
+}
 function toggleEvOpen(evId){
   if(!ST.evOpen) ST.evOpen={};
   ST.evOpen[evId]=ST.evOpen[evId]===false?true:false;
@@ -766,12 +794,17 @@ async function editSes(id){
   }
   $('sm_id').value=s.id;
   $('sm_eventId').value=s.eventId||'';
-  $('sm_name').value=s.name||'';$('sm_type').value=s.type||'市集場次';
-  $('sm_date').value=s.date||'';$('sm_venue').value=s.venue||'';
-  $('sm_start').value=s.startTime||'10:00';$('sm_end').value=s.endTime||'18:00';
-  $('sm_fee').value=s.fee||0;$('sm_deposit').value=s.deposit||500;
-  $('sm_limit').value=s.limit||30;
-  $('sm_organizer').value=s.organizer||'';$('sm_basicEquip').value=s.basicEquip||'';
+  $('sm_name').value=s.name||'';
+  $('sm_type').value=s.type||'市集場次';
+  $('sm_date').value=toInputDate(s.date);
+  $('sm_venue').value=s.venue||'';
+  $('sm_start').value=toInputTime(s.startTime)||'10:00';
+  $('sm_end').value=toInputTime(s.endTime)||'18:00';
+  $('sm_fee').value=Math.max(0,Number(s.fee)||0);
+  $('sm_deposit').value=Math.max(0,Number(s.deposit)||0);
+  $('sm_limit').value=Math.max(0,Number(s.limit)||0);
+  $('sm_organizer').value=s.organizer||'';
+  $('sm_basicEquip').value=s.basicEquip||'';
   $('sm_review').checked=s.needReview!==false;
   buildModGrid(s.modules||{});
   buildEquipDefs(s.equip||{});
@@ -817,6 +850,14 @@ async function deleteSes(id,name){
 }
 
 // ── 報名審核 ──
+function backToOverview(){
+  $('regsTitle').textContent='報名審核';
+  $('regsBackBtn').style.display='none';
+  ST.regs=ST.allRegs;
+  $('regStatusFilter').value='';
+  renderRegs();
+  goPage('overview');
+}
 function onRegEventChange(){
   const evId=$('regEventFilter').value;
   // 更新場次下拉
