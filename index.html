@@ -86,11 +86,14 @@ textarea { min-height: 80px; resize: vertical; }
 .btn-submit { width: 100%; background: var(--g); color: #fff; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity .2s; }
 .btn-submit:active { opacity: .8; }
 .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
-.equip-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+.equip-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
 .equip-item:last-child { border-bottom: none; }
-.equip-name { font-size: 14px; }
-.equip-price { font-size: 12px; color: var(--md); }
-.equip-qty { width: 64px; padding: 8px 6px; text-align: center; font-size: 15px; }
+.equip-name { font-size: 13px; font-weight:500; }
+.equip-price { font-size: 11px; color: var(--md); }
+.equip-ctrl { display:flex; align-items:center; gap:6px; }
+.equip-btn { width:28px;height:28px;border-radius:50%;border:1.5px solid var(--g);background:#fff;color:var(--g);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0; }
+.equip-btn:active { background:var(--gp); }
+.equip-num { width:28px;text-align:center;font-size:14px;font-weight:700; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
 .chip { background: #f0f0f0; color: var(--dk); font-size: 13px; padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: all .15s; border: 2px solid transparent; user-select: none; }
 .chip.on { background: var(--gp); color: var(--g); border-color: var(--g); font-weight: 700; }
@@ -253,7 +256,7 @@ const API = 'https://script.google.com/macros/s/AKfycbz34vXdofbWxMBSKVkDxsvSjLwI
 let ST = {
   events: [], sessions: [], currentEvent: null, currentSession: null,
   member: null, memberEmail: null,
-  equipQty: {}, sellCats: [],
+  equipQty: {}, sellCats: [], stallCount: 1,
 };
 
 // ── 工具 ──
@@ -358,6 +361,7 @@ async function openSession(sessionId) {
   ST.currentSession = s;
   ST.equipQty = {};
   ST.sellCats = [];
+  ST.stallCount = 1;
 
   $('formSessionName').textContent = s.name;
   $('formSessionMeta').textContent = [s.date, s.startTime, s.venue].filter(Boolean).join('　');
@@ -382,6 +386,10 @@ function renderDynForm(s) {
   html += `<div class="em" id="e_phone"></div>`;
   html += `<label>Email *</label><input type="email" id="f_email" value="${esc(ST.memberEmail||V.email||'')}" placeholder="your@email.com" inputmode="email">`;
   html += `<div class="em" id="e_email"></div>`;
+  html += `<label>攤位數量</label>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      ${[1,2,3].map(n=>`<div class="chip ${n===1?'on':''}" onclick="selectStall(this,${n})" id="stall_${n}">${n} 攤</div>`).join('')}
+    </div>`;
   html += `</div></div>`;
 
   // 品牌資料（市集/百貨類）
@@ -389,17 +397,7 @@ function renderDynForm(s) {
     html += `<div class="card"><div class="card-t">🏷️ 品牌 / 攤商資料</div><div class="card-body">`;
     html += `<label>品牌名稱</label><input type="text" id="f_brand" value="${esc(V.brand||'')}" placeholder="品牌名稱">`;
     html += `<label>品牌介紹</label><textarea id="f_brandIntro" placeholder="簡短介紹品牌或商品">${esc(V.brandIntro||'')}</textarea>`;
-    html += `<label>販售類別</label>`;
-    html += `<div class="chips" id="sellCatChips">${SELL_CATS.map(c => `<div class="chip" onclick="toggleCat(this,'${c}')">${c}</div>`).join('')}</div>`;
-    if (V.sellCat) {
-      setTimeout(() => {
-        V.sellCat.split('、').forEach(c => {
-          document.querySelectorAll('#sellCatChips .chip').forEach(el => {
-            if(el.textContent === c) el.classList.add('on');
-          });
-        });
-      }, 50);
-    }
+    // 販售類別已移除
     html += `</div></div>`;
   }
 
@@ -476,8 +474,11 @@ function renderDynForm(s) {
     equipOpen.forEach(([k,v]) => {
       html += `<div class="equip-item">
         <div><div class="equip-name">${icons[k]||''} ${k}</div><div class="equip-price">NT$ ${v.price}/件</div></div>
-        <input type="number" class="equip-qty" id="eq_${k}" value="0" min="0" max="10" inputmode="numeric"
-          oninput="setEquip('${k}', this.value); updateFee()">
+        <div class="equip-ctrl">
+          <button class="equip-btn" onclick="adjEquip('${k}',-1)">−</button>
+          <div class="equip-num" id="eq_num_${k}">0</div>
+          <button class="equip-btn" onclick="adjEquip('${k}',1)">＋</button>
+        </div>
       </div>`;
     });
     html += `</div></div>`;
@@ -503,8 +504,19 @@ function toggleCat(el, cat) {
   }
 }
 
-function setEquip(k, v) {
-  ST.equipQty[k] = parseInt(v) || 0;
+function selectStall(el, n) {
+  ST.stallCount = n;
+  document.querySelectorAll('#stallPicker .chip, [id^=stall_]').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  updateFee();
+}
+function adjEquip(k, delta) {
+  const cur = ST.equipQty[k] || 0;
+  const next = Math.max(0, Math.min(10, cur + delta));
+  ST.equipQty[k] = next;
+  const el = document.getElementById('eq_num_'+k);
+  if (el) el.textContent = next;
+  updateFee();
 }
 
 function updateFee() {
@@ -553,6 +565,7 @@ async function submitReg() {
     sellItem: $('f_sellItem')?.value.trim() || '',
     sellLink: $('f_sellLink')?.value.trim() || '',
     photo: $('f_photo')?.value.trim() || '',
+    stallCount: ST.stallCount || 1,
     equip: { ...ST.equipQty },
     remark: $('f_remark')?.value.trim() || '',
     customFields: {},
