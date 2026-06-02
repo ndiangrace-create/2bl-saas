@@ -258,15 +258,16 @@ textarea{min-height:72px;resize:vertical}
     </div>
   </div>
 
-  <!-- 場次總覽 -->
-  <div style="padding:8px 16px 20px">
-    <div class="section-hd" style="margin-bottom:12px">
-      <span class="section-deco">📋</span>
-      <div class="section-title" style="font-size:16px">場次總覽</div>
-      <span class="section-deco">📋</span>
+  <!-- Inline 場次展開區 -->
+  <div id="inlineSessionArea" style="display:none;padding:0 12px 8px">
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 4px 8px">
+      <button onclick="closeInlineSessions()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--g)">←</button>
+      <div style="font-size:16px;font-weight:700" id="inlineSessionTitle"></div>
     </div>
-    <div id="allSessionsList"></div>
+    <div id="inlineSessionList"></div>
   </div>
+
+
 
 </div>
 
@@ -280,7 +281,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 報名表頁 ══ -->
-<div id="pageForm" class="page">
+<div id="pageForm" class="page" style="display:none">
   <div class="back-bar" onclick="backToSessions()">
     <span class="arrow">←</span>
     <span class="title">報名表</span>
@@ -400,7 +401,15 @@ function navTo(tab){
   window.scrollTo(0,0);
 }
 function backToHome(){navTo('home');}
-function backToSessions(){navTo('session');}
+function closeInlineSessions(){
+  $('inlineSessionArea').style.display='none';
+  ST.sessions=[];
+}
+function backToSessions(){
+  $('pageForm').style.display='none';
+  $('inlineSessionArea').style.display='block';
+  $('inlineSessionArea').scrollIntoView({behavior:'smooth',block:'start'});
+}
 
 // ── 首頁載入 ──
 async function loadHome(){
@@ -447,14 +456,25 @@ function renderEvents(){
 async function openEvent(eventId){
   const evt=ST.events.find(e=>e.id===eventId);
   ST.currentEvent=evt;
-  $('sessionEventName').textContent=evt?evt.title:'場次列表';
-  $('sessionsList').innerHTML='<div style="padding:24px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
-  navTo('session');
+
+  // 一頁式：在首頁直接展開場次
+  const sesArea=$('inlineSessionArea');
+  if(!sesArea) return;
+  sesArea.innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
+  sesArea.style.display='block';
+  $('inlineSessionTitle').textContent=evt?evt.title:'場次列表';
+  sesArea.scrollIntoView({behavior:'smooth',block:'start'});
+
   const params={action:'getSessions',eventId};
   if(ST.currentCatFilter) params.portal=ST.currentCatFilter;
   const sessions=await api(params);
   ST.sessions=sessions||[];
-  renderSessions();
+
+  if(!ST.sessions.length){
+    $('inlineSessionList').innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">目前無開放場次</div>';
+    return;
+  }
+  $('inlineSessionList').innerHTML=ST.sessions.map(s=>renderSessionCard(s)).join('');
 }
 
 function renderSessionCard(s, onclick=true){
@@ -542,11 +562,13 @@ function buildFormHero(s, cover){
 
 async function openSession(sessionId){
   const s=ST.sessions.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
-  ST.currentSession=s; ST.equipQty={}; ST.stallCount=1;
+  ST.currentSession=s; ST.equipQty={}; ST.addonQty={}; ST.stallCount=1;
   const evt=ST.events.find(e=>e.id===s.eventId);
   const cover=s.cover||evt?.cover||'';
   buildFormHero(s,cover);
-  navTo('form');
+  $('inlineSessionArea').style.display='none';
+  $('pageForm').style.display='block';
+  $('pageForm').scrollIntoView({behavior:'smooth',block:'start'});
   renderDynForm(s);
   updateFee();
 }
@@ -781,7 +803,8 @@ async function submitReg(){
     if(res.error){toast('❌ '+res.error);btn.disabled=false;btn.textContent='送出報名';return;}
     toast('✅ 報名成功！請查看 Email 通知',4000);
     ST.memberEmail=email;
-    navTo('home');
+    $('pageForm').style.display='none';
+    window.scrollTo(0,0);
   }catch(e){toast('網路錯誤，請重試');}
   btn.disabled=false;btn.textContent='送出報名';
 }
