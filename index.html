@@ -389,16 +389,23 @@ textarea{min-height:72px;resize:vertical}
       </div>
     </div>
 
-    <!-- B. LINE Pay（暫時同匯款流程） -->
+    <!-- B. 綠界線上付款 -->
+    <div style="border:1.5px solid #06C755;border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:6px">💳 線上付款（信用卡 / ATM / 超商）</div>
+      <div style="font-size:12px;color:var(--md);margin-bottom:10px">透過綠界安全付款，支援信用卡、ATM 轉帳、超商代碼</div>
+      <button class="btn-p" onclick="goEcpay()" style="background:#2d6a4f;width:100%">立即線上付款 →</button>
+    </div>
+
+    <!-- C. LINE Pay（手動回報） -->
     <div style="border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px">
       <div style="font-weight:700;font-size:14px;margin-bottom:8px">💚 LINE Pay（手動回報）</div>
-      <div style="font-size:13px;color:var(--md)">請先轉帳後填寫以下資料</div>
+      <div style="font-size:13px;color:var(--md)">LINE Pay 轉帳後填寫資料</div>
       <div style="margin-top:10px">
-        <label>LINE Pay 交易末五碼 *</label>
+        <label>交易末五碼 *</label>
         <input type="text" id="payLastFiveLine" placeholder="請填末五碼" inputmode="numeric" maxlength="5">
         <label>金額 *</label>
         <input type="number" id="payAmountLine" inputmode="numeric">
-        <button class="btn-p" onclick="submitPaymentForm('LINE Pay')" style="margin-top:10px;background:#06C755">確認 LINE Pay 完成，送出通知</button>
+        <button class="btn-p" onclick="submitPaymentForm('LINE Pay')" style="margin-top:10px;background:#06C755;width:100%">確認完成，送出通知</button>
       </div>
     </div>
 
@@ -1000,6 +1007,7 @@ async function renderMyRegs(regs){
 
 // ── 繳費流程 ──
 let ST_currentPayRegId = '';
+let ST_currentPayAmount = 0;
 
 function showPayPage(regId, sesName, amount){
   ST_currentPayRegId = regId;
@@ -1008,11 +1016,37 @@ function showPayPage(regId, sesName, amount){
     <div>場次：<strong>${sesName}</strong></div>
     <div style="font-size:16px;font-weight:700;color:var(--g);margin-top:4px">應繳金額：NT$ ${amount}</div>
     <div style="font-size:12px;color:#888;margin-top:4px">請於錄取後一週內完成繳費，逾期名額將釋出</div>`;
+  ST_currentPayAmount = amount;
   $('payAmount').value = amount;
   $('payAmountLine').value = amount;
   $('payLastFive').value = '';
   $('payLastFiveLine').value = '';
   $('payModal').classList.add('show');
+}
+
+async function goEcpay(){
+  if(!ST_currentPayRegId){toast('錯誤：找不到報名資料');return;}
+  toast('建立訂單中…');
+  const res = await apiPost({action:'createEcpayOrder', regId:ST_currentPayRegId});
+  if(res.error){toast('❌ '+res.error);return;}
+
+  // 建立表單並自動提交到綠界
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = res.apiUrl;
+  form.target = '_blank';
+  Object.entries(res.params).forEach(([k,v])=>{
+    const inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = k;
+    inp.value = v;
+    form.appendChild(inp);
+  });
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+  closeModal('payModal');
+  toast('✅ 已開啟付款頁面，完成付款後系統自動確認', 5000);
 }
 
 async function submitPaymentForm(method){
