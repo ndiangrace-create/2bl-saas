@@ -231,14 +231,11 @@ textarea{min-height:64px;resize:vertical}
 
       <!-- ── 活動管理 ── -->
       <div id="page-events" class="tab-page">
-        <div class="page-title">活動管理</div>
-        <div class="card">
-          <div class="card-hd">
-            <h3>活動列表</h3>
-            <button class="btn btn-g btn-sm" onclick="openEventModal()">＋ 新增活動</button>
-          </div>
-          <div class="card-body" id="eventsList"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div class="page-title" style="margin:0">活動 & 場次管理</div>
+          <button class="btn btn-g btn-sm" onclick="openEventModal()">＋ 新增活動</button>
         </div>
+        <div id="eventsWithSessions"></div>
       </div>
 
       <!-- ── 報名審核 ── -->
@@ -533,7 +530,7 @@ function goPage(name){
   $('page-'+name).classList.add('active');
   const nb=$('nav-'+name);if(nb)nb.classList.add('active');
   if($('sidebar').classList.contains('open'))toggleSb();
-  const lazy={events:loadEvents,regs:()=>renderRegs(),payments:loadPayments,announce:loadAnnounce,staff:loadStaff};
+  const lazy={events:()=>{loadEvents();renderEventsWithSessions();},regs:()=>renderRegs(),payments:loadPayments,announce:loadAnnounce,staff:loadStaff};
   if(lazy[name])lazy[name]();
 }
 
@@ -622,22 +619,69 @@ async function loadEvents(){
   const evts=await api({action:'getEventsAdmin',email:ST.email,token:ST.token});
   ST.events=evts||[];
   fillEventSelects();
-  const el=$('eventsList');
-  if(!ST.events.length){el.innerHTML='<div style="color:var(--lt);font-size:14px;padding:8px 0">尚無活動</div>';return;}
-  el.innerHTML=ST.events.map(e=>`
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f5f5f5">
-      ${e.cover
-        ?`<img src="${e.cover}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
-        :`<div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#d8f3dc,#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎪</div>`}
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px">${e.title}</div>
-        <div style="font-size:12px;color:var(--lt)">${[e.location,e.status].filter(Boolean).join('　')}</div>
+  renderEventsWithSessions();
+}
+
+function renderEventsWithSessions(){
+  const el=$('eventsWithSessions');
+  if(!el)return;
+  if(!ST.events.length){
+    el.innerHTML='<div class="card"><div class="card-body" style="color:var(--lt);font-size:14px">尚無活動，請先新增活動</div></div>';
+    return;
+  }
+  el.innerHTML=ST.events.map(e=>{
+    const sessions=ST.sdData.filter(s=>s.eventId===e.id);
+    const isOpen=ST.evOpen&&ST.evOpen[e.id]!==false;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;border-bottom:${isOpen&&sessions.length?'1px solid #f0f0f0':'none'}" onclick="toggleEvOpen('${e.id}')">
+        ${e.cover
+          ?`<img src="${e.cover}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
+          :`<div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#d8f3dc,#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎪</div>`}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px">${e.title}</div>
+          <div style="font-size:11px;color:var(--lt)">${[e.location,e.status].filter(Boolean).join('　')}　${sessions.length} 個場次</div>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center">
+          <button class="btn btn-g btn-xs" onclick="event.stopPropagation();openSesModalForEvent('${e.id}')">＋場次</button>
+          <button class="btn btn-b btn-xs" onclick="event.stopPropagation();openEventModal('${e.id}')">✏️</button>
+          <button class="btn btn-r btn-xs" onclick="event.stopPropagation();deleteEvent('${e.id}','${esc(e.title)}')">🗑</button>
+          <span style="color:var(--lt);font-size:14px">${isOpen?'▲':'▼'}</span>
+        </div>
       </div>
-      <div style="display:flex;gap:5px">
-        <button class="btn btn-b btn-xs" onclick="openEventModal('${e.id}')">✏️</button>
-        <button class="btn btn-r btn-xs" onclick="deleteEvent('${e.id}','${esc(e.title)}')">🗑</button>
-      </div>
-    </div>`).join('');
+      ${isOpen?`<div style="padding:0 16px 8px">
+        ${sessions.length===0
+          ?`<div style="padding:12px 0;font-size:13px;color:var(--lt);text-align:center">尚無場次，點「＋場次」新增</div>`
+          :sessions.map(s=>{
+            const dot=s.status==='報名中'?'dot-open':'dot-closed';
+            return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #f8f8f8">
+              <span class="status-dot ${dot}" style="flex-shrink:0"></span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:700">${s.name}</div>
+                <div style="font-size:11px;color:var(--lt)">${s.date||''}　${s.venue||''}　報名${s.total}　費用${s.fee>0?'NT$'+s.fee:'免費'}</div>
+              </div>
+              <div style="display:flex;gap:4px;flex-shrink:0">
+                <button class="btn btn-y btn-xs" onclick="toggleSes('${s.id}','${s.status}')">${s.status==='關閉'?'開放':'關閉'}</button>
+                <button class="btn btn-b btn-xs" onclick="editSes('${s.id}')">✏️</button>
+                <button class="btn btn-s btn-xs" onclick="copySes('${s.id}')">複製</button>
+                <button class="btn btn-r btn-xs" onclick="deleteSes('${s.id}','${esc(s.name)}')">🗑</button>
+              </div>
+            </div>`;
+          }).join('')}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function toggleEvOpen(evId){
+  if(!ST.evOpen) ST.evOpen={};
+  ST.evOpen[evId]=ST.evOpen[evId]===false?true:false;
+  renderEventsWithSessions();
+}
+
+function openSesModalForEvent(evId){
+  resetSesModal();
+  $('sm_eventId').value=evId;
+  openModal('sesModal');
 }
 
 function openEventModal(id){
@@ -663,13 +707,13 @@ async function saveEvent(){
     cover:$('em_cover').value.trim(),status:$('em_status').value});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 儲存成功');closeModal('eventModal');
-  await loadAllData();loadEvents();
+  await loadAllData();renderEventsWithSessions();
 }
 async function deleteEvent(id,name){
   if(!confirm('確定刪除活動「'+name+'」？'))return;
   const res=await apiPost({action:'deleteEvent',id});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已刪除');await loadAllData();loadEvents();
+  toast('✅ 已刪除');await loadAllData();renderEventsWithSessions();
 }
 
 // ── 場次 modal ──
@@ -714,9 +758,12 @@ function resetSesModal(){
   updateModPresets();buildEquipDefs({});
 }
 async function editSes(id){
-  // 先從 API 取完整場次資料
-  const s=await api({action:'getSession',id});
-  if(s.error){toast('❌ '+s.error);return;}
+  // 先從本地找，沒有才打 API
+  let s=ST.sdData.find(x=>x.id===id);
+  if(!s){
+    s=await api({action:'getSession',id});
+    if(s.error){toast('❌ '+s.error);return;}
+  }
   $('sm_id').value=s.id;
   $('sm_eventId').value=s.eventId||'';
   $('sm_name').value=s.name||'';$('sm_type').value=s.type||'市集場次';
