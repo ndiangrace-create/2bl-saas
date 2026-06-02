@@ -355,6 +355,48 @@ textarea{min-height:72px;resize:vertical}
 <!-- ══ Toast ══ -->
 <div class="toast" id="toast"></div>
 
+<!-- ══ 繳費 Modal ══ -->
+<div class="modal-overlay" id="payModal" onclick="if(event.target===this)closeModal('payModal')">
+  <div class="modal-box">
+    <div class="modal-title" id="payModalTitle">繳費</div>
+    <div id="payModalInfo" style="background:var(--gp);border-radius:10px;padding:14px;margin-bottom:16px;font-size:14px"></div>
+
+    <div style="font-weight:700;font-size:14px;margin-bottom:10px">選擇繳費方式</div>
+
+    <!-- A. 匯款 -->
+    <div style="border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:8px">🏦 匯款</div>
+      <div style="font-size:13px;color:var(--md);line-height:1.8">
+        銀行：台北富邦銀行左營分行（012）<br>
+        帳號：<strong style="color:var(--dk)">82110000172998</strong><br>
+        戶名：兔彼樂共創活動有限公司
+      </div>
+      <div style="margin-top:12px">
+        <label>匯款末五碼 *</label>
+        <input type="text" id="payLastFive" placeholder="請填末五碼" inputmode="numeric" maxlength="5">
+        <label>匯款金額 *</label>
+        <input type="number" id="payAmount" inputmode="numeric">
+        <button class="btn-p" onclick="submitPaymentForm('匯款')" style="margin-top:10px">確認匯款完成，送出通知</button>
+      </div>
+    </div>
+
+    <!-- B. LINE Pay（暫時同匯款流程） -->
+    <div style="border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:8px">💚 LINE Pay（手動回報）</div>
+      <div style="font-size:13px;color:var(--md)">請先轉帳後填寫以下資料</div>
+      <div style="margin-top:10px">
+        <label>LINE Pay 交易末五碼 *</label>
+        <input type="text" id="payLastFiveLine" placeholder="請填末五碼" inputmode="numeric" maxlength="5">
+        <label>金額 *</label>
+        <input type="number" id="payAmountLine" inputmode="numeric">
+        <button class="btn-p" onclick="submitPaymentForm('LINE Pay')" style="margin-top:10px;background:#06C755">確認 LINE Pay 完成，送出通知</button>
+      </div>
+    </div>
+
+    <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;margin-top:4px">取消</button>
+  </div>
+</div>
+
 <!-- ══ 編輯資料 Modal ══ -->
 <div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeModal('editModal')">
   <div class="modal-box">
@@ -919,15 +961,70 @@ async function renderMyRegs(regs){
   }));
   el.innerHTML=regs.map(r=>{
     const badge={待審核:'badge-wait',已錄取:'badge-ok',不錄取:'badge-no'}[r.status]||'badge-wait';
+    const payBadge=r.payStatus==='已繳費 ✓'?'badge-ok':r.payStatus==='待確認'?'badge-wait':'';
+    const canPay=r.status==='已錄取'&&r.payStatus!=='已繳費 ✓'&&r.amount>0;
     return `<div class="reg-record">
       <div class="reg-rec-top">
         <div class="reg-ses-name">${sesNames[r.sessionId]||r.sessionId}</div>
         <span class="status-badge ${badge}">${r.status}</span>
       </div>
-      <div style="font-size:12px;color:var(--md)">付款：${r.payStatus||'未繳費'}${r.amount>0?'　NT$'+r.amount:''}</div>
-      <div style="font-size:11px;color:#ccc;margin-top:2px">${r.createdAt?.slice(0,10)||''}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+        <div style="font-size:12px;color:var(--md)">
+          ${r.amount>0?`NT$ ${r.amount}　`:''}
+          <span class="status-badge ${payBadge}" style="font-size:10px">${r.payStatus||'未繳費'}</span>
+        </div>
+        ${canPay?`<button onclick="showPayPage('${r.id}','${sesNames[r.sessionId]||r.sessionId}',${r.amount})" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">去繳費</button>`:''}
+      </div>
+      <div style="font-size:11px;color:#ccc;margin-top:4px">${r.createdAt?.slice(0,10)||''}</div>
     </div>`;
   }).join('');
+}
+
+// ── 繳費流程 ──
+let ST_currentPayRegId = '';
+
+function showPayPage(regId, sesName, amount){
+  ST_currentPayRegId = regId;
+  $('payModalTitle').textContent = '繳費 — '+sesName;
+  $('payModalInfo').innerHTML = `
+    <div>場次：<strong>${sesName}</strong></div>
+    <div style="font-size:16px;font-weight:700;color:var(--g);margin-top:4px">應繳金額：NT$ ${amount}</div>
+    <div style="font-size:12px;color:#888;margin-top:4px">請於錄取後一週內完成繳費，逾期名額將釋出</div>`;
+  $('payAmount').value = amount;
+  $('payAmountLine').value = amount;
+  $('payLastFive').value = '';
+  $('payLastFiveLine').value = '';
+  $('payModal').classList.add('show');
+}
+
+async function submitPaymentForm(method){
+  const lastFive = method==='LINE Pay'
+    ? $('payLastFiveLine').value.trim()
+    : $('payLastFive').value.trim();
+  const amount = method==='LINE Pay'
+    ? $('payAmountLine').value
+    : $('payAmount').value;
+
+  if(!lastFive){toast('請填寫末五碼');return;}
+  if(!amount){toast('請填寫金額');return;}
+
+  const res = await apiPost({
+    action: 'submitPayment',
+    regId: ST_currentPayRegId,
+    method: method,
+    lastFive: lastFive,
+    amount: amount,
+  });
+
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('✅ 已送出繳費通知，請等待確認！', 4000);
+  closeModal('payModal');
+
+  // 更新報名紀錄顯示
+  if(ST.memberEmail){
+    const regs = await api({action:'getMyRegs', email:ST.memberEmail});
+    renderMyRegs(regs||[]);
+  }
 }
 
 function showMemberEdit(){
