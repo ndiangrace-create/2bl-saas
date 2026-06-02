@@ -460,9 +460,9 @@ async function openEvent(eventId){
   // 一頁式：在首頁直接展開場次
   const sesArea=$('inlineSessionArea');
   if(!sesArea) return;
-  sesArea.innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
   sesArea.style.display='block';
   $('inlineSessionTitle').textContent=evt?evt.title:'場次列表';
+  $('inlineSessionList').innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
   sesArea.scrollIntoView({behavior:'smooth',block:'start'});
 
   const params={action:'getSessions',eventId};
