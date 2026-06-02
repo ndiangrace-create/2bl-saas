@@ -544,7 +544,7 @@ function renderSessionCard(s, onclick=true){
         ${closed?`<span class="tag red">${full?'名額已滿':'已關閉'}</span>`:''}
       </div>
       <div class="session-fee">${s.fee>0?'NT$ '+s.fee:'免費'}</div>
-      ${s.limit>0?`<div class="session-slots">剩餘名額 ${Math.max(0,s.limit-s.count)} / ${s.limit}</div>`:''}
+      
     </div>
   </div>`;
 }
