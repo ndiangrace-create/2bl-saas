@@ -6,9 +6,9 @@
 <title>兔彼樂後台管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-:root {
+:root{
   --g:#2d6a4f;--gl:#40916c;--gp:#d8f3dc;--gp2:#f0fdf4;
-  --wh:#fafaf8;--dk:#1a1a18;--md:#666;--lt:#999;
+  --wh:#fafaf8;--dk:#1a1a18;--md:#555;--lt:#999;
   --rd:#c0392b;--rdp:#fdecea;--yl:#b7860b;--ylp:#fffaed;
   --bl:#1a73e8;--blp:#e8f0fe;--r:10px;--sh:0 2px 10px rgba(0,0,0,.07);
 }
@@ -18,284 +18,305 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);mi
 /* ── 登入 ── */
 .login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#1b4332,#40916c)}
 .login-box{background:#fff;border-radius:16px;padding:32px 24px;width:90%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
-.login-box h2{font-size:18px;font-weight:700;margin-bottom:4px;color:var(--dk)}
-.login-box p{font-size:13px;color:var(--md);margin-bottom:24px}
+.login-box h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.login-box p{font-size:13px;color:var(--md);margin-bottom:20px}
+
+/* ── 頂部 ── */
+.topbar{background:var(--g);color:#fff;padding:0 16px;height:46px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-logo{font-size:15px;font-weight:700}
+.topbar-right{display:flex;gap:8px;align-items:center;font-size:13px;opacity:.9}
 
 /* ── 佈局 ── */
-.topbar{background:var(--g);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.topbar-logo{font-size:15px;font-weight:700;letter-spacing:.04em}
-.topbar-right{display:flex;gap:8px;align-items:center;font-size:13px;opacity:.9}
 .layout{display:flex;min-height:calc(100vh - 46px)}
-.sidebar{width:200px;background:#fff;border-right:1px solid #e8e8e8;padding:12px 0;flex-shrink:0;position:sticky;top:46px;height:calc(100vh - 46px);overflow-y:auto}
-.main{flex:1;padding:16px;overflow-y:auto;min-width:0}
-.nav-item{display:flex;align-items:center;gap:8px;padding:11px 16px;font-size:14px;color:var(--md);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.sidebar{width:190px;background:#fff;border-right:1px solid #e8e8e8;flex-shrink:0;position:sticky;top:46px;height:calc(100vh - 46px);overflow-y:auto;padding:8px 0}
+.main{flex:1;padding:16px;min-width:0;overflow-x:hidden}
+.nav-section{font-size:10px;color:#bbb;padding:10px 14px 3px;letter-spacing:.1em;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;color:var(--md);cursor:pointer;border-left:3px solid transparent;transition:all .15s;user-select:none}
 .nav-item:hover{background:var(--gp2);color:var(--g)}
 .nav-item.active{background:var(--gp2);color:var(--g);border-left-color:var(--g);font-weight:700}
-.nav-icon{font-size:18px;width:24px;text-align:center}
-.nav-section{font-size:10px;color:#bbb;padding:12px 16px 4px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.nav-icon{font-size:16px;width:20px;text-align:center}
 
 /* ── 卡片 ── */
 .card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px}
-.card-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #f0f0f0}
+.card-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f0f0f0}
 .card-hd h3{font-size:14px;font-weight:700}
 .card-body{padding:14px 16px}
-.page-title{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--dk)}
-
-/* ── 統計卡 ── */
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
-@media(min-width:600px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
-.stat-card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:16px;text-align:center}
-.stat-val{font-size:26px;font-weight:700;color:var(--g);line-height:1}
-.stat-lbl{font-size:11px;color:var(--md);margin-top:4px}
-
-/* ── 表單 ── */
-label{display:block;font-size:12px;color:var(--md);margin-bottom:4px;margin-top:12px;font-weight:500}
-label:first-child{margin-top:0}
-input[type=text],input[type=email],input[type=number],input[type=url],input[type=password],textarea,select{
-  width:100%;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:8px;
-  font-size:14px;font-family:inherit;color:var(--dk);background:#fff;outline:none;-webkit-appearance:none
-}
-input:focus,textarea:focus,select:focus{border-color:var(--g)}
-textarea{min-height:70px;resize:vertical}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.hint{font-size:11px;color:var(--lt);margin-top:3px}
+.page-title{font-size:17px;font-weight:700;margin-bottom:14px}
 
 /* ── 按鈕 ── */
-.btn{display:inline-flex;align-items:center;gap:5px;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;transition:opacity .15s}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:opacity .15s;white-space:nowrap}
 .btn:active{opacity:.7}
 .btn-g{background:var(--g);color:#fff}
 .btn-s{background:#f0f0f0;color:var(--dk)}
 .btn-r{background:var(--rdp);color:var(--rd)}
 .btn-b{background:var(--blp);color:var(--bl)}
 .btn-y{background:var(--ylp);color:var(--yl)}
-.btn-xs{font-size:11px;padding:5px 10px;border-radius:6px}
+.btn-xs{font-size:11px;padding:4px 9px;border-radius:6px}
+.btn-sm{font-size:12px;padding:6px 11px;border-radius:7px}
 
-/* ── 列表 ── */
-.list-item{border-bottom:1px solid #f0f0f0;padding:12px 0}
-.list-item:last-child{border-bottom:none}
-.li-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
-.li-name{font-size:14px;font-weight:700;flex:1}
-.li-meta{font-size:12px;color:var(--md);margin-top:4px}
-.li-actions{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap}
+/* ── 場次總覽表格 ── */
+.ses-table{width:100%;border-collapse:collapse;font-size:13px}
+.ses-table th{background:#f7f7f5;padding:9px 10px;text-align:left;font-size:11px;color:var(--lt);font-weight:700;letter-spacing:.05em;border-bottom:2px solid #ebebeb;white-space:nowrap}
+.ses-table td{padding:10px 10px;border-bottom:1px solid #f2f2f2;vertical-align:middle}
+.ses-table tr:last-child td{border-bottom:none}
+.ses-table tr:hover td{background:#fafafa}
+.ses-row-event{font-size:10px;color:var(--lt);margin-top:1px}
+.ses-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;background:var(--gp);flex-shrink:0}
+.ses-thumb-placeholder{width:36px;height:36px;border-radius:6px;background:linear-gradient(135deg,#d8f3dc,#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.ses-name-cell{display:flex;align-items:center;gap:10px;min-width:160px}
+.num-btn{color:var(--bl);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.num-btn:hover{color:#0d47a1}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.dot-open{background:#40916c}.dot-closed{background:#ccc}.dot-full{background:var(--rd)}
+.action-cell{display:flex;gap:4px;flex-wrap:nowrap}
 
 /* ── 報名列表 ── */
-.reg-row{border-bottom:1px solid #f5f5f5;padding:10px 0}
-.reg-row:last-child{border-bottom:none}
-.reg-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.reg-name{font-size:13px;font-weight:700;flex:1}
-.reg-meta{font-size:12px;color:var(--md)}
-.status-badge{font-size:10px;padding:3px 8px;border-radius:12px;font-weight:700;white-space:nowrap}
+.reg-table{width:100%;border-collapse:collapse;font-size:13px}
+.reg-table th{background:#f7f7f5;padding:8px 10px;text-align:left;font-size:11px;color:var(--lt);font-weight:700;border-bottom:2px solid #ebebeb;white-space:nowrap}
+.reg-table td{padding:9px 10px;border-bottom:1px solid #f2f2f2;vertical-align:middle}
+.reg-table tr:hover td{background:#fafafa}
+.badge{font-size:10px;padding:3px 8px;border-radius:12px;font-weight:700;white-space:nowrap}
 .badge-wait{background:var(--ylp);color:var(--yl)}
 .badge-ok{background:var(--gp);color:var(--g)}
 .badge-no{background:var(--rdp);color:var(--rd)}
-.badge-pay{background:var(--blp);color:var(--bl)}
 .badge-paid{background:#e8f5e9;color:#2e7d32}
+.badge-unpaid{background:#f5f5f5;color:#999}
+
+/* ── 表單 ── */
+label{display:block;font-size:12px;color:var(--md);margin-bottom:4px;margin-top:11px;font-weight:500}
+label:first-child{margin-top:0}
+input[type=text],input[type=email],input[type=number],input[type=url],input[type=date],input[type=time],input[type=password],textarea,select{
+  width:100%;padding:9px 11px;border:1.5px solid #d0e8d8;border-radius:8px;
+  font-size:14px;font-family:inherit;color:var(--dk);background:#fff;outline:none;-webkit-appearance:none
+}
+input:focus,textarea:focus,select:focus{border-color:var(--g)}
+textarea{min-height:64px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── 模組 ── */
+.mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.mod-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid #e8e8e8;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s}
+.mod-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--g)}
+.mod-item.on{border-color:var(--g);background:var(--gp2)}
+.equip-def{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f5f5}
+.equip-def:last-child{border-bottom:none}
+.equip-def-name{flex:1;font-size:13px}
+.equip-def-price{width:80px}
 
 /* ── Modal ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .overlay.show{display:flex}
-@media(min-width:600px){.overlay{align-items:center}}
-.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:24px 20px 40px}
-@media(min-width:600px){.modal{border-radius:16px;margin:0 16px}}
-.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
-.modal-actions{display:flex;gap:8px;margin-top:20px}
-
-/* ── 模組勾選 ── */
-.mod-section{margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0}
-.mod-title{font-size:12px;font-weight:700;color:var(--md);margin-bottom:8px;letter-spacing:.05em}
-.mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.mod-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s}
-.mod-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--g)}
-.mod-item.on{border-color:var(--g);background:var(--gp2)}
-.equip-def{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f5f5f5}
-.equip-def:last-child{border-bottom:none}
-.equip-def-name{flex:1;font-size:13px}
-.equip-def-price{width:80px}
-.equip-def-open input[type=checkbox]{width:18px;height:18px;accent-color:var(--g)}
-
-/* ── 下拉選場次 ── */
-.session-filter{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.filter-select{padding:8px 12px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--dk);-webkit-appearance:none}
-
-/* ── Toast ── */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.8);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── 手機側邊欄 ── */
-@media(max-width:600px){
-  .sidebar{position:fixed;left:-200px;top:46px;height:calc(100vh - 46px);z-index:50;transition:left .25s;box-shadow:4px 0 12px rgba(0,0,0,.1)}
-  .sidebar.open{left:0}
-  .main{padding:12px}
-  .form-row{grid-template-columns:1fr}
-  .mod-grid{grid-template-columns:1fr}
-}
+@media(min-width:640px){.overlay{align-items:center}}
+.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding:22px 20px 40px}
+@media(min-width:640px){.modal{border-radius:16px;margin:0 12px}}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;margin-top:18px}
 .overlay-sb{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:40;display:none}
 .overlay-sb.show{display:block}
+
+/* ── filter bar ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filter-sel{padding:7px 11px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--dk);-webkit-appearance:none}
+.search-input{padding:7px 11px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--dk);outline:none;min-width:160px}
+.search-input:focus{border-color:var(--g)}
+
+/* ── toast ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.82);color:#fff;padding:9px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── 捲軸表格包裝 ── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ── 手機 sidebar ── */
+@media(max-width:640px){
+  .sidebar{position:fixed;left:-195px;top:46px;height:calc(100vh - 46px);z-index:50;transition:left .25s;box-shadow:4px 0 12px rgba(0,0,0,.1)}
+  .sidebar.open{left:0}
+  .main{padding:10px}
+  .form-row{grid-template-columns:1fr}
+  .mod-grid{grid-template-columns:1fr}
+  .ses-table,.reg-table{font-size:12px}
+}
+.tab-page{display:none}
+.tab-page.active{display:block}
 </style>
 </head>
 <body>
 
-<!-- 登入 -->
+<!-- ══ 登入 ══ -->
 <div id="loginPage" class="login-page">
   <div class="login-box">
     <h2>🐰 兔彼樂後台</h2>
-    <p>請使用管理員 Email 登入</p>
-    <label>管理員 Email</label>
-    <input type="email" id="loginEmail" placeholder="admin@tuibile.com" inputmode="email" onkeydown="if(event.key==='Enter')doLogin()">
-    <div style="height:12px"></div>
+    <p>請輸入管理員 Email 登入</p>
+    <label>Email</label>
+    <input type="email" id="loginEmail" placeholder="your@email.com" inputmode="email" onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="height:10px"></div>
     <button class="btn btn-g" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">登入</button>
     <div id="loginErr" style="font-size:12px;color:var(--rd);margin-top:8px;text-align:center"></div>
   </div>
 </div>
 
-<!-- 主介面 -->
+<!-- ══ 主介面 ══ -->
 <div id="adminPage" style="display:none">
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
-      <button onclick="toggleSidebar()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px">☰</button>
+      <button onclick="toggleSb()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;padding:0 2px">☰</button>
       <div class="topbar-logo">🐰 兔彼樂後台</div>
     </div>
     <div class="topbar-right">
       <span id="staffName"></span>
-      <button onclick="logout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">登出</button>
+      <button onclick="logout()" style="background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">登出</button>
     </div>
   </div>
 
-  <div class="overlay-sb" id="sbOverlay" onclick="toggleSidebar()"></div>
+  <div class="overlay-sb" id="sbOverlay" onclick="toggleSb()"></div>
 
   <div class="layout">
-    <!-- 側邊欄 -->
     <div class="sidebar" id="sidebar">
       <div class="nav-section">總覽</div>
-      <div class="nav-item active" id="nav-dash" onclick="goPage('dash')"><span class="nav-icon">📊</span>儀表板</div>
-      <div class="nav-section">活動管理</div>
+      <div class="nav-item active" id="nav-overview" onclick="goPage('overview')"><span class="nav-icon">📊</span>場次總覽</div>
+      <div class="nav-section">管理</div>
       <div class="nav-item" id="nav-events" onclick="goPage('events')"><span class="nav-icon">🎪</span>活動管理</div>
-      <div class="nav-item" id="nav-sessions" onclick="goPage('sessions')"><span class="nav-icon">📅</span>場次管理</div>
-      <div class="nav-section">報名</div>
       <div class="nav-item" id="nav-regs" onclick="goPage('regs')"><span class="nav-icon">📋</span>報名審核</div>
       <div class="nav-item" id="nav-payments" onclick="goPage('payments')"><span class="nav-icon">💰</span>付款管理</div>
       <div class="nav-section">其他</div>
       <div class="nav-item" id="nav-announce" onclick="goPage('announce')"><span class="nav-icon">📢</span>公告管理</div>
-      <div class="nav-item" id="nav-staff" onclick="goPage('staff')" id="staffNav" style="display:none"><span class="nav-icon">👥</span>管理員</div>
-      <div style="padding:12px 16px">
-        <a href="index.html" target="_blank" style="font-size:12px;color:var(--md)">🏠 前往前台</a>
-      </div>
+      <div class="nav-item" id="nav-staff" onclick="goPage('staff')" style="display:none"><span class="nav-icon">👥</span>管理員</div>
+      <div style="padding:10px 14px"><a href="index.html" target="_blank" style="font-size:12px;color:var(--md)">🏠 前台</a></div>
     </div>
 
-    <!-- 主內容 -->
     <div class="main">
 
-      <!-- 儀表板 -->
-      <div id="page-dash" class="tab-page">
-        <div class="page-title">儀表板</div>
-        <div class="session-filter">
-          <select class="filter-select" id="dashEventSel" onchange="loadDash()">
+      <!-- ── 場次總覽 ── -->
+      <div id="page-overview" class="tab-page active">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div class="page-title" style="margin:0">場次總覽</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-s btn-sm" onclick="goPage('events')">＋ 活動</button>
+            <button class="btn btn-g btn-sm" onclick="openSesModal()">＋ 場次</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <select class="filter-sel" id="ovEventFilter" onchange="renderOverview()">
             <option value="">所有活動</option>
           </select>
-          <select class="filter-select" id="dashSesSel" onchange="loadDash()">
-            <option value="">所有場次</option>
+          <select class="filter-sel" id="ovStatusFilter" onchange="renderOverview()">
+            <option value="">全部狀態</option>
+            <option>報名中</option><option>關閉</option>
           </select>
         </div>
-        <div class="stats-grid" id="statsGrid">
-          <div class="stat-card"><div class="stat-val">-</div><div class="stat-lbl">報名總數</div></div>
-          <div class="stat-card"><div class="stat-val">-</div><div class="stat-lbl">待審核</div></div>
-          <div class="stat-card"><div class="stat-val">-</div><div class="stat-lbl">已繳費</div></div>
-          <div class="stat-card"><div class="stat-val">-</div><div class="stat-lbl">收款金額</div></div>
-        </div>
         <div class="card">
-          <div class="card-hd"><h3>⚡ 快速操作</h3></div>
-          <div class="card-body" style="display:flex;flex-wrap:wrap;gap:8px">
-            <button class="btn btn-g" onclick="goPage('events')">➕ 新增活動</button>
-            <button class="btn btn-b" onclick="goPage('sessions')">📅 管理場次</button>
-            <button class="btn btn-y" onclick="goPage('regs')">📋 審核報名</button>
+          <div class="table-wrap">
+            <table class="ses-table">
+              <thead>
+                <tr>
+                  <th style="width:36px"></th>
+                  <th>場次</th>
+                  <th>日期</th>
+                  <th>報名</th>
+                  <th>待審核</th>
+                  <th>已繳費</th>
+                  <th>已報到</th>
+                  <th>已收費用</th>
+                  <th>押金合計</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="overviewBody">
+                <tr><td colspan="10" style="text-align:center;padding:24px;color:var(--lt)">載入中…</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <!-- 活動管理 -->
-      <div id="page-events" class="tab-page" style="display:none">
+      <!-- ── 活動管理 ── -->
+      <div id="page-events" class="tab-page">
         <div class="page-title">活動管理</div>
         <div class="card">
           <div class="card-hd">
             <h3>活動列表</h3>
-            <button class="btn btn-g" onclick="openEventModal()">➕ 新增活動</button>
+            <button class="btn btn-g btn-sm" onclick="openEventModal()">＋ 新增活動</button>
           </div>
           <div class="card-body" id="eventsList"></div>
         </div>
       </div>
 
-      <!-- 場次管理 -->
-      <div id="page-sessions" class="tab-page" style="display:none">
-        <div class="page-title">場次管理</div>
-        <div class="session-filter">
-          <select class="filter-select" id="sesEventFilter" onchange="loadSessions()">
+      <!-- ── 報名審核 ── -->
+      <div id="page-regs" class="tab-page">
+        <div class="page-title" id="regsTitle">報名審核</div>
+        <div class="filter-bar">
+          <select class="filter-sel" id="regEventFilter" onchange="onRegEventChange()">
             <option value="">所有活動</option>
           </select>
-        </div>
-        <div class="card">
-          <div class="card-hd">
-            <h3>場次列表</h3>
-            <button class="btn btn-g" onclick="openSessionModal()">➕ 新增場次</button>
-          </div>
-          <div class="card-body" id="sessionsList"></div>
-        </div>
-      </div>
-
-      <!-- 報名審核 -->
-      <div id="page-regs" class="tab-page" style="display:none">
-        <div class="page-title">報名審核</div>
-        <div class="session-filter">
-          <select class="filter-select" id="regEventFilter" onchange="filterRegs()">
-            <option value="">所有活動</option>
-          </select>
-          <select class="filter-select" id="regSesFilter" onchange="loadRegs()">
+          <select class="filter-sel" id="regSesFilter" onchange="loadRegs()">
             <option value="">所有場次</option>
           </select>
-          <select class="filter-select" id="regStatusFilter" onchange="filterRegs()">
+          <select class="filter-sel" id="regStatusFilter" onchange="renderRegs()">
             <option value="">全部狀態</option>
             <option>待審核</option><option>已錄取</option><option>不錄取</option>
           </select>
+          <input class="search-input" id="regSearch" placeholder="搜尋姓名/品牌/Email" oninput="renderRegs()">
         </div>
         <div class="card">
           <div class="card-hd">
-            <h3>報名列表</h3>
+            <h3 id="regsCount">報名列表</h3>
             <div style="display:flex;gap:6px">
               <button class="btn btn-g btn-xs" onclick="batchApprove()">批次核准</button>
               <button class="btn btn-r btn-xs" onclick="batchReject()">批次拒絕</button>
             </div>
           </div>
-          <div class="card-body" id="regsList"></div>
+          <div class="table-wrap">
+            <table class="reg-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="checkAll" onchange="toggleAll(this)" style="width:14px;height:14px;accent-color:var(--g)"></th>
+                  <th>姓名 / 品牌</th>
+                  <th>聯絡</th>
+                  <th>審核</th>
+                  <th>付款</th>
+                  <th>金額</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="regsBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- 付款管理 -->
-      <div id="page-payments" class="tab-page" style="display:none">
+      <!-- ── 付款管理 ── -->
+      <div id="page-payments" class="tab-page">
         <div class="page-title">付款管理</div>
         <div class="card">
           <div class="card-hd"><h3>付款紀錄</h3></div>
-          <div class="card-body" id="paymentsList"></div>
+          <div class="table-wrap">
+            <table class="reg-table">
+              <thead><tr><th>Email</th><th>金額</th><th>方式</th><th>狀態</th><th>時間</th></tr></thead>
+              <tbody id="paymentsBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- 公告管理 -->
-      <div id="page-announce" class="tab-page" style="display:none">
+      <!-- ── 公告管理 ── -->
+      <div id="page-announce" class="tab-page">
         <div class="page-title">公告管理</div>
         <div class="card">
           <div class="card-hd">
             <h3>公告列表</h3>
-            <button class="btn btn-g" onclick="openAnnModal()">➕ 新增公告</button>
+            <button class="btn btn-g btn-sm" onclick="openAnnModal()">＋ 新增公告</button>
           </div>
           <div class="card-body" id="announceList"></div>
         </div>
       </div>
 
-      <!-- 管理員 -->
-      <div id="page-staff" class="tab-page" style="display:none">
+      <!-- ── 管理員 ── -->
+      <div id="page-staff" class="tab-page">
         <div class="page-title">管理員帳號</div>
         <div class="card">
           <div class="card-hd">
             <h3>管理員列表</h3>
-            <button class="btn btn-g" onclick="openAddStaffModal()">➕ 新增</button>
+            <button class="btn btn-g btn-sm" onclick="openAddStaffModal()">＋ 新增</button>
           </div>
           <div class="card-body" id="staffList"></div>
         </div>
@@ -303,17 +324,21 @@ textarea{min-height:70px;resize:vertical}
 
     </div><!-- /main -->
   </div><!-- /layout -->
-</div><!-- /adminPage -->
+</div>
 
-<!-- ── Modal：活動 ── -->
+<!-- ══ Modal：活動 ══ -->
 <div class="overlay" id="eventModal" onclick="if(event.target===this)closeModal('eventModal')">
   <div class="modal">
-    <div class="modal-title" id="eventModalTitle">新增活動</div>
+    <div class="modal-title" id="evModalTitle">新增活動</div>
     <input type="hidden" id="em_id">
     <label>活動名稱 *</label><input type="text" id="em_title" placeholder="例：2025 耶市集">
-    <label>地點</label><input type="text" id="em_location" placeholder="例：台中 勤美誠品">
+    <label>地點</label><input type="text" id="em_location">
     <label>活動說明</label><textarea id="em_desc" placeholder="對外顯示的活動介紹"></textarea>
-    <label>主視覺圖連結</label><input type="url" id="em_cover" placeholder="https://...">
+    <label>主視覺圖連結（1:1 正方形）</label>
+    <input type="url" id="em_cover" placeholder="https://..." oninput="previewCover(this.value)">
+    <div id="coverPreview" style="margin-top:8px;display:none">
+      <img id="coverImg" style="width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid #e0e0e0">
+    </div>
     <label>狀態</label>
     <select id="em_status"><option>開放中</option><option>停用</option></select>
     <div class="modal-actions">
@@ -323,8 +348,8 @@ textarea{min-height:70px;resize:vertical}
   </div>
 </div>
 
-<!-- ── Modal：場次 ── -->
-<div class="overlay" id="sessionModal" onclick="if(event.target===this)closeModal('sessionModal')">
+<!-- ══ Modal：場次 ══ -->
+<div class="overlay" id="sesModal" onclick="if(event.target===this)closeModal('sesModal')">
   <div class="modal">
     <div class="modal-title" id="sesModalTitle">新增場次</div>
     <input type="hidden" id="sm_id">
@@ -340,7 +365,7 @@ textarea{min-height:70px;resize:vertical}
     </select>
     <div class="form-row">
       <div><label>活動日期 *</label><input type="date" id="sm_date"></div>
-      <div><label>場地名稱 *</label><input type="text" id="sm_venue" placeholder="場地全名"></div>
+      <div><label>場地名稱 *</label><input type="text" id="sm_venue"></div>
     </div>
     <div class="form-row">
       <div><label>開始時間</label><input type="time" id="sm_start" value="10:00"></div>
@@ -355,100 +380,50 @@ textarea{min-height:70px;resize:vertical}
       <div><label>主辦單位</label><input type="text" id="sm_organizer"></div>
     </div>
     <label>基本配備說明</label><input type="text" id="sm_basicEquip" placeholder="例：有提供延長線">
-
-    <!-- 需要審核 -->
-    <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px;border:1.5px solid #e0e0e0;border-radius:8px">
-      <input type="checkbox" id="sm_review" style="width:18px;height:18px;accent-color:var(--g)" checked>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px;border:1.5px solid #e0e0e0;border-radius:8px">
+      <input type="checkbox" id="sm_review" style="width:16px;height:16px;accent-color:var(--g)" checked>
       <div>
         <div style="font-size:13px;font-weight:700">需要審核</div>
-        <div style="font-size:11px;color:var(--md)">勾選→報名進待審核；不勾選→直接錄取</div>
+        <div style="font-size:11px;color:var(--lt)">不勾選→報名後直接錄取</div>
       </div>
     </div>
-
-    <!-- 報名表模組 -->
-    <div class="mod-section">
-      <div class="mod-title">報名表模組（勾選後前台顯示此欄位）</div>
-      <div class="mod-grid">
-        <label class="mod-item" id="mod_brand_wrap">
-          <input type="checkbox" id="mod_brand" checked> 品牌/攤商資料
-        </label>
-        <label class="mod-item" id="mod_sell_item_wrap">
-          <input type="checkbox" id="mod_sell_item"> 本次販售商品
-        </label>
-        <label class="mod-item" id="mod_sell_link_wrap">
-          <input type="checkbox" id="mod_sell_link"> 商品連結
-        </label>
-        <label class="mod-item" id="mod_photo_wrap">
-          <input type="checkbox" id="mod_photo" checked> 出攤照片
-        </label>
-        <label class="mod-item" id="mod_adult_wrap">
-          <input type="checkbox" id="mod_adult"> 大人人數
-        </label>
-        <label class="mod-item" id="mod_child_wrap">
-          <input type="checkbox" id="mod_child"> 小孩人數
-        </label>
-        <label class="mod-item" id="mod_diet_wrap">
-          <input type="checkbox" id="mod_diet"> 飲食需求
-        </label>
-        <label class="mod-item" id="mod_act_name_wrap">
-          <input type="checkbox" id="mod_act_name"> 活動名稱
-        </label>
-        <label class="mod-item" id="mod_act_content_wrap">
-          <input type="checkbox" id="mod_act_content"> 活動內容
-        </label>
-        <label class="mod-item" id="mod_act_fee_wrap">
-          <input type="checkbox" id="mod_act_fee"> 材料費
-        </label>
-        <label class="mod-item" id="mod_collab_social_wrap">
-          <input type="checkbox" id="mod_collab_social"> 社群連結
-        </label>
-        <label class="mod-item" id="mod_collab_price_wrap">
-          <input type="checkbox" id="mod_collab_price"> 報價條件
-        </label>
-        <label class="mod-item" id="mod_remark_wrap" style="grid-column:span 2">
-          <input type="checkbox" id="mod_remark" checked> 備註欄位
-        </label>
-      </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">報名表欄位</div>
+      <div class="mod-grid" id="modGrid"></div>
     </div>
-
-    <!-- 設備加購設定 -->
-    <div class="mod-section">
-      <div class="mod-title">設備加購（勾選開放，填入單價）</div>
-      <div id="equipDefs">
-        <!-- 動態產生 -->
-      </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">設備加購</div>
+      <div id="equipDefs"></div>
     </div>
-
     <div class="modal-actions">
-      <button class="btn btn-s" onclick="closeModal('sessionModal')" style="flex:1">取消</button>
+      <button class="btn btn-s" onclick="closeModal('sesModal')" style="flex:1">取消</button>
       <button class="btn btn-g" onclick="saveSession()" style="flex:2">儲存場次</button>
     </div>
   </div>
 </div>
 
-<!-- ── Modal：報名詳情 ── -->
+<!-- ══ Modal：報名詳情 ══ -->
 <div class="overlay" id="regModal" onclick="if(event.target===this)closeModal('regModal')">
   <div class="modal">
     <div class="modal-title">報名詳情</div>
     <div id="regDetail"></div>
-    <div style="margin-top:16px">
-      <label>管理員備註</label>
-      <textarea id="regNote" placeholder="備註（不會寄給報名者）"></textarea>
+    <label style="margin-top:14px">管理員備註</label>
+    <textarea id="regNote" placeholder="備註（不寄給報名者）"></textarea>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">
+      <button class="btn btn-g btn-sm" onclick="approveReg()">✓ 核准</button>
+      <button class="btn btn-r btn-sm" onclick="rejectReg()">✗ 拒絕</button>
+      <button class="btn btn-b btn-sm" onclick="confirmPay()">💰 確認付款</button>
+      <button class="btn btn-y btn-sm" onclick="checkinReg()">📍 報到</button>
+      <button class="btn btn-s btn-sm" onclick="markClearReg()">清場</button>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-g btn-xs" onclick="approveReg()">✓ 核准</button>
-      <button class="btn btn-r btn-xs" onclick="rejectReg()">✗ 拒絕</button>
-      <button class="btn btn-b btn-xs" onclick="confirmPay()">💰 確認付款</button>
-      <button class="btn btn-y btn-xs" onclick="checkinReg()">報到</button>
-    </div>
-    <div class="modal-actions" style="margin-top:8px">
       <button class="btn btn-s" onclick="closeModal('regModal')" style="flex:1">關閉</button>
-      <button class="btn btn-g" onclick="sendSingleNotify()" style="flex:1">發通知</button>
+      <button class="btn btn-g" onclick="sendSingleNotify()" style="flex:1">✉️ 發通知</button>
     </div>
   </div>
 </div>
 
-<!-- ── Modal：公告 ── -->
+<!-- ══ Modal：公告 ══ -->
 <div class="overlay" id="annModal" onclick="if(event.target===this)closeModal('annModal')">
   <div class="modal">
     <div class="modal-title">公告</div>
@@ -464,7 +439,7 @@ textarea{min-height:70px;resize:vertical}
   </div>
 </div>
 
-<!-- ── Modal：新增管理員 ── -->
+<!-- ══ Modal：新增管理員 ══ -->
 <div class="overlay" id="staffModal" onclick="if(event.target===this)closeModal('staffModal')">
   <div class="modal">
     <div class="modal-title">新增管理員</div>
@@ -479,11 +454,9 @@ textarea{min-height:70px;resize:vertical}
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ── 設定 ──
 const API = 'https://script.google.com/macros/s/AKfycbz34vXdofbWxMBSKVkDxsvSjLwI_TPlFdX420bXDmxDbNGe5cXcG2RzeeoUsGySI8Ipjw/exec';
 
 const EQUIP_LIST = [
@@ -492,17 +465,25 @@ const EQUIP_LIST = [
   {k:'桌布',icon:'🎀',price:50},{k:'電',icon:'⚡',price:100},
   {k:'燈',icon:'💡',price:50},{k:'陽傘',icon:'☂️',price:450},
 ];
+const MOD_DEFS = [
+  {k:'brand',label:'品牌/攤商資料'},{k:'sell_item',label:'本次販售商品'},
+  {k:'sell_link',label:'商品連結'},{k:'photo',label:'出攤照片'},
+  {k:'adult',label:'大人人數'},{k:'child',label:'小孩人數'},
+  {k:'diet',label:'飲食需求'},{k:'act_name',label:'活動名稱'},
+  {k:'act_content',label:'活動內容'},{k:'act_fee',label:'材料費'},
+  {k:'collab_social',label:'社群連結'},{k:'collab_price',label:'報價條件'},
+  {k:'remark',label:'備註欄位'},
+];
 const MOD_PRESETS = {
-  '市集場次':  {brand:1,sell_item:0,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
-  '活動報名':  {brand:0,sell_item:0,sell_link:0,photo:0,adult:1,child:1,diet:1,act_name:1,act_content:1,act_fee:1,collab_social:0,collab_price:0,remark:1},
-  '合作申請':  {brand:1,sell_item:0,sell_link:0,photo:0,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:1,collab_price:1,remark:1},
-  '百貨寄賣':  {brand:1,sell_item:1,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
+  '市集場次': {brand:1,sell_item:0,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
+  '活動報名': {brand:0,sell_item:0,sell_link:0,photo:0,adult:1,child:1,diet:1,act_name:1,act_content:1,act_fee:1,collab_social:0,collab_price:0,remark:1},
+  '合作申請': {brand:1,sell_item:0,sell_link:0,photo:0,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:1,collab_price:1,remark:1},
+  '百貨寄賣': {brand:1,sell_item:1,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
 };
 
-let ST = { email:'', token:'', role:'', events:[], sessions:[], regs:[], currentReg:null };
+let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],currentReg:null,sdData:[]};
 
-// ── 工具 ──
-function $(id){ return document.getElementById(id); }
+function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
@@ -514,9 +495,9 @@ async function apiPost(body){
 }
 function closeModal(id){$(id).classList.remove('show');}
 function openModal(id){$(id).classList.add('show');}
+function esc(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 
-// ── 側邊欄 ──
-function toggleSidebar(){
+function toggleSb(){
   $('sidebar').classList.toggle('open');
   $('sbOverlay').classList.toggle('show');
 }
@@ -527,215 +508,215 @@ async function doLogin(){
   if(!email){$('loginErr').textContent='請填寫 Email';return;}
   const res=await api({action:'adminLogin',email});
   if(res.error){$('loginErr').textContent=res.error;return;}
-  ST.email=email; ST.token=res.token; ST.role=res.role;
-  localStorage.setItem('tb_admin',JSON.stringify({email,token:res.token,role:res.role,name:res.name}));
+  ST.email=email;ST.token=res.token;ST.role=res.role;
+  localStorage.setItem('tb_v3',JSON.stringify({email,token:res.token,role:res.role,name:res.name}));
+  initAdmin(res.name,res.role);
+}
+function logout(){localStorage.removeItem('tb_v3');location.reload();}
+(function(){
+  const s=JSON.parse(localStorage.getItem('tb_v3')||'null');
+  if(s&&s.token){ST.email=s.email;ST.token=s.token;ST.role=s.role;initAdmin(s.name,s.role);}
+})();
+
+function initAdmin(name,role){
   $('loginPage').style.display='none';
   $('adminPage').style.display='block';
-  $('staffName').textContent=res.name||email;
-  if(res.role==='superadmin'){$('staffNav').style.display='flex';}
-  initAdmin();
+  $('staffName').textContent=name||ST.email;
+  if(role==='superadmin') $('nav-staff').style.display='flex';
+  loadAllData();
 }
-
-function logout(){
-  localStorage.removeItem('tb_admin');
-  location.reload();
-}
-
-// ── 自動登入 ──
-(function(){
-  const saved=JSON.parse(localStorage.getItem('tb_admin')||'null');
-  if(saved&&saved.token){
-    ST=Object.assign(ST,saved);
-    $('loginPage').style.display='none';
-    $('adminPage').style.display='block';
-    $('staffName').textContent=saved.name||saved.email;
-    if(saved.role==='superadmin') $('staffNav') && ($('staffNav').style.display='flex');
-    initAdmin();
-  }
-})();
 
 // ── 頁面切換 ──
 function goPage(name){
-  document.querySelectorAll('.tab-page').forEach(p=>p.style.display='none');
+  document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  $('page-'+name).style.display='block';
-  $('nav-'+name)&&$('nav-'+name).classList.add('active');
-  if($('sidebar').classList.contains('open')) toggleSidebar();
-  // 懶載入
-  const loaders={dash:loadDash,events:loadEvents,sessions:loadSessions,regs:loadRegs,payments:loadPayments,announce:loadAnnounce,staff:loadStaff};
-  if(loaders[name]) loaders[name]();
+  $('page-'+name).classList.add('active');
+  const nb=$('nav-'+name);if(nb)nb.classList.add('active');
+  if($('sidebar').classList.contains('open'))toggleSb();
+  const lazy={events:loadEvents,regs:()=>renderRegs(),payments:loadPayments,announce:loadAnnounce,staff:loadStaff};
+  if(lazy[name])lazy[name]();
 }
 
-async function initAdmin(){
-  await loadEventsData();
-  fillEventSelects();
-  loadDash();
-}
-
-// ── 活動資料 ──
-async function loadEventsData(){
-  const evts=await api({action:'getEventsAdmin',email:ST.email,token:ST.token});
+// ── 全資料載入 ──
+async function loadAllData(){
+  const [evts,sd]=await Promise.all([
+    api({action:'getEventsAdmin',email:ST.email,token:ST.token}),
+    api({action:'getSessionDashboard',email:ST.email,token:ST.token}),
+  ]);
   ST.events=evts||[];
+  ST.sdData=sd||[];
+  fillEventSelects();
+  renderOverview();
+  await loadAllRegs();
+}
+
+async function loadAllRegs(){
+  const regs=await api({action:'getRegs',email:ST.email,token:ST.token});
+  ST.allRegs=regs||[];
+  ST.regs=ST.allRegs;
 }
 
 function fillEventSelects(){
   const opts=ST.events.map(e=>`<option value="${e.id}">${e.title}</option>`).join('');
-  ['dashEventSel','sesEventFilter','regEventFilter','sm_eventId'].forEach(id=>{
-    const el=$(id); if(!el) return;
+  ['ovEventFilter','regEventFilter','sm_eventId'].forEach(id=>{
+    const el=$(id);if(!el)return;
     const blank=id==='sm_eventId'?'<option value="">請選擇活動</option>':'<option value="">所有活動</option>';
     el.innerHTML=blank+opts;
   });
 }
 
-// ── 儀表板 ──
-async function loadDash(){
-  const eventId=$('dashEventSel')?.value||'';
-  const sessionId=$('dashSesSel')?.value||'';
-  const params={action:'getDashboard',email:ST.email,token:ST.token};
-  if(eventId) params.eventId=eventId;
-  if(sessionId) params.sessionId=sessionId;
-  const d=await api(params);
-  $('statsGrid').innerHTML=`
-    <div class="stat-card"><div class="stat-val">${d.total||0}</div><div class="stat-lbl">報名總數</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--yl)">${d.pending||0}</div><div class="stat-lbl">待審核</div></div>
-    <div class="stat-card"><div class="stat-val">${d.paid||0}</div><div class="stat-lbl">已繳費</div></div>
-    <div class="stat-card"><div class="stat-val" style="font-size:18px">NT$${(d.revenue||0).toLocaleString()}</div><div class="stat-lbl">總收款</div></div>
-    <div class="stat-card"><div class="stat-val">${d.approved||0}</div><div class="stat-lbl">已錄取</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--rd)">${d.rejected||0}</div><div class="stat-lbl">不錄取</div></div>
-    <div class="stat-card"><div class="stat-val">${d.checkedIn||0}</div><div class="stat-lbl">已報到</div></div>
-    <div class="stat-card"><div class="stat-val">${d.sessionCount||0}</div><div class="stat-lbl">開放場次</div></div>`;
+// ── 場次總覽 ──
+function renderOverview(){
+  const evFilter=$('ovEventFilter')?.value||'';
+  const stFilter=$('ovStatusFilter')?.value||'';
+  let list=ST.sdData;
+  if(evFilter)list=list.filter(s=>s.eventId===evFilter);
+  if(stFilter)list=list.filter(s=>s.status===stFilter);
+
+  if(!list.length){
+    $('overviewBody').innerHTML=`<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--lt)">尚無場次資料</td></tr>`;
+    return;
+  }
+  $('overviewBody').innerHTML=list.map(s=>{
+    const dot=s.status==='報名中'?'dot-open':s.status==='關閉'?'dot-closed':'dot-full';
+    const thumb=s.eventCover
+      ?`<img class="ses-thumb" src="${s.eventCover}" onerror="this.style.display='none'">`
+      :`<div class="ses-thumb-placeholder">🎪</div>`;
+    return `<tr>
+      <td>${thumb}</td>
+      <td>
+        <div class="ses-name-cell" style="display:block">
+          <div style="font-weight:700;font-size:13px"><span class="status-dot ${dot}"></span>${s.name}</div>
+          <div style="font-size:11px;color:var(--lt)">${s.eventName}　${s.date||''}　${s.venue||''}</div>
+        </div>
+      </td>
+      <td>${s.date||'-'}</td>
+      <td><span class="num-btn" onclick="openRegsBySes('${s.id}','${esc(s.name)}')">${s.total}</span></td>
+      <td><span class="${s.pending>0?'num-btn':''}" onclick="${s.pending>0?`openRegsBySes('${s.id}','${esc(s.name)}','待審核')`:''};" style="${s.pending>0?'':'color:var(--lt)'}">${s.pending}</span></td>
+      <td>${s.paid}</td>
+      <td>${s.seated}</td>
+      <td style="font-weight:700;color:var(--g)">NT$${s.revenue.toLocaleString()}</td>
+      <td style="color:var(--md)">NT$${s.depositTotal.toLocaleString()}</td>
+      <td>
+        <div class="action-cell">
+          <button class="btn btn-y btn-xs" onclick="toggleSes('${s.id}','${s.status}')">${s.status==='關閉'?'開放':'關閉'}</button>
+          <button class="btn btn-b btn-xs" onclick="editSes('${s.id}')">✏️</button>
+          <button class="btn btn-s btn-xs" onclick="copySes('${s.id}')">複製</button>
+          <button class="btn btn-r btn-xs" onclick="deleteSes('${s.id}','${esc(s.name)}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openRegsBySes(sesId, sesName, statusFilter){
+  goPage('regs');
+  $('regsTitle').textContent='報名審核：'+sesName;
+  ST.regs=ST.allRegs.filter(r=>r.sessionId===sesId);
+  if(statusFilter){$('regStatusFilter').value=statusFilter;}
+  renderRegs();
 }
 
 // ── 活動管理 ──
 async function loadEvents(){
-  await loadEventsData();
+  const evts=await api({action:'getEventsAdmin',email:ST.email,token:ST.token});
+  ST.events=evts||[];
+  fillEventSelects();
   const el=$('eventsList');
-  if(!ST.events.length){el.innerHTML='<div style="color:var(--md);font-size:14px">尚無活動</div>';return;}
+  if(!ST.events.length){el.innerHTML='<div style="color:var(--lt);font-size:14px;padding:8px 0">尚無活動</div>';return;}
   el.innerHTML=ST.events.map(e=>`
-    <div class="list-item">
-      <div class="li-top">
-        <div>
-          <div class="li-name">${e.title}</div>
-          <div class="li-meta">${[e.location,e.status].filter(Boolean).join('　')}</div>
-        </div>
-        <div class="li-actions">
-          <button class="btn btn-b btn-xs" onclick="editEvent('${e.id}')">✏️</button>
-          <button class="btn btn-r btn-xs" onclick="deleteEvent('${e.id}','${esc(e.title)}')">🗑</button>
-        </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f5f5f5">
+      ${e.cover
+        ?`<img src="${e.cover}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
+        :`<div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#d8f3dc,#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎪</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px">${e.title}</div>
+        <div style="font-size:12px;color:var(--lt)">${[e.location,e.status].filter(Boolean).join('　')}</div>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="btn btn-b btn-xs" onclick="openEventModal('${e.id}')">✏️</button>
+        <button class="btn btn-r btn-xs" onclick="deleteEvent('${e.id}','${esc(e.title)}')">🗑</button>
       </div>
     </div>`).join('');
 }
 
 function openEventModal(id){
-  $('em_id').value='';
-  $('em_title').value='';$('em_location').value='';$('em_desc').value='';$('em_cover').value='';
-  $('em_status').value='開放中';
-  $('eventModalTitle').textContent='新增活動';
+  const e=id?ST.events.find(x=>x.id===id):null;
+  $('em_id').value=e?.id||'';
+  $('em_title').value=e?.title||'';$('em_location').value=e?.location||'';
+  $('em_desc').value=e?.desc||'';$('em_cover').value=e?.cover||'';
+  $('em_status').value=e?.status||'開放中';
+  previewCover(e?.cover||'');
+  $('evModalTitle').textContent=e?'編輯活動':'新增活動';
   openModal('eventModal');
 }
-
-function editEvent(id){
-  const e=ST.events.find(x=>x.id===id);if(!e)return;
-  $('em_id').value=e.id;
-  $('em_title').value=e.title||'';$('em_location').value=e.location||'';
-  $('em_desc').value=e.desc||'';$('em_cover').value=e.cover||'';
-  $('em_status').value=e.status||'開放中';
-  $('eventModalTitle').textContent='編輯活動';
-  openModal('eventModal');
+function previewCover(url){
+  if(url){$('coverImg').src=url;$('coverPreview').style.display='block';}
+  else{$('coverPreview').style.display='none';}
 }
-
 async function saveEvent(){
   const id=$('em_id').value;
   const title=$('em_title').value.trim();
   if(!title){toast('請填寫活動名稱');return;}
-  const body={action:id?'updateEvent':'createEvent',id,title,
+  const res=await apiPost({action:id?'updateEvent':'createEvent',id,title,
     location:$('em_location').value.trim(),desc:$('em_desc').value.trim(),
-    cover:$('em_cover').value.trim(),status:$('em_status').value};
-  const res=await apiPost(body);
+    cover:$('em_cover').value.trim(),status:$('em_status').value});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 儲存成功');closeModal('eventModal');
-  await loadEventsData();fillEventSelects();loadEvents();
+  await loadAllData();loadEvents();
 }
-
 async function deleteEvent(id,name){
   if(!confirm('確定刪除活動「'+name+'」？'))return;
   const res=await apiPost({action:'deleteEvent',id});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已刪除');await loadEventsData();fillEventSelects();loadEvents();
+  toast('✅ 已刪除');await loadAllData();loadEvents();
 }
 
-// ── 場次管理 ──
-async function loadSessions(){
-  const eventId=$('sesEventFilter')?.value||'';
-  const params={action:'getSessionsAdmin',email:ST.email,token:ST.token};
-  if(eventId) params.eventId=eventId;
-  const sessions=await api(params);
-  ST.sessions=sessions||[];
-  const el=$('sessionsList');
-  if(!ST.sessions.length){el.innerHTML='<div style="color:var(--md);font-size:14px">尚無場次</div>';return;}
-  el.innerHTML=ST.sessions.map(s=>`
-    <div class="list-item">
-      <div class="li-top">
-        <div style="flex:1">
-          <div class="li-name">${s.name}</div>
-          <div class="li-meta">${[s.type,s.date,s.venue,s.status].filter(Boolean).join('　')}</div>
-          <div class="li-meta" style="margin-top:2px">名額：${s.count}/${s.limit}　費用：${s.fee>0?'NT$'+s.fee:'免費'}</div>
-        </div>
-        <div class="li-actions">
-          <button class="btn btn-y btn-xs" onclick="toggleSes('${s.id}','${s.status}')">${s.status==='關閉'?'開放':'關閉'}</button>
-          <button class="btn btn-b btn-xs" onclick="editSession('${s.id}')">✏️</button>
-          <button class="btn btn-s btn-xs" onclick="copySes('${s.id}')">複製</button>
-          <button class="btn btn-r btn-xs" onclick="deleteSes('${s.id}','${esc(s.name)}')">🗑</button>
-        </div>
-      </div>
-    </div>`).join('');
+// ── 場次 modal ──
+function buildModGrid(mods){
+  $('modGrid').innerHTML=MOD_DEFS.map(d=>`
+    <label class="mod-item ${mods[d.k]?'on':''}" id="modwrap_${d.k}">
+      <input type="checkbox" id="mod_${d.k}" ${mods[d.k]?'checked':''} onchange="this.closest('.mod-item').classList.toggle('on',this.checked)">
+      ${d.label}
+    </label>`).join('');
 }
-
 function buildEquipDefs(equipObj){
   $('equipDefs').innerHTML=EQUIP_LIST.map(eq=>`
     <div class="equip-def">
       <div class="equip-def-name">${eq.icon} ${eq.k}</div>
-      <div class="equip-def-open"><input type="checkbox" id="eq_open_${eq.k}" ${equipObj[eq.k]?.open?'checked':''}></div>
-      <div class="equip-def-price"><input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" class="equip-qty" inputmode="numeric"></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="eq_open_${eq.k}" ${equipObj[eq.k]?.open?'checked':''} style="width:16px;height:16px;accent-color:var(--g)">
+        <span style="font-size:11px;color:var(--lt)">開放</span>
+        <input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" class="equip-def-price" inputmode="numeric" placeholder="單價">
+      </div>
     </div>`).join('');
 }
-
-function getEquipJson(){
-  const obj={};
-  EQUIP_LIST.forEach(eq=>{
-    obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked, price:parseInt($('eq_price_'+eq.k)?.value)||0};
-  });
-  return obj;
-}
-
-function getModulesJson(){
-  const keys=['brand','sell_item','sell_link','photo','adult','child','diet','act_name','act_content','act_fee','collab_social','collab_price','remark'];
-  const obj={};
-  keys.forEach(k=>{obj[k]=!!$('mod_'+k)?.checked;});
-  return obj;
-}
-
 function updateModPresets(){
-  const type=$('sm_type')?.value||'市集場次';
+  const type=$('sm_type').value;
   const preset=MOD_PRESETS[type]||MOD_PRESETS['市集場次'];
-  Object.entries(preset).forEach(([k,v])=>{const el=$('mod_'+k);if(el)el.checked=!!v;});
+  buildModGrid(preset);
+}
+function getModulesJson(){
+  const obj={};MOD_DEFS.forEach(d=>{obj[d.k]=!!$('mod_'+d.k)?.checked;});return obj;
+}
+function getEquipJson(){
+  const obj={};EQUIP_LIST.forEach(eq=>{obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked,price:parseInt($('eq_price_'+eq.k)?.value)||0};});return obj;
 }
 
-function openSessionModal(){
-  $('sm_id').value='';
-  $('sm_name').value='';$('sm_date').value='';$('sm_venue').value='';
+function openSesModal(){resetSesModal();openModal('sesModal');}
+function resetSesModal(){
+  $('sm_id').value='';$('sm_name').value='';$('sm_date').value='';$('sm_venue').value='';
   $('sm_fee').value=0;$('sm_deposit').value=500;$('sm_limit').value=30;
   $('sm_start').value='10:00';$('sm_end').value='18:00';
   $('sm_organizer').value='';$('sm_basicEquip').value='';
   $('sm_review').checked=true;$('sm_type').value='市集場次';
   $('sesModalTitle').textContent='新增場次';
-  updateModPresets();
-  buildEquipDefs({});
-  openModal('sessionModal');
+  updateModPresets();buildEquipDefs({});
 }
-
-function editSession(id){
-  const s=ST.sessions.find(x=>x.id===id);if(!s)return;
+async function editSes(id){
+  // 先從 API 取完整場次資料
+  const s=await api({action:'getSession',id});
+  if(s.error){toast('❌ '+s.error);return;}
   $('sm_id').value=s.id;
   $('sm_eventId').value=s.eventId||'';
   $('sm_name').value=s.name||'';$('sm_type').value=s.type||'市集場次';
@@ -745,242 +726,251 @@ function editSession(id){
   $('sm_limit').value=s.limit||30;
   $('sm_organizer').value=s.organizer||'';$('sm_basicEquip').value=s.basicEquip||'';
   $('sm_review').checked=s.needReview!==false;
-  // 模組
-  const mods=s.modules||{};
-  Object.keys(mods).forEach(k=>{const el=$('mod_'+k);if(el)el.checked=!!mods[k];});
+  buildModGrid(s.modules||{});
   buildEquipDefs(s.equip||{});
   $('sesModalTitle').textContent='編輯場次';
-  openModal('sessionModal');
+  openModal('sesModal');
 }
-
 async function saveSession(){
   const id=$('sm_id').value;
   const name=$('sm_name').value.trim();
   const eventId=$('sm_eventId').value;
   const date=$('sm_date').value;
   const venue=$('sm_venue').value.trim();
-  if(!name||!eventId||!date||!venue){toast('請填寫必填欄位（活動、場次名稱、日期、場地）');return;}
-  const body={
+  if(!name||!eventId||!date||!venue){toast('請填寫必填欄位（活動、名稱、日期、場地）');return;}
+  const res=await apiPost({
     action:id?'updateSession':'createSession',id,eventId,name,
     type:$('sm_type').value,date,venue,
     startTime:$('sm_start').value,endTime:$('sm_end').value,
-    fee:parseInt($('sm_fee').value)||0,
-    deposit:parseInt($('sm_deposit').value)||0,
+    fee:parseInt($('sm_fee').value)||0,deposit:parseInt($('sm_deposit').value)||0,
     limit:parseInt($('sm_limit').value)||30,
-    organizer:$('sm_organizer').value.trim(),
-    basicEquip:$('sm_basicEquip').value.trim(),
+    organizer:$('sm_organizer').value.trim(),basicEquip:$('sm_basicEquip').value.trim(),
     needReview:$('sm_review').checked,
-    modules:getModulesJson(),
-    equip:getEquipJson(),
-    status:'報名中',
-  };
-  const res=await apiPost(body);
+    modules:getModulesJson(),equip:getEquipJson(),status:'報名中',
+  });
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 儲存成功');closeModal('sessionModal');loadSessions();
+  toast('✅ 場次已儲存');closeModal('sesModal');
+  await loadAllData();
 }
-
 async function toggleSes(id,status){
   const res=await apiPost({action:'toggleSession',id});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 狀態已更新');loadSessions();
+  toast('狀態已更新');await loadAllData();
 }
 async function copySes(id){
   const res=await apiPost({action:'copySession',id});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已複製');loadSessions();
+  toast('✅ 已複製');await loadAllData();
 }
 async function deleteSes(id,name){
   if(!confirm('確定刪除場次「'+name+'」？'))return;
   const res=await apiPost({action:'deleteSession',id});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已刪除');loadSessions();
+  toast('✅ 已刪除');await loadAllData();
 }
 
 // ── 報名審核 ──
-async function loadRegs(){
-  const sessionId=$('regSesFilter')?.value||'';
-  const eventId=$('regEventFilter')?.value||'';
-  const params={action:'getRegs',email:ST.email,token:ST.token};
-  if(sessionId) params.sessionId=sessionId;
-  else if(eventId) params.eventId=eventId;
-  const regs=await api(params);
-  ST.regs=regs||[];
-  filterRegs();
+function onRegEventChange(){
+  const evId=$('regEventFilter').value;
+  // 更新場次下拉
+  const sesSel=$('regSesFilter');
+  const sesOpts=ST.sdData.filter(s=>!evId||s.eventId===evId).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  sesSel.innerHTML='<option value="">所有場次</option>'+sesOpts;
+  loadRegs();
 }
-
-function filterRegs(){
+async function loadRegs(){
+  const evId=$('regEventFilter').value;
+  const sesId=$('regSesFilter').value;
+  let list=ST.allRegs;
+  if(sesId) list=list.filter(r=>r.sessionId===sesId);
+  else if(evId) list=list.filter(r=>r.eventId===evId);
+  ST.regs=list;
+  renderRegs();
+}
+function renderRegs(){
   const status=$('regStatusFilter')?.value||'';
+  const kw=($('regSearch')?.value||'').toLowerCase();
   let list=ST.regs;
   if(status) list=list.filter(r=>r.status===status);
-  const el=$('regsList');
-  if(!list.length){el.innerHTML='<div style="color:var(--md);font-size:14px">無報名紀錄</div>';return;}
-  el.innerHTML=list.map(r=>{
-    const badge={待審核:'badge-wait',已錄取:'badge-ok',不錄取:'badge-no'}[r.status]||'badge-wait';
-    const payBadge=r.payStatus==='已繳費 ✓'?'badge-paid':r.payStatus==='未繳費'?'badge-pay':'';
-    return `<div class="reg-row">
-      <div class="reg-top">
-        <input type="checkbox" class="reg-check" data-id="${r.id}" style="width:16px;height:16px;accent-color:var(--g)">
-        <div class="reg-name">${r.name}</div>
-        <span class="status-badge ${badge}">${r.status}</span>
-        ${r.payStatus?`<span class="status-badge ${payBadge}">${r.payStatus}</span>`:''}
-      </div>
-      <div class="reg-meta">${r.brand||''}　${r.email}　${r.phone||''}</div>
-      <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">
-        <button class="btn btn-s btn-xs" onclick="openRegDetail('${r.id}')">詳情</button>
-        <button class="btn btn-g btn-xs" onclick="quickApprove('${r.id}')">✓ 核准</button>
-        <button class="btn btn-r btn-xs" onclick="quickReject('${r.id}')">✗ 拒絕</button>
-        <button class="btn btn-b btn-xs" onclick="quickPay('${r.id}')">💰 確認付款</button>
-      </div>
-    </div>`;
+  if(kw) list=list.filter(r=>(r.name+r.brand+r.email).toLowerCase().includes(kw));
+  $('regsCount').textContent=`報名列表（${list.length} 筆）`;
+  if(!list.length){
+    $('regsBody').innerHTML=`<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--lt)">無報名紀錄</td></tr>`;
+    return;
+  }
+  $('regsBody').innerHTML=list.map(r=>{
+    const ab={待審核:'badge-wait',已錄取:'badge-ok',不錄取:'badge-no'}[r.status]||'badge-wait';
+    const pb=r.payStatus==='已繳費 ✓'?'badge-paid':'badge-unpaid';
+    return `<tr>
+      <td><input type="checkbox" class="reg-chk" data-id="${r.id}" style="width:14px;height:14px;accent-color:var(--g)"></td>
+      <td><div style="font-weight:700">${r.name}</div><div style="font-size:11px;color:var(--lt)">${r.brand||''}</div></td>
+      <td><div style="font-size:12px">${r.email}</div><div style="font-size:11px;color:var(--lt)">${r.phone||''}</div></td>
+      <td><span class="badge ${ab}">${r.status}</span></td>
+      <td><span class="badge ${pb}">${r.payStatus||'未繳費'}</span></td>
+      <td style="font-weight:700">NT$${r.amount||0}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:nowrap">
+          <button class="btn btn-s btn-xs" onclick="openRegDetail('${r.id}')">詳情</button>
+          <button class="btn btn-g btn-xs" onclick="quickApprove('${r.id}')">✓</button>
+          <button class="btn btn-r btn-xs" onclick="quickReject('${r.id}')">✗</button>
+          <button class="btn btn-b btn-xs" onclick="quickPay('${r.id}')">💰</button>
+        </div>
+      </td>
+    </tr>`;
   }).join('');
 }
+function toggleAll(el){document.querySelectorAll('.reg-chk').forEach(c=>c.checked=el.checked);}
+function getChecked(){return[...document.querySelectorAll('.reg-chk:checked')].map(e=>e.dataset.id);}
 
 function openRegDetail(id){
-  const r=ST.regs.find(x=>x.id===id);if(!r)return;
+  const r=ST.regs.find(x=>x.id===id)||ST.allRegs.find(x=>x.id===id);
+  if(!r)return;
   ST.currentReg=r;
-  let equip={};
-  try{equip=JSON.parse(r.equip||'{}');}catch(e){}
-  const equipLines=Object.entries(equip).filter(([k,v])=>v>0).map(([k,v])=>`${k} x${v}`).join('、');
+  let equip={};try{equip=JSON.parse(r.equip||'{}');}catch(e){}
+  const eqStr=Object.entries(equip).filter(([k,v])=>v>0).map(([k,v])=>`${k}×${v}`).join('、');
+  // 找場次圖片
+  const sd=ST.sdData.find(s=>s.id===r.sessionId);
+  const coverHtml=sd?.eventCover?`<img src="${sd.eventCover}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px">`:'' ;
   $('regDetail').innerHTML=`
-    <div style="display:grid;gap:6px;font-size:13px">
+    ${coverHtml}
+    <div style="display:grid;gap:7px;font-size:13px">
       <div><strong>報名 ID：</strong>${r.id}</div>
       <div><strong>姓名：</strong>${r.name}　<strong>手機：</strong>${r.phone||'-'}</div>
       <div><strong>Email：</strong>${r.email}</div>
       <div><strong>品牌：</strong>${r.brand||'-'}　<strong>類別：</strong>${r.sellCat||'-'}</div>
-      ${r.photo?`<div><strong>出攤照：</strong><a href="${r.photo}" target="_blank" style="color:var(--bl)">查看照片</a></div>`:''}
-      ${equipLines?`<div><strong>設備：</strong>${equipLines}</div>`:''}
+      ${r.photo?`<div><strong>出攤照：</strong><a href="${r.photo}" target="_blank" style="color:var(--bl)">查看照片 ↗</a></div>`:''}
+      ${eqStr?`<div><strong>設備：</strong>${eqStr}</div>`:''}
       <div><strong>審核：</strong>${r.status}　<strong>付款：</strong>${r.payStatus||'-'}　<strong>金額：</strong>NT$${r.amount||0}</div>
       <div><strong>報到：</strong>${r.checkin||'未報到'}　<strong>清場：</strong>${r.clearStatus||'-'}</div>
-      <div><strong>報名時間：</strong>${r.createdAt?.slice(0,16)||'-'}</div>
+      <div style="font-size:11px;color:var(--lt)">報名時間：${r.createdAt?.slice(0,16)||'-'}</div>
     </div>`;
   $('regNote').value=r.adminNote||'';
   openModal('regModal');
 }
 
-async function approveReg(){
-  await updateStatus(ST.currentReg?.id,'已錄取');closeModal('regModal');
-}
-async function rejectReg(){
-  await updateStatus(ST.currentReg?.id,'不錄取');closeModal('regModal');
-}
-async function quickApprove(id){ await updateStatus(id,'已錄取'); }
-async function quickReject(id){ await updateStatus(id,'不錄取'); }
-
+async function approveReg(){await updateStatus(ST.currentReg?.id,'已錄取');closeModal('regModal');}
+async function rejectReg(){await updateStatus(ST.currentReg?.id,'不錄取');closeModal('regModal');}
+async function quickApprove(id){await updateStatus(id,'已錄取');}
+async function quickReject(id){await updateStatus(id,'不錄取');}
 async function updateStatus(id,status){
   if(!id)return;
-  const note=$('regNote')?.value||'';
-  const res=await apiPost({action:'updateRegStatus',regId:id,status,adminNote:note});
+  const res=await apiPost({action:'updateRegStatus',regId:id,status,adminNote:$('regNote')?.value||''});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 狀態已更新');
-  const r=ST.regs.find(x=>x.id===id);if(r)r.status=status;
-  filterRegs();
+  // 更新本地
+  [ST.regs,ST.allRegs].forEach(arr=>{const r=arr.find(x=>x.id===id);if(r)r.status=status;});
+  renderRegs();
+  // 後台重新抓統計
+  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+  ST.sdData=sd||[];renderOverview();
 }
-
 async function confirmPay(){
   if(!ST.currentReg)return;
   const res=await apiPost({action:'confirmPayment',regId:ST.currentReg.id,method:'手動確認'});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已確認付款');closeModal('regModal');loadRegs();
+  toast('✅ 已確認付款');closeModal('regModal');
+  await loadAllRegs();renderRegs();
+  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+  ST.sdData=sd||[];renderOverview();
 }
 async function quickPay(id){
   const res=await apiPost({action:'confirmPayment',regId:id,method:'手動確認'});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已確認付款');loadRegs();
+  toast('✅ 已確認付款');
+  await loadAllRegs();renderRegs();
+  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+  ST.sdData=sd||[];renderOverview();
 }
-
 async function checkinReg(){
   if(!ST.currentReg)return;
   const res=await apiPost({action:'checkin',regId:ST.currentReg.id});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已報到');closeModal('regModal');loadRegs();
+  toast('✅ 已報到');closeModal('regModal');await loadAllRegs();renderRegs();
 }
-
-function getCheckedRegs(){
-  return [...document.querySelectorAll('.reg-check:checked')].map(el=>el.dataset.id);
+async function markClearReg(){
+  if(!ST.currentReg)return;
+  const refund=confirm('同時標記退押金？');
+  const res=await apiPost({action:'markClear',regId:ST.currentReg.id,refunded:refund});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('✅ 已清場');closeModal('regModal');
 }
 async function batchApprove(){
-  const ids=getCheckedRegs();if(!ids.length){toast('請先勾選報名');return;}
+  const ids=getChecked();if(!ids.length){toast('請先勾選報名');return;}
   const res=await apiPost({action:'batchUpdateStatus',regIds:ids,status:'已錄取'});
   if(res.error){toast('❌ '+res.error);return;}
-  toast(`✅ 已核准 ${ids.length} 筆`);loadRegs();
+  toast(`✅ 已核准 ${ids.length} 筆`);await loadAllRegs();renderRegs();
+  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+  ST.sdData=sd||[];renderOverview();
 }
 async function batchReject(){
-  const ids=getCheckedRegs();if(!ids.length){toast('請先勾選報名');return;}
-  if(!confirm(`確定拒絕 ${ids.length} 筆報名？`))return;
+  const ids=getChecked();if(!ids.length){toast('請先勾選報名');return;}
+  if(!confirm(`確定拒絕 ${ids.length} 筆？`))return;
   const res=await apiPost({action:'batchUpdateStatus',regIds:ids,status:'不錄取'});
   if(res.error){toast('❌ '+res.error);return;}
-  toast(`✅ 已拒絕 ${ids.length} 筆`);loadRegs();
+  toast(`✅ 已拒絕 ${ids.length} 筆`);await loadAllRegs();renderRegs();
+  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+  ST.sdData=sd||[];renderOverview();
 }
-
 async function sendSingleNotify(){
   if(!ST.currentReg)return;
   const subj=prompt('通知標題：');if(!subj)return;
-  const body=prompt('通知內容：');if(!body)return;
-  const res=await apiPost({action:'sendNotify',regId:ST.currentReg.id,subject:subj,content:body});
+  const content=prompt('通知內容：');if(!content)return;
+  const res=await apiPost({action:'sendNotify',regId:ST.currentReg.id,subject:subj,content});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已發送通知');
+  toast('✅ 已發送');
 }
 
 // ── 付款管理 ──
 async function loadPayments(){
   const pays=await api({action:'getPayments',email:ST.email,token:ST.token});
-  const el=$('paymentsList');
   const list=pays||[];
-  if(!list.length){el.innerHTML='<div style="color:var(--md);font-size:14px">無付款紀錄</div>';return;}
-  el.innerHTML=list.map(p=>`
-    <div class="list-item">
-      <div class="li-top">
-        <div>
-          <div class="li-name">${p.email}</div>
-          <div class="li-meta">NT$ ${p.amount}　${p.method}　${p.status}</div>
-          <div class="li-meta">${p.paidAt?.slice(0,16)||''}</div>
-        </div>
-      </div>
-    </div>`).join('');
+  $('paymentsBody').innerHTML=list.length
+    ?list.map(p=>`<tr>
+        <td>${p.email}</td>
+        <td style="font-weight:700">NT$${p.amount}</td>
+        <td>${p.method}</td>
+        <td>${p.status}</td>
+        <td style="font-size:11px;color:var(--lt)">${p.paidAt?.slice(0,16)||''}</td>
+      </tr>`).join('')
+    :`<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--lt)">無付款紀錄</td></tr>`;
 }
 
 // ── 公告管理 ──
 async function loadAnnounce(){
   const anns=await api({action:'getAnnouncements'});
   const el=$('announceList');
-  if(!(anns||[]).length){el.innerHTML='<div style="color:var(--md);font-size:14px">尚無公告</div>';return;}
+  if(!(anns||[]).length){el.innerHTML='<div style="color:var(--lt);font-size:14px">尚無公告</div>';return;}
   el.innerHTML=(anns||[]).map(a=>`
-    <div class="list-item">
-      <div class="li-top">
-        <div class="li-name">${a.title}</div>
-        <div class="li-actions">
-          <button class="btn btn-b btn-xs" onclick="editAnn('${a.id}')">✏️</button>
-          <button class="btn btn-r btn-xs" onclick="deleteAnn('${a.id}')">🗑</button>
-        </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f5f5f5">
+      <div>
+        <div style="font-weight:700;font-size:14px">${a.title}</div>
+        <div style="font-size:12px;color:var(--lt)">${a.content||''}</div>
       </div>
-      <div class="li-meta">${a.content||''}</div>
+      <div style="display:flex;gap:5px;flex-shrink:0;margin-left:10px">
+        <button class="btn btn-b btn-xs" onclick="editAnn('${a.id}')">✏️</button>
+        <button class="btn btn-r btn-xs" onclick="deleteAnn('${a.id}')">🗑</button>
+      </div>
     </div>`).join('');
 }
-
 function openAnnModal(){
   $('ann_id').value='';$('ann_title').value='';$('ann_content').value='';
-  $('ann_url').value='';$('ann_urlText').value='';
-  openModal('annModal');
+  $('ann_url').value='';$('ann_urlText').value='';openModal('annModal');
 }
-function editAnn(id){
-  // 重新取資料
-  api({action:'getAnnouncements'}).then(anns=>{
-    const a=(anns||[]).find(x=>x.id===id);if(!a)return;
-    $('ann_id').value=a.id;$('ann_title').value=a.title||'';$('ann_content').value=a.content||'';
-    $('ann_url').value=a.url||'';$('ann_urlText').value=a.urlText||'';
-    openModal('annModal');
-  });
+async function editAnn(id){
+  const anns=await api({action:'getAnnouncements'});
+  const a=(anns||[]).find(x=>x.id===id);if(!a)return;
+  $('ann_id').value=a.id;$('ann_title').value=a.title||'';$('ann_content').value=a.content||'';
+  $('ann_url').value=a.url||'';$('ann_urlText').value=a.urlText||'';openModal('annModal');
 }
 async function saveAnn(){
   const title=$('ann_title').value.trim();if(!title){toast('請填寫標題');return;}
-  const res=await apiPost({action:'saveAnnouncement',id:$('ann_id').value,
-    title,content:$('ann_content').value.trim(),
-    url:$('ann_url').value.trim(),urlText:$('ann_urlText').value.trim()});
+  const res=await apiPost({action:'saveAnnouncement',id:$('ann_id').value,title,
+    content:$('ann_content').value.trim(),url:$('ann_url').value.trim(),urlText:$('ann_urlText').value.trim()});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已儲存');closeModal('annModal');loadAnnounce();
 }
 async function deleteAnn(id){
-  if(!confirm('確定刪除此公告？'))return;
+  if(!confirm('確定刪除？'))return;
   const res=await apiPost({action:'deleteAnnouncement',id});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已刪除');loadAnnounce();
@@ -990,20 +980,18 @@ async function deleteAnn(id){
 async function loadStaff(){
   const list=await api({action:'getStaff',email:ST.email,token:ST.token});
   const el=$('staffList');
-  if(!(list||[]).length){el.innerHTML='<div style="color:var(--md)">無管理員</div>';return;}
+  if(!(list||[]).length){el.innerHTML='<div style="color:var(--lt)">無管理員</div>';return;}
   el.innerHTML=(list||[]).map(s=>`
-    <div class="list-item">
-      <div class="li-top">
-        <div><div class="li-name">${s.name||s.email}</div><div class="li-meta">${s.email}　${s.role}</div></div>
-        <div class="li-actions">
-          <button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button>
-        </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f5">
+      <div>
+        <div style="font-weight:700;font-size:14px">${s.name||s.email}</div>
+        <div style="font-size:12px;color:var(--lt)">${s.email}　${s.role}</div>
       </div>
+      <button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button>
     </div>`).join('');
 }
 function openAddStaffModal(){
-  $('sf_email').value='';$('sf_name').value='';$('sf_role').value='staff';
-  openModal('staffModal');
+  $('sf_email').value='';$('sf_name').value='';$('sf_role').value='staff';openModal('staffModal');
 }
 async function saveStaff(){
   const email=$('sf_email').value.trim();const name=$('sf_name').value.trim();
@@ -1013,13 +1001,11 @@ async function saveStaff(){
   toast('✅ 已新增');closeModal('staffModal');loadStaff();
 }
 async function removeStaff(email,name){
-  if(!confirm('確定移除「'+name+'」的管理員權限？'))return;
+  if(!confirm('確定移除「'+name+'」？'))return;
   const res=await apiPost({action:'removeStaff',targetEmail:email});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已移除');loadStaff();
 }
-
-function esc(s){return String(s).replace(/'/g,"\\'");}
 </script>
 </body>
 </html>
