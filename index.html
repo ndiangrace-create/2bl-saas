@@ -466,7 +466,7 @@ async function openEvent(eventId){
   sesArea.scrollIntoView({behavior:'smooth',block:'start'});
 
   const params={action:'getSessions',eventId};
-  if(ST.currentCatFilter) params.portal=ST.currentCatFilter;
+  // 不篩入口，顯示所有開放場次
   const sessions=await api(params);
   ST.sessions=sessions||[];
 
@@ -594,13 +594,24 @@ function renderDynForm(s){
     </div>`;
   html+=`</div></div>`;
 
-  // 品牌資料
+  // 品牌資料（自動帶出會員資料）
   if(mods.brand!==false){
-    html+=`<div class="fcard"><div class="fcard-t">🏷️ 品牌資料</div><div class="fcard-body">`;
+    html+=`<div class="fcard"><div class="fcard-t">🏷️ 攤商資料</div><div class="fcard-body">`;
+    if(V.brand||V.fb||V.ig){
+      html+=`<div style="background:var(--gp);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:var(--g)">✅ 已自動帶入您的會員資料</div>`;
+    }
     html+=`<label>品牌名稱</label><input type="text" id="f_brand" value="${esc(V.brand||'')}" placeholder="品牌名稱">`;
     html+=`<label>品牌介紹</label><textarea id="f_brandIntro" placeholder="簡短介紹品牌或商品">${esc(V.brandIntro||'')}</textarea>`;
-    html+=`<label>FB 粉絲專頁</label><input type="url" id="f_fb" value="${esc(V.fb||'')}" placeholder="https://facebook.com/...">`;
-    html+=`<label>IG 帳號</label><input type="url" id="f_ig" value="${esc(V.ig||'')}" placeholder="https://instagram.com/...">`;
+    html+=`<label>FB 粉絲專頁</label>`;
+    html+=`<div style="display:flex;align-items:center;gap:8px">`;
+    html+=`<input type="url" id="f_fb" value="${esc(V.fb||'')}" placeholder="https://facebook.com/..." style="flex:1">`;
+    if(V.fb) html+=`<a href="${esc(V.fb)}" target="_blank" style="background:#1877F2;color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;text-decoration:none;white-space:nowrap;flex-shrink:0">開啟 ↗</a>`;
+    html+=`</div>`;
+    html+=`<label>IG 帳號</label>`;
+    html+=`<div style="display:flex;align-items:center;gap:8px">`;
+    html+=`<input type="url" id="f_ig" value="${esc(V.ig||'')}" placeholder="https://instagram.com/..." style="flex:1">`;
+    if(V.ig) html+=`<a href="${esc(V.ig)}" target="_blank" style="background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;text-decoration:none;white-space:nowrap;flex-shrink:0">開啟 ↗</a>`;
+    html+=`</div>`;
     html+=`</div></div>`;
   }
 
