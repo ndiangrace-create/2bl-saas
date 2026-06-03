@@ -224,12 +224,12 @@ textarea{min-height:72px;resize:vertical}
   <div class="cats-section">
     <div class="cats-title">選擇報名類型</div>
     <div class="cats-grid">
-      <div class="cat-btn active" id="cat-market" onclick="filterCat('市集場次',this)">
+      <div class="cat-btn active" id="cat-market" onclick="filterCat('市集報名',this)">
         <img src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/6.png" alt="" onerror="this.innerHTML='🏪';this.style.fontSize='32px'">
         <div class="cat-name">市集報名</div>
         <div class="cat-sub">參加市集擺攤</div>
       </div>
-      <div class="cat-btn" id="cat-activity" onclick="filterCat('活動報名',this)">
+      <div class="cat-btn" id="cat-activity" onclick="filterCat('體驗活動',this)">
         <img src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/5.png" alt="" onerror="this.innerHTML='🎨';this.style.fontSize='32px'">
         <div class="cat-name">體驗活動</div>
         <div class="cat-sub">各類主題活動</div>
@@ -239,7 +239,7 @@ textarea{min-height:72px;resize:vertical}
         <div class="cat-name">百貨寄賣</div>
         <div class="cat-sub">商場百貨通路</div>
       </div>
-      <div class="cat-btn" id="cat-collab" onclick="filterCat('合作申請',this)">
+      <div class="cat-btn" id="cat-collab" onclick="filterCat('合作洽詢',this)">
         <img src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/3.png" alt="" onerror="this.innerHTML='🤝';this.style.fontSize='32px'">
         <div class="cat-name">合作洽詢</div>
         <div class="cat-sub">人才與異業合作</div>
@@ -345,10 +345,10 @@ textarea{min-height:72px;resize:vertical}
   <button class="bot-btn bot-line" onclick="openLine()">
     <span class="bot-icon">💬</span>官方 LINE
   </button>
-  <button class="bot-btn bot-member" onclick="navTo('member')">
+  <button class="bot-btn bot-member" onclick="goMemberPage()">
     <span class="bot-icon">👤</span>會員登入
   </button>
-  <button class="bot-btn bot-profile" onclick="navTo('member')">
+  <button class="bot-btn bot-profile" onclick="goMemberPage()">
     <span class="bot-icon">📋</span>我的資料
   </button>
 </div>
@@ -473,6 +473,17 @@ function navTo(tab){
   window.scrollTo(0,0);
 }
 function backToHome(){navTo('home');}
+function goMemberPage(){
+  // 如果還沒登入，先顯示登入區
+  navTo('member');
+  if(!ST.memberEmail){
+    $('memberLoginArea').style.display='block';
+    $('memberArea').style.display='none';
+  } else {
+    $('memberLoginArea').style.display='none';
+    $('memberArea').style.display='block';
+  }
+}
 function closePortalSessions(){
   $('portalSessionArea').style.display='none';
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
