@@ -405,6 +405,16 @@ textarea{min-height:72px;resize:vertical}
   </div>
 </div>
 
+<!-- ══ 選位 Modal ══ -->
+<div class="modal-overlay" id="stallPickerModal" onclick="if(event.target===this)closeModal('stallPickerModal')">
+  <div class="modal-box">
+    <div class="modal-title" id="stallPickerTitle">選擇攤位</div>
+    <div style="font-size:12px;color:var(--md);margin-bottom:12px">綠色=可選　黃色=預留中　紅色=已選走</div>
+    <div id="stallGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>
+    <button class="btn-s2" onclick="closeModal('stallPickerModal')" style="width:100%;margin-top:16px">取消</button>
+  </div>
+</div>
+
 <!-- ══ 編輯資料 Modal ══ -->
 <div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeModal('editModal')">
   <div class="modal-box">
@@ -731,8 +741,12 @@ function renderDynForm(s){
   // 攤位加購數量
   if(s.maxStalls>0){
     const maxS=s.maxStalls||3;
-    const stallOpts=Array.from({length:maxS},(_,i)=>`<div class="stall-opt ${i===0?'on':''}" onclick="selectStall(this,${i+1})">${i+1} 攤</div>`).join('');
-    html+=`<label>攤位數量</label><div class="stall-picker">${stallOpts}</div>`;
+    html+=`<label>攤位數量（最多 ${maxS} 攤）</label>
+    <div class="stall-counter">
+      <button onclick="adjStall(-1)">−</button>
+      <div class="stall-num" id="stallNum">1</div>
+      <button onclick="adjStall(1)">＋</button>
+    </div>`;
   }
   html+=`</div></div>`;
 
@@ -832,6 +846,16 @@ function renderDynForm(s){
     html+=`</div></div>`;
   }
 
+  // 選位（有設定攤位清單才顯示）
+  html+=`<div class="fcard" id="stallPickerCard" style="display:none">
+    <div class="fcard-t">📍 選擇攤位</div>
+    <div class="fcard-body">
+      <div style="font-size:12px;color:var(--md);margin-bottom:8px">選擇您想要的攤位位置（付款後確認）</div>
+      <div id="stallGrid" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div style="font-size:11px;color:var(--lt);margin-top:6px">灰色=已被選走　綠色=可選　深綠=您選擇的</div>
+    </div>
+  </div>`;
+
   // 備註
   if(mods.remark!==false){
     html+=`<div class="fcard"><div class="fcard-t">📝 備註（選填）</div><div class="fcard-body">`;
@@ -904,6 +928,16 @@ async function quickMemberLogin(){
   // 更新 Email 欄位
   const emailEl=document.getElementById('f_email');
   if(emailEl&&!emailEl.value) emailEl.value=email;
+}
+function adjStall(delta){
+  const s=ST.currentSession;
+  const max=s?.maxStalls||1;
+  const cur=ST.stallCount||1;
+  const next=Math.min(max,Math.max(1,cur+delta));
+  ST.stallCount=next;
+  const el=document.getElementById('stallNum');
+  if(el) el.textContent=next;
+  updateFee();
 }
 function toggleDate(i){
   const chk=document.getElementById('dp_'+i);
@@ -990,6 +1024,7 @@ async function submitReg(){
     fb:$('f_fb')?.value.trim()||'',
     ig:$('f_ig')?.value.trim()||'',
     remark:$('f_remark')?.value.trim()||'',
+    stallNumber:ST.selectedStall||'',
     customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     customFields:{},
   };
@@ -1049,6 +1084,7 @@ async function renderMyRegs(regs){
     const badge={待審核:'badge-wait',已錄取:'badge-ok',不錄取:'badge-no'}[r.status]||'badge-wait';
     const payBadge=r.payStatus==='已繳費 ✓'?'badge-ok':r.payStatus==='待確認'?'badge-wait':'';
     const canPay=r.status==='已錄取'&&r.payStatus!=='已繳費 ✓'&&r.amount>0;
+    const canSelect=r.status==='已錄取';
     return `<div class="reg-record">
       <div class="reg-rec-top">
         <div class="reg-ses-name">${sesNames[r.sessionId]||r.sessionId}</div>
@@ -1059,7 +1095,10 @@ async function renderMyRegs(regs){
           ${r.amount>0?`NT$ ${r.amount}　`:''}
           <span class="status-badge ${payBadge}" style="font-size:10px">${r.payStatus||'未繳費'}</span>
         </div>
-        ${canPay?`<button onclick="showPayPage('${r.id}','${sesNames[r.sessionId]||r.sessionId}',${r.amount})" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">去繳費</button>`:''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${canPay?`<button onclick="showPayPage('${r.id}','${sesNames[r.sessionId]||r.sessionId}',${r.amount})" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">去繳費</button>`:''}
+          ${canSelect?`<button onclick="showStallPicker('${r.id}','${r.sessionId}')" style="background:var(--bl);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">選位</button>`:''}
+        </div>
       </div>
       <div style="font-size:11px;color:#ccc;margin-top:4px">${r.createdAt?.slice(0,10)||''}</div>
     </div>`;
@@ -1134,6 +1173,68 @@ async function submitPaymentForm(method){
   closeModal('payModal');
 
   // 更新報名紀錄顯示
+  if(ST.memberEmail){
+    const regs = await api({action:'getMyRegs', email:ST.memberEmail});
+    renderMyRegs(regs||[]);
+  }
+}
+
+// ── 選位功能 ──
+let ST_selectingRegId = '';
+let ST_selectingSession = null;
+
+async function showStallPicker(regId, sesId){
+  ST_selectingRegId = regId;
+  const sesData = await api({action:'getSession', id:sesId});
+  ST_selectingSession = sesData;
+  const status = await api({action:'getStallStatus', sessionId:sesId});
+  
+  const stallList = status.stallList || sesData.stallList || [];
+  const taken = status.taken || {};
+  
+  if(!stallList.length){
+    toast('此場次尚未設定攤位號碼');
+    return;
+  }
+  
+  const html = stallList.map(s => {
+    const info = taken[s];
+    let cls = 'stall-available';
+    let label = s;
+    let disabled = false;
+    if(info){
+      if(info.status==='paid'){ cls='stall-taken'; disabled=true; label=s+' 已選'; }
+      else { 
+        const exp = info.expiry ? new Date(info.expiry) : null;
+        if(exp && new Date() < exp){ cls='stall-reserved'; disabled=true; label=s+' 預留中'; }
+      }
+    }
+    return `<div class="stall-cell ${cls}" onclick="${disabled?'':'pickStall(''+s+'')'}" style="
+      padding:12px;border-radius:10px;text-align:center;font-weight:700;font-size:13px;cursor:${disabled?'not-allowed':'pointer'};
+      background:${cls==='stall-available'?'#f0fdf4':cls==='stall-taken'?'#fdecea':'#fffaed'};
+      border:2px solid ${cls==='stall-available'?'#52b788':cls==='stall-taken'?'#c0392b':'#b7860b'};
+      color:${cls==='stall-available'?'#2d6a4f':cls==='stall-taken'?'#c0392b':'#b7860b'};
+      opacity:${disabled?'0.6':'1'}
+    ">${label}</div>`;
+  }).join('');
+  
+  $('stallPickerTitle').textContent = sesData.name || '選擇攤位';
+  $('stallGrid').innerHTML = html;
+  $('stallPickerModal').classList.add('show');
+}
+
+async function pickStall(stallName){
+  if(!ST.memberEmail){ toast('請先登入'); return; }
+  const res = await apiPost({
+    action:'selectStall',
+    regId: ST_selectingRegId,
+    email: ST.memberEmail,
+    stalls: [stallName]
+  });
+  if(res.error){ toast('❌ '+res.error); return; }
+  toast('✅ 攤位 '+stallName+' 選位成功！');
+  closeModal('stallPickerModal');
+  // 更新報名紀錄
   if(ST.memberEmail){
     const regs = await api({action:'getMyRegs', email:ST.memberEmail});
     renderMyRegs(regs||[]);
