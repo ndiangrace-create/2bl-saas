@@ -1,11 +1,3 @@
-// 攤位數量即時更新
-document.addEventListener('input', function(e){
-  if(e.target.id==='stallListInput'){
-    const count=e.target.value.split('\n').filter(l=>l.trim()).length;
-    $('stallCount').textContent=count+' 個攤位';
-  }
-});
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
