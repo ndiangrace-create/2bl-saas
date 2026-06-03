@@ -412,17 +412,18 @@ textarea{min-height:64px;resize:vertical}
       <div><label>多日優惠總價（選填）</label><input type="number" id="sm_fee" value="0" inputmode="numeric" placeholder="0=不設優惠"></div>
       <div><label>保證金</label><input type="number" id="sm_deposit" value="0" inputmode="numeric"></div>
     </div>
-    <div style="font-size:11px;color:var(--lt);margin-top:2px">每天的費用在上方日期欄設定，多日優惠是選全部日期的特別總價</div>
+    <div style="font-size:11px;color:var(--lt);margin-top:2px">例：7/18 NT$1000 + 7/19 NT$800，多日優惠填 NT$1700（全選才適用此優惠價）</div>
     <div class="form-row">
       <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"></div>
       <div>
-  <label>攤數選擇</label>
+  <label>租攤設定</label>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
     <input type="checkbox" id="sm_enableStalls" style="width:16px;height:16px;accent-color:var(--g)">
-    <span style="font-size:13px">開放加購攤位</span>
+    <span style="font-size:13px">開放選擇租攤數</span>
   </div>
   <div id="sm_stallsConfig" style="display:none;margin-top:6px">
-    <input type="number" id="sm_maxStalls" value="3" inputmode="numeric" placeholder="最多幾攤">
+    <label style="font-size:12px;color:var(--md)">最多租幾攤</label>
+    <input type="number" id="sm_maxStalls" value="3" inputmode="numeric" placeholder="例：3">
   </div>
 </div>
     </div>
@@ -1002,9 +1003,9 @@ function addDateSlot(date='',start='10:00',end='18:00',fee=0){
   div.style='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap';
   div.innerHTML=`
     <input type="date" id="ds_date_${idx}" value="${date}" style="width:130px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
-    <input type="time" id="ds_start_${idx}" value="${start}" style="width:82px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <input type="time" id="ds_start_${idx}" value="${start}" style="width:90px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" step="300">
     <span style="font-size:12px;color:#aaa">~</span>
-    <input type="time" id="ds_end_${idx}" value="${end}" style="width:82px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <input type="time" id="ds_end_${idx}" value="${end}" style="width:90px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" step="300">
     <input type="number" id="ds_fee_${idx}" value="${fee}" placeholder="費用" style="width:75px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" inputmode="numeric">
     <button onclick="document.getElementById('ds_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:13px">✕</button>
   `;
