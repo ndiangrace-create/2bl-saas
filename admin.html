@@ -369,7 +369,7 @@ textarea{min-height:64px;resize:vertical}
     <label>場次名稱 *</label><input type="text" id="sm_name" placeholder="例：耶市集 07月場">
     <div class="form-row">
       <div>
-        <label>地區 *</label>
+        <label>地區</label>
         <select id="sm_region">
           <option value="">請選擇</option>
           <option value="台北">台北</option>
@@ -380,7 +380,7 @@ textarea{min-height:64px;resize:vertical}
           <option value="其他">其他</option>
         </select>
       </div>
-      <div><label>場地名稱 *</label><input type="text" id="sm_venue"></div>
+      <div><label>場地名稱</label><input type="text" id="sm_venue"></div>
     </div>
     <label>場次類型</label>
     <select id="sm_type" onchange="updateModPresets()">
@@ -401,16 +401,17 @@ textarea{min-height:64px;resize:vertical}
 
     <!-- 費用 -->
     <div class="form-row" style="margin-top:10px">
-      <div><label>費用（0=免費）</label><input type="number" id="sm_fee" value="0" inputmode="numeric"></div>
+      <div><label>多日優惠總價（選填）</label><input type="number" id="sm_fee" value="0" inputmode="numeric" placeholder="0=不設優惠"></div>
       <div><label>保證金</label><input type="number" id="sm_deposit" value="0" inputmode="numeric"></div>
     </div>
+    <div style="font-size:11px;color:var(--lt);margin-top:2px">每天的費用在上方日期欄設定，多日優惠是選全部日期的特別總價</div>
     <div class="form-row">
       <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"></div>
       <div>
   <label>攤數選擇</label>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
     <input type="checkbox" id="sm_enableStalls" style="width:16px;height:16px;accent-color:var(--g)">
-    <span style="font-size:13px">開放選攤數</span>
+    <span style="font-size:13px">開放加購攤位</span>
   </div>
   <div id="sm_stallsConfig" style="display:none;margin-top:6px">
     <input type="number" id="sm_maxStalls" value="3" inputmode="numeric" placeholder="最多幾攤">
@@ -921,17 +922,18 @@ function previewSesCover(url){
 
 // ── 多日期時段 ──
 let dateSlotIdx=0;
-function addDateSlot(date='',start='10:00',end='18:00'){
+function addDateSlot(date='',start='10:00',end='18:00',fee=0){
   const idx=dateSlotIdx++;
   const div=document.createElement('div');
   div.id='ds_'+idx;
   div.style='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap';
   div.innerHTML=`
     <input type="date" id="ds_date_${idx}" value="${date}" style="width:130px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
-    <input type="time" id="ds_start_${idx}" value="${start}" style="width:85px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <input type="time" id="ds_start_${idx}" value="${start}" style="width:82px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
     <span style="font-size:12px;color:#aaa">~</span>
-    <input type="time" id="ds_end_${idx}" value="${end}" style="width:85px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
-    <button onclick="document.getElementById('ds_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+    <input type="time" id="ds_end_${idx}" value="${end}" style="width:82px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px">
+    <input type="number" id="ds_fee_${idx}" value="${fee}" placeholder="費用" style="width:75px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" inputmode="numeric">
+    <button onclick="document.getElementById('ds_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:13px">✕</button>
   `;
   $('dateSlots').appendChild(div);
 }
@@ -942,7 +944,8 @@ function getDateSlots(){
     const d=$('ds_date_'+idx)?.value;
     const s=$('ds_start_'+idx)?.value||'';
     const e=$('ds_end_'+idx)?.value||'';
-    if(d) slots.push({date:d,start:s,end:e});
+    const f=parseInt($('ds_fee_'+idx)?.value)||0;
+    if(d) slots.push({date:d,start:s,end:e,fee:f});
   });
   return slots;
 }
@@ -1037,7 +1040,7 @@ async function editSes(id){
   // 日期
   $('dateSlots').innerHTML='';dateSlotIdx=0;
   if(s.dates&&s.dates.length){
-    s.dates.forEach(d=>addDateSlot(d.date||'',d.start||'10:00',d.end||'18:00'));
+    s.dates.forEach(d=>addDateSlot(d.date||'',d.start||'10:00',d.end||'18:00',d.fee||0));
   } else {
     addDateSlot();
   }
@@ -1064,7 +1067,7 @@ async function saveSession(){
   const venue=$('sm_venue').value.trim();
   const region=$('sm_region').value;
   const dates=getDateSlots();
-  if(!name||!eventId){toast('請填寫場次名稱');return;}
+  if(!name||!eventId){toast('請填寫活動和場次名稱');return;}
   const body={
     action:id?'updateSession':'createSession',id,eventId,name,
     type:$('sm_type').value,region,dates,venue,

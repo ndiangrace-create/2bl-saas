@@ -71,7 +71,7 @@ img{display:block;max-width:100%}
 /* ── 近期活動 ── */
 .events-section{padding:20px 16px 8px}
 .section-hd{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px}
-.section-title{font-size:18px;font-weight:900;color:var(--dk);letter-spacing:.05em}
+.section-title{font-size:20px;font-weight:900;color:var(--dk);letter-spacing:.05em}
 .section-deco{font-size:14px;color:var(--g)}
 .events-scroll{display:flex;gap:12px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .events-scroll::-webkit-scrollbar{display:none}
@@ -83,7 +83,7 @@ img{display:block;max-width:100%}
 .event-status-tag{position:absolute;top:8px;left:8px;background:var(--g);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px}
 .event-status-tag.closed{background:#ccc}
 .event-info{padding:10px 10px 12px}
-.event-name{font-size:12px;font-weight:700;line-height:1.4;margin-bottom:4px}
+.event-name{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:4px}
 .event-meta{font-size:10px;color:var(--md);line-height:1.5}
 .event-more{font-size:10px;color:var(--g);font-weight:700;margin-top:6px}
 
@@ -97,7 +97,7 @@ img{display:block;max-width:100%}
 .session-card:active{transform:scale(.98)}
 .session-card.closed{border-left-color:#ccc;opacity:.6}
 .session-card-inner{padding:14px 16px}
-.session-name{font-size:15px;font-weight:700;margin-bottom:8px}
+.session-name{font-size:17px;font-weight:700;margin-bottom:8px}
 .session-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
 .tag{background:var(--gp);color:var(--g);font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
 .tag.red{background:var(--rdp);color:var(--rd)}
@@ -167,7 +167,7 @@ textarea{min-height:72px;resize:vertical}
 .badge-no{background:var(--rdp);color:var(--rd)}
 
 /* ── 底部固定三按鈕 ── */
-.bottom-fixed{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
+.bottom-fixed{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:640px;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
 .bot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:12px 6px;border-radius:14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;transition:all .15s}
 .bot-btn:active{transform:scale(.96)}
 .bot-line{background:#06C755;color:#fff;box-shadow:0 3px 10px rgba(6,199,85,.3)}
@@ -193,15 +193,7 @@ textarea{min-height:72px;resize:vertical}
 <body>
 
 <!-- ══ 首頁 ══ -->
-<div id="pageHome" class="page active">
-
-  <!-- LOGO -->
-  <div class="topbar">
-    <div class="logo-wrap">
-      <img class="logo-img" src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/logo.jpg" alt="兔彼樂" onerror="this.style.display='none'">
-      <div class="logo-text">兔彼樂共創活動<span>Tu Bi Le Co-Create</span></div>
-    </div>
-  </div>
+<div id="pageHome" class="page active" style="max-width:640px;margin:0 auto">
 
   <!-- Hero -->
   <div class="hero">
@@ -290,7 +282,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 場次頁 ══ -->
-<div id="pageSession" class="page">
+<div id="pageSession" class="page" style="max-width:640px;margin:0 auto">
   <div class="back-bar" onclick="backToHome()">
     <span class="arrow">←</span>
     <span class="title" id="sessionEventName">場次列表</span>
@@ -322,7 +314,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 會員頁 ══ -->
-<div id="pageMember" class="page">
+<div id="pageMember" class="page" style="max-width:640px;margin:0 auto">
   <div class="back-bar" onclick="navTo('home')">
     <span class="arrow">←</span>
     <span class="title">會員 / 我的報名</span>
@@ -707,7 +699,27 @@ function renderDynForm(s){
   html+=`<div class="err" id="e_phone"></div>`;
   html+=`<label>Email *</label><input type="email" id="f_email" value="${esc(ST.memberEmail||V.email||'')}" placeholder="your@email.com" inputmode="email">`;
   html+=`<div class="err" id="e_email"></div>`;
-  // 攤位數：後台開放才顯示
+  // 日期選擇（多日場次才顯示）
+  const hasDates = s.dates && s.dates.length > 1;
+  if(hasDates){
+    html+=`<label>選擇參加日期 *</label>
+    <div id="datePicker" style="margin-top:4px">
+      ${s.dates.map((d,i)=>`
+        <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid #ddeee5;border-radius:10px;margin-bottom:6px;cursor:pointer" onclick="toggleDate(${i})">
+          <input type="checkbox" id="dp_${i}" style="width:16px;height:16px;accent-color:var(--g)" onchange="updateFee()">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">${d.date}</div>
+            <div style="font-size:12px;color:var(--md)">${d.start||''}${d.end?'–'+d.end:''}</div>
+          </div>
+          <div style="font-size:14px;font-weight:700;color:var(--g)">${d.fee>0?'NT$'+d.fee:'免費'}</div>
+        </label>`).join('')}
+    </div>`;
+    if(s.fee>0){
+      html+=`<div style="font-size:12px;color:var(--g);padding:6px 10px;background:var(--gp);border-radius:8px;margin-top:4px">🎉 全程優惠價 NT$ ${s.fee}</div>`;
+    }
+  }
+
+  // 攤位加購數量
   if(s.maxStalls>0){
     const maxS=s.maxStalls||3;
     const stallOpts=Array.from({length:maxS},(_,i)=>`<div class="stall-opt ${i===0?'on':''}" onclick="selectStall(this,${i+1})">${i+1} 攤</div>`).join('');
@@ -867,6 +879,11 @@ function toggleChildAge(val){
   const area=$('childAgeArea');
   if(area) area.style.display=(parseInt(val)>0)?'block':'none';
 }
+function toggleDate(i){
+  const chk=document.getElementById('dp_'+i);
+  if(chk) chk.checked=!chk.checked;
+  updateFee();
+}
 function adjAddon(i,delta){
   if(!ST.addonQty)ST.addonQty={};
   const cur=ST.addonQty[i]||0;
@@ -888,8 +905,22 @@ function adjEquip(k,delta){
 function updateFee(){
   const s=ST.currentSession; if(!s)return;
   const stalls=ST.stallCount||1;
-  const fee=(s.fee||0)*stalls;
   const dep=(s.deposit||0)*stalls;
+  // 計算日期費用
+  let fee=0;
+  const dates=s.dates||[];
+  if(dates.length>1){
+    // 多日場次：依勾選日期計算
+    const selectedDates=dates.filter((_,i)=>document.getElementById('dp_'+i)?.checked);
+    if(selectedDates.length===dates.length && s.fee>0){
+      // 全選且有優惠 → 用優惠價
+      fee=(s.fee||0)*stalls;
+    } else {
+      fee=selectedDates.reduce((sum,d)=>sum+(d.fee||0),0)*stalls;
+    }
+  } else {
+    fee=(s.fee||0)*stalls;
+  }
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
     if(v&&v.open&&ST.equipQty[k]) equipTotal+=(v.price||0)*ST.equipQty[k];
@@ -922,6 +953,7 @@ async function submitReg(){
   const body={
     action:'register', sessionId:s.id, email, name, phone,
     stallCount:ST.stallCount||1,
+    selectedDates:(ST.currentSession?.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked).map(d=>d.date),
     brand:$('f_brand')?.value.trim()||'',
     brandIntro:$('f_brandIntro')?.value.trim()||'',
     sellItem:$('f_sellItem')?.value.trim()||'',
