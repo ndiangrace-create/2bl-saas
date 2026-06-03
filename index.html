@@ -388,17 +388,11 @@ textarea{min-height:72px;resize:vertical}
       <button class="btn-p" onclick="goEcpay()" style="background:#2d6a4f;width:100%">立即線上付款 →</button>
     </div>
 
-    <!-- C. LINE Pay（手動回報） -->
-    <div style="border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px">
-      <div style="font-weight:700;font-size:14px;margin-bottom:8px">💚 LINE Pay（手動回報）</div>
-      <div style="font-size:13px;color:var(--md)">LINE Pay 轉帳後填寫資料</div>
-      <div style="margin-top:10px">
-        <label>交易末五碼 *</label>
-        <input type="text" id="payLastFiveLine" placeholder="請填末五碼" inputmode="numeric" maxlength="5">
-        <label>金額 *</label>
-        <input type="number" id="payAmountLine" inputmode="numeric">
-        <button class="btn-p" onclick="submitPaymentForm('LINE Pay')" style="margin-top:10px;background:#06C755;width:100%">確認完成，送出通知</button>
-      </div>
+    <!-- C. LINE Pay -->
+    <div style="border:1.5px solid #06C755;border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#06C755">LINE Pay</div>
+      <div style="font-size:12px;color:var(--md);margin-bottom:10px">透過 LINE Pay 安全付款</div>
+      <button class="btn-p" onclick="goLinePay()" style="background:#06C755;width:100%">LINE Pay 立即付款 →</button>
     </div>
 
     <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;margin-top:4px">取消</button>
@@ -1124,6 +1118,15 @@ function showPayPage(regId, sesName, amount){
   $('payModal').classList.add('show');
 }
 
+async function goLinePay(){
+  if(!ST_currentPayRegId){toast('錯誤：找不到報名資料');return;}
+  toast('建立 LINE Pay 訂單中...');
+  const res = await apiPost({action:'createLinePayOrder', regId:ST_currentPayRegId});
+  if(res.error){toast('LINE Pay 錯誤：'+res.error);return;}
+  closeModal('payModal');
+  window.open(res.paymentUrl, '_blank');
+  toast('已開啟 LINE Pay 付款頁面', 5000);
+}
 async function goEcpay(){
   if(!ST_currentPayRegId){toast('錯誤：找不到報名資料');return;}
   toast('建立訂單中…');
