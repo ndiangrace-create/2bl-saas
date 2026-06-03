@@ -590,9 +590,16 @@ textarea{min-height:64px;resize:vertical}
   <div class="modal">
     <div class="modal-title">新增管理員</div>
     <label>Email *</label><input type="email" id="sf_email" inputmode="email">
-    <label>姓名 *</label><input type="text" id="sf_name">
+    <label>姓名</label><input type="text" id="sf_name">
     <label>角色</label>
-    <select id="sf_role"><option value="staff">一般管理員</option><option value="superadmin">超級管理員</option></select>
+    <select id="sf_role" onchange="toggleSuperAdminPerms(this.value)">
+      <option value="staff">一般管理員（自訂權限）</option>
+      <option value="superadmin">超級管理員（全部權限）</option>
+    </select>
+    <div id="sf_perms_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:8px">開放權限</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sf_perms_grid"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('staffModal')" style="flex:1">取消</button>
       <button class="btn btn-g" onclick="saveStaff()" style="flex:2">新增</button>
@@ -1524,6 +1531,22 @@ async function loadStaff(){
   }).join('');
 }
 
+function toggleSuperAdminPerms(role){
+  const area=$('sf_perms_area');
+  if(area) area.style.display=role==='superadmin'?'none':'block';
+}
+
+function initStaffModal(){
+  const grid=$('sf_perms_grid');
+  if(!grid||grid.children.length) return;
+  PERM_DEFS.forEach(p=>{
+    const label=document.createElement('label');
+    label.style='display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 0';
+    label.innerHTML=`<input type="checkbox" data-perm="${p.k}" style="width:15px;height:15px;accent-color:var(--g)" checked> ${p.label}`;
+    grid.appendChild(label);
+  });
+}
+
 async function updatePerm(email, chk){
   const perm=chk.dataset.perm;
   const enable=chk.checked;
@@ -1538,10 +1561,24 @@ async function updatePerm(email, chk){
 function openAddStaffModal(){
   $('sf_email').value='';$('sf_name').value='';$('sf_role').value='staff';openModal('staffModal');
 }
+function openStaffModal(){
+  initStaffModal();
+  $('sf_email').value='';$('sf_name').value='';
+  $('sf_role').value='staff';
+  $('sf_perms_area').style.display='block';
+  document.querySelectorAll('#sf_perms_grid input').forEach(c=>c.checked=true);
+  openModal('staffModal');
+}
 async function saveStaff(){
   const email=$('sf_email').value.trim();const name=$('sf_name').value.trim();
   if(!email||!name){toast('請填寫 Email 與姓名');return;}
-  const res=await apiPost({action:'addStaff',targetEmail:email,targetName:name,role:$('sf_role').value});
+  // 收集勾選的權限
+  const perms={};
+  document.querySelectorAll('#sf_perms_grid input[type=checkbox]').forEach(c=>{
+    perms[c.dataset.perm]=c.checked;
+  });
+  const role=$('sf_role').value;
+  const res=await apiPost({action:'addStaff',targetEmail:email,targetName:name,role,perms});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已新增');closeModal('staffModal');loadStaff();
 }
