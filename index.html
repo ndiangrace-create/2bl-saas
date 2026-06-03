@@ -693,6 +693,15 @@ function renderDynForm(s){
 
   // 基本資料
   html+=`<div class="fcard"><div class="fcard-t">👤 基本資料</div><div class="fcard-body">`;
+  // 如果還沒登入，顯示快速帶入按鈕
+  if(!ST.member && !ST.memberEmail){
+    html+=`<div style="background:var(--ylp);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;color:#b7860b">會員登入可自動帶入資料</div>
+      <button onclick="quickMemberLogin()" style="background:#b7860b;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">快速登入</button>
+    </div>`;
+  } else if(ST.member){
+    html+=`<div style="background:var(--gp);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--g)">✅ 已自動帶入您的會員資料</div>`;
+  }
   html+=`<label>姓名 *</label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="真實姓名">`;
   html+=`<div class="err" id="e_name"></div>`;
   html+=`<label>手機 *</label><input type="tel" id="f_phone" value="${esc(V.phone||'')}" placeholder="09xxxxxxxx" inputmode="tel">`;
@@ -879,6 +888,23 @@ function toggleChildAge(val){
   const area=$('childAgeArea');
   if(area) area.style.display=(parseInt(val)>0)?'block':'none';
 }
+async function quickMemberLogin(){
+  const email=prompt('請輸入您的 Email：');
+  if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;}
+  ST.memberEmail=email;
+  const member=await api({action:'getMember',email});
+  if(member&&!member.error){
+    ST.member=member;
+    toast('✅ 已帶入會員資料！');
+  } else {
+    toast('找不到會員資料，請填寫後報名將自動建立');
+  }
+  // 重新渲染表單帶入資料
+  if(ST.currentSession) renderDynForm(ST.currentSession);
+  // 更新 Email 欄位
+  const emailEl=document.getElementById('f_email');
+  if(emailEl&&!emailEl.value) emailEl.value=email;
+}
 function toggleDate(i){
   const chk=document.getElementById('dp_'+i);
   if(chk) chk.checked=!chk.checked;
@@ -972,6 +998,9 @@ async function submitReg(){
     if(res.error){toast('❌ '+res.error);btn.disabled=false;btn.textContent='送出報名';return;}
     toast('✅ 報名成功！請查看 Email 通知',4000);
     ST.memberEmail=email;
+    // 更新會員資料
+    const updatedMember=await api({action:'getMember',email});
+    if(updatedMember&&!updatedMember.error) ST.member=updatedMember;
     $('pageForm').style.display='none';
     window.scrollTo(0,0);
   }catch(e){toast('網路錯誤，請重試');}
