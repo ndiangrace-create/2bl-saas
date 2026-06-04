@@ -542,6 +542,67 @@ textarea{min-height:64px;resize:vertical}
   </div>
 </div>
 
+<!-- ══ Modal：場次財報 ══ -->
+<div class="modal-overlay" id="financeModal" onclick="if(event.target===this)closeModal('financeModal')">
+  <div class="modal-box" style="max-height:88vh;overflow-y:auto;padding:0">
+    <div style="padding:14px 16px;border-bottom:0.5px solid var(--color-border-tertiary);position:sticky;top:0;background:var(--color-background-primary);z-index:1">
+      <div style="font-size:15px;font-weight:500" id="financeTitle">場次財報</div>
+      <div style="font-size:11px;color:var(--color-text-secondary)" id="financeSub"></div>
+      <div style="display:flex;gap:0;margin-top:10px;border-bottom:0.5px solid var(--color-border-tertiary)">
+        <div class="ftab active" id="ftab-report" onclick="switchFTab('report',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid #1D9E75;color:#1D9E75;margin-bottom:-1px;font-weight:500">財報</div>
+        <div class="ftab" id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px">發票清單</div>
+      </div>
+    </div>
+    <div style="padding:14px 16px">
+      <!-- 財報 -->
+      <div id="fpage-report">
+        <!-- 發票含稅設定 -->
+        <div style="background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">本場發票含稅項目</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px">
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-stall" checked> 攤位費</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-equip"> 設備租金</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-extra"> 臨時收入</label>
+          </div>
+        </div>
+        <!-- 收入 -->
+        <div id="f-income-section" style="margin-bottom:12px"></div>
+        <!-- 支出 -->
+        <div id="f-expense-section" style="margin-bottom:12px"></div>
+        <!-- 淨利 -->
+        <div id="f-net" style="margin-bottom:12px"></div>
+        <!-- 設備差價 -->
+        <div id="f-equip-diff" style="margin-bottom:12px"></div>
+        <!-- 押金 -->
+        <div id="f-deposit" style="margin-bottom:12px"></div>
+        <!-- 新增表單 -->
+        <div id="f-add-form" style="display:none;background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:500;margin-bottom:8px" id="f-add-title">新增</div>
+          <input type="text" id="f-add-name" placeholder="品項名稱">
+          <input type="number" id="f-add-amt" placeholder="金額 NT$" inputmode="numeric" style="margin-top:6px">
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="btn btn-s" onclick="$('f-add-form').style.display='none'" style="flex:1">取消</button>
+            <button class="btn btn-g" onclick="submitFinanceItem()" style="flex:2">確認新增</button>
+          </div>
+        </div>
+        <!-- 按鈕 -->
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button onclick="printFinance()" style="flex:1;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:10px;font-size:13px;cursor:pointer">🖨️ 列印/匯出</button>
+          <button onclick="shareLineFinance()" style="flex:1;padding:10px;background:#E1F5EE;color:#1D9E75;border:0.5px solid #9FE1CB;border-radius:10px;font-size:13px;cursor:pointer">💚 分享 LINE</button>
+        </div>
+      </div>
+      <!-- 發票清單 -->
+      <div id="fpage-invoice" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:12px;color:var(--color-text-secondary)" id="inv-count"></div>
+          <button onclick="downloadInvoiceList()" style="font-size:11px;background:none;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:4px 8px;cursor:pointer">⬇️ 下載清單</button>
+        </div>
+        <div id="invoiceListBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ Modal：新增管理員 ══ -->
 <div class="overlay" id="staffModal" onclick="if(event.target===this)closeModal('staffModal')">
   <div class="modal">
@@ -869,22 +930,36 @@ function renderOverviewSessions(){
         </span>
       </div>
       <div style="font-size:12px;color:var(--md);margin-bottom:8px">${dateStr}</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px">
         <div style="text-align:center;background:#f8f8f8;border-radius:8px;padding:6px">
-          <div style="font-size:16px;font-weight:900;color:var(--dk)">${s.total||0}</div>
+          <div style="font-size:15px;font-weight:900;color:var(--dk)">${s.total||0}</div>
           <div style="font-size:10px;color:var(--md)">報名</div>
         </div>
         <div style="text-align:center;background:#fff8e1;border-radius:8px;padding:6px">
-          <div style="font-size:16px;font-weight:900;color:var(--yl)">${s.pending||0}</div>
+          <div style="font-size:15px;font-weight:900;color:var(--yl)">${s.pending||0}</div>
           <div style="font-size:10px;color:var(--md)">待審核</div>
         </div>
         <div style="text-align:center;background:#e8f7ee;border-radius:8px;padding:6px">
-          <div style="font-size:16px;font-weight:900;color:var(--g)">${s.paid||0}</div>
+          <div style="font-size:15px;font-weight:900;color:var(--g)">${s.paid||0}</div>
           <div style="font-size:10px;color:var(--md)">已繳費</div>
         </div>
         <div style="text-align:center;background:#f0f4ff;border-radius:8px;padding:6px">
-          <div style="font-size:16px;font-weight:900;color:var(--bl)">${lacking}</div>
-          <div style="font-size:10px;color:var(--md)">缺額</div>
+          <div style="font-size:15px;font-weight:900;color:var(--bl)">${s.seated||0}</div>
+          <div style="font-size:10px;color:var(--md)">已報到</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
+        <div style="text-align:center;background:#f0fdf4;border-radius:8px;padding:6px">
+          <div style="font-size:13px;font-weight:700;color:#2d6a4f">NT$${(s.revenue||0).toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--md)">已收費用</div>
+        </div>
+        <div style="text-align:center;background:#fff8e1;border-radius:8px;padding:6px">
+          <div style="font-size:13px;font-weight:700;color:#b7860b">NT$${(s.depositTotal||0).toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--md)">押金合計</div>
+        </div>
+        <div style="text-align:center;background:#f8f8f8;border-radius:8px;padding:6px">
+          <div style="font-size:13px;font-weight:700;color:var(--dk)">${equipStr||'-'}</div>
+          <div style="font-size:10px;color:var(--md)">設備總數</div>
         </div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -892,7 +967,9 @@ function renderOverviewSessions(){
         <button onclick="toggleSesStatus('${s.id}','${s.status}')" style="background:${s.status==='報名中'?'#fdecea':'#e8f7ee'};color:${s.status==='報名中'?'var(--rd)':'var(--g)'};border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">
           ${s.status==='報名中'?'關閉報名':'開放報名'}
         </button>
+        <button onclick="editSes('${s.id}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">✏️ 編輯</button>
         <button onclick="downloadSesData('${s.id}','${s.name}')" style="background:#f0f4ff;color:var(--bl);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">⬇️ 下載</button>
+        <button onclick="openFinanceModal('${s.id}','${s.name}','${s.eventName||''}')" style="background:#fdf4ff;color:#7c3aed;border:none;border-radius:8px;padding:7px 12px;font-size:15px;font-weight:700;cursor:pointer">💰 支出/財報</button>
       </div>
     </div>`;
   }).join('');
@@ -1957,6 +2034,71 @@ async function removeStaff(email,name){
   const res=await apiPost({action:'removeStaff',targetEmail:email});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已移除');loadStaff();
+}
+
+function safeN(v){return Number(v)||0;}
+
+function renderFinSection(title,items,total,type){
+  const isIncome=type==='income';
+  const color=isIncome?'#1D9E75':'#A32D2D';
+  return `<div style="margin-bottom:4px">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--color-background-secondary,#f5f5f5);border-radius:10px 10px 0 0;border:0.5px solid #e0e0e0;border-bottom:none">
+      <span style="font-size:11px;font-weight:500;color:#666">${title}</span>
+      <button onclick="showFinAdd('${type}')" style="font-size:11px;background:none;border:0.5px solid #ccc;border-radius:6px;padding:3px 8px;cursor:pointer;color:#666">+ 新增</button>
+    </div>
+    <div style="border:0.5px solid #e0e0e0;border-radius:0 0 10px 10px;overflow:hidden">
+      ${items.map(i=>`<div style="display:flex;align-items:center;padding:8px 10px;border-bottom:0.5px solid #f0f0f0;gap:6px">
+        <div style="flex:1;font-size:13px">${i.name}
+          <span style="font-size:9px;padding:1px 5px;border-radius:3px;margin-left:5px;background:${i.auto?'#E1F5EE':'#E6F1FB'};color:${i.auto?'#0F6E56':'#185FA5'}">${i.auto?'自動':'手動'}</span>
+          ${i.note?`<div style="font-size:10px;color:#999">${i.note}</div>`:''}
+        </div>
+        <span style="font-size:13px;font-weight:500;color:${color};min-width:70px;text-align:right">${safeN(i.amt).toLocaleString()}</span>
+        ${!i.auto&&i.id?`<button onclick="deleteFinItem('${i.id}')" style="color:#ccc;background:none;border:none;cursor:pointer;font-size:12px">✕</button>`:''}
+      </div>`).join('')}
+      <div style="display:flex;align-items:center;padding:9px 10px;background:#f8f8f8">
+        <div style="flex:1;font-size:13px;font-weight:500">${title}合計</div>
+        <span style="font-size:14px;font-weight:500;color:${color}">${safeN(total).toLocaleString()}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function deleteFinItem(id){
+  if(!confirm('確定刪除？'))return;
+  const res=await apiPost({action:'deleteFinanceItem',id});
+  if(res.error){toast('錯誤: '+res.error);return;}
+  toast('已刪除');await loadFinanceData();
+}
+
+function calcEquipDiff(){
+  let total=0,i=0;
+  while(document.getElementById('eout-'+i)){
+    const out=parseFloat(document.getElementById('eout-'+i).value)||0;
+    const inp=parseFloat(document.getElementById('ein-'+i).value)||0;
+    const qtyEl=document.getElementById('eout-'+i).closest('div')?.querySelectorAll('span');
+    const qty=qtyEl&&qtyEl[1]?parseInt(qtyEl[1].textContent)||0:0;
+    const diff=(out-inp)*qty;
+    total+=diff;
+    const el=document.getElementById('ediff-'+i);
+    if(el) el.textContent='NT$'+diff.toLocaleString();
+    i++;
+  }
+  const tot=document.getElementById('equip-diff-total');
+  if(tot) tot.textContent='NT$'+total.toLocaleString();
+}
+
+async function transferDeposit(amt){
+  if(!confirm('確定將 NT$'+amt+' 轉入收入（違約扣款）？'))return;
+  const res=await apiPost({action:'saveFinanceItem',sessionId:ST_finSesId,type:'income',name:'違約押金轉入',amount:amt,auto:false});
+  if(res.error){toast('錯誤: '+res.error);return;}
+  toast('已轉入收入');await loadFinanceData();
+}
+
+async function toggleInvoiceStatus(regId,current){
+  const newStatus=current==='待開立'?'已開立':'待開立';
+  const res=await apiPost({action:'updateInvoiceStatus',regId,status:newStatus});
+  if(res.error){toast('錯誤: '+res.error);return;}
+  await loadInvoiceList();
 }
 </script>
 
