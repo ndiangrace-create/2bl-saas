@@ -2105,6 +2105,43 @@ function openSesDetail(sesId){
   ST._showAllRegStatus=true;
   renderRegs();
 }
+
+function goToSesRegs(sesId){
+  goPage('regs');
+  const sel=$('regSesFilter');
+  if(sel) sel.value=sesId;
+  ST._showAllRegStatus=false;
+  renderRegs();
+}
+
+async function downloadSesData(sesId,sesName){
+  toast('準備下載...');
+  const [regs, finItems] = await Promise.all([
+    apiPost({action:'getRegsBySession', sessionId:sesId}),
+    apiPost({action:'getFinance', sessionId:sesId})
+  ]);
+  if(!regs||regs.error){toast('下載失敗');return;}
+  const regHdrs=['報名ID','姓名','品牌','手機','Email','攤位數','設備','審核狀態','付款狀態','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間'];
+  const regRows=(regs||[]).map(r=>{
+    let eq='';try{eq=Object.entries(JSON.parse(r.equip||'{}')).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+    return [r.id,r.name,r.brand,r.phone,r.email,r.stallCount||1,eq,r.status,r.payStatus,r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',(r.createdAt||'').slice(0,16)];
+  });
+  const finHdrs=['類型','品項','金額','自動手動'];
+  const finRows=(finItems||[]).map(i=>[i['類型']==='income'?'收入':'支出',i['品項'],i['金額'],i['自動']==='TRUE'?'自動':'手動']);
+  const toCSV=(hdrs,rows)=>[hdrs,...rows].map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('
+');
+  const csv=`場次：${sesName}
+報名資料
+${toCSV(regHdrs,regRows)}
+
+財報明細
+${toCSV(finHdrs,finRows)}`;
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=sesName+'_完整資料.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('下載完成（含財報）');
+}
 </script>
 
 </body>
