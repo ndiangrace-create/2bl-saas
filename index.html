@@ -1221,7 +1221,8 @@ async function showStallPicker(regId, sesId){
         if(exp && new Date() < exp){ cls='stall-reserved'; disabled=true; label=s+' 預留中'; }
       }
     }
-    return `<div class="stall-cell ${cls}" onclick="${disabled?'':'pickStall(''+s+'')'}" style="
+    const clickFn = disabled ? '' : `onclick="pickStall('${s}')"`;
+    return `<div class="stall-cell ${cls}" ${clickFn} style="
       padding:12px;border-radius:10px;text-align:center;font-weight:700;font-size:13px;cursor:${disabled?'not-allowed':'pointer'};
       background:${cls==='stall-available'?'#f0fdf4':cls==='stall-taken'?'#fdecea':'#fffaed'};
       border:2px solid ${cls==='stall-available'?'#52b788':cls==='stall-taken'?'#c0392b':'#b7860b'};
@@ -1301,6 +1302,7 @@ function stopLogoHold(){
 function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
 // ── 初始化 ──
+// v1780560027
 loadHome();
 </script>
 </body>
