@@ -315,25 +315,41 @@ textarea{min-height:72px;resize:vertical}
 <div id="pageMember" class="page" style="max-width:640px;margin:0 auto">
   <div class="back-bar" onclick="navTo('home')">
     <span class="arrow">←</span>
-    <span class="title">會員 / 我的報名</span>
+    <span class="title">會員專區</span>
   </div>
-  <div class="member-wrap">
-    <div id="memberLoginArea">
-      <div class="mcard">
-        <h3>🐰 會員登入</h3>
-        <p>輸入 Email 查詢報名紀錄</p>
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="your@email.com" inputmode="email">
-        <button class="btn-p" onclick="memberLogin()">查詢我的報名</button>
+
+  <!-- 登入區 -->
+  <div id="memberLoginArea" style="padding:20px 16px">
+    <div class="mcard">
+      <div style="font-size:18px;font-weight:900;margin-bottom:6px">會員登入</div>
+      <div style="font-size:13px;color:var(--md);margin-bottom:16px">輸入 Email 查詢報名紀錄，資料自動帶入</div>
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="your@email.com" inputmode="email">
+      <button class="btn-p" onclick="memberLogin()" style="margin-top:12px">登入 / 查詢報名</button>
+    </div>
+  </div>
+
+  <!-- 已登入區 -->
+  <div id="memberArea" style="display:none;padding:0 0 20px">
+
+    <!-- 會員資料卡片 -->
+    <div id="memberInfoCard" style="margin:12px 16px;background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden">
+      <div style="background:linear-gradient(135deg,#2d6a4f,#52b788);padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:17px;font-weight:900" id="memberName"></div>
+          <div style="font-size:12px;opacity:.8" id="memberEmail2"></div>
+        </div>
+        <button onclick="showMemberEdit()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:7px 14px;border-radius:10px;font-size:13px;cursor:pointer">編輯資料</button>
+      </div>
+      <div style="padding:14px 16px" id="memberCardBody">
+        <!-- 動態填入 -->
       </div>
     </div>
-    <div id="memberArea" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div style="font-size:15px;font-weight:700" id="memberName"></div>
-        <button class="btn-s2" onclick="memberLogout()">登出</button>
-      </div>
+
+    <!-- 報名紀錄 -->
+    <div style="padding:0 16px">
+      <div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:10px">我的報名紀錄</div>
       <div id="myRegsList"></div>
-      <button class="btn-p" onclick="showMemberEdit()" style="background:#555;box-shadow:none;margin-top:8px">編輯個人資料</button>
     </div>
   </div>
 </div>
@@ -343,8 +359,8 @@ textarea{min-height:72px;resize:vertical}
   <button class="bot-btn bot-line" onclick="openLine()">
     <span class="bot-icon">💬</span>官方 LINE
   </button>
-  <button class="bot-btn bot-member" onclick="goMemberPage()">
-    <span class="bot-icon">👤</span>會員登入
+  <button class="bot-btn bot-member" id="botMemberBtn" onclick="goMemberPage()">
+    <span class="bot-icon">👤</span><span id="botMemberLabel">會員登入</span>
   </button>
   <button class="bot-btn bot-profile" onclick="goMemberPage()">
     <span class="bot-icon">📋</span>我的資料
@@ -410,23 +426,28 @@ textarea{min-height:72px;resize:vertical}
 <!-- ══ 編輯資料 Modal ══ -->
 <div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeModal('editModal')">
   <div class="modal-box">
-    <div class="modal-title">個人資料</div>
+    <div class="modal-title">編輯個人資料</div>
 
-    <div style="font-size:12px;font-weight:700;color:var(--g);margin:0 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">👤 基本資料</div>
+    <div style="font-size:13px;font-weight:700;color:var(--g);margin:0 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">👤 基本資料</div>
     <label>姓名</label><input type="text" id="editName">
     <label>手機</label><input type="tel" id="editPhone" inputmode="tel">
     <label>LINE ID</label><input type="text" id="editLineId">
 
-    <div style="font-size:12px;font-weight:700;color:var(--g);margin:14px 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">🏷️ 攤商資料</div>
+    <div style="font-size:13px;font-weight:700;color:var(--g);margin:14px 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">🏷️ 攤商資料</div>
     <label>品牌名稱</label><input type="text" id="editBrand">
     <label>品牌介紹</label><textarea id="editBrandIntro" placeholder="簡短介紹您的品牌或商品"></textarea>
-    <label>出攤照連結</label><input type="url" id="editPhoto" placeholder="https://...">
-    <label>FB 粉絲專頁</label><input type="url" id="editFb" placeholder="https://facebook.com/...">
-    <label>IG 帳號</label><input type="url" id="editIg" placeholder="https://instagram.com/...">
+    <label>FB 粉絲專頁（選填）</label><input type="url" id="editFb" placeholder="https://facebook.com/...">
+    <label>IG 帳號（選填）</label><input type="url" id="editIg" placeholder="https://instagram.com/...">
+    <label>出攤照連結（選填）</label><input type="url" id="editPhoto" placeholder="https://...">
 
-    <div style="font-size:12px;font-weight:700;color:var(--g);margin:14px 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">🤝 合作廠商資料</div>
-    <label>合作連結（官網/作品集）</label><input type="url" id="editCollabUrl" placeholder="https://...">
-    <label>合作說明</label><textarea id="editCollabDesc" placeholder="簡述合作方式、專長或服務項目"></textarea>
+    <div style="font-size:13px;font-weight:700;color:var(--g);margin:14px 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">🤝 合作廠商資料</div>
+    <div style="font-size:11px;color:var(--lt);margin-bottom:8px">填寫後可接受品牌合作、活動邀約、場地合作等機會</div>
+    <label>公司名稱</label><input type="text" id="editCompany" placeholder="公司或品牌全名">
+    <label>統一編號</label><input type="text" id="editTaxId" placeholder="8碼統編（選填）" inputmode="numeric">
+    <label>發票/聯絡 Email</label><input type="email" id="editInvoiceEmail" placeholder="發票或合作聯絡信箱" inputmode="email">
+    <label>合作官網 / 作品集</label><input type="url" id="editCollabUrl" placeholder="https://...">
+    <label>願意提供的合作項目</label>
+    <textarea id="editCollabDesc" placeholder="例：場地合作、聯名商品、活動贊助、技術支援、媒體曝光..."></textarea>
 
     <div class="modal-actions">
       <button class="btn-s2" onclick="closeModal('editModal')" style="flex:1">取消</button>
@@ -1057,13 +1078,24 @@ async function memberLogin(){
   ST.member=member;
   $('memberLoginArea').style.display='none';
   $('memberArea').style.display='block';
-  $('memberName').textContent=(member?.name||email)+' 的報名紀錄';
-  // 顯示 FB/IG 連結
-  const socialHtml=(member?.fb?`<a href="${member.fb}" target="_blank" style="font-size:18px;text-decoration:none;margin-right:6px" title="FB">f</a>`:'')
-    +(member?.ig?`<a href="${member.ig}" target="_blank" style="font-size:18px;text-decoration:none" title="IG">📷</a>`:'');
-  if(socialHtml){
-    const nameEl=$('memberName');
-    nameEl.innerHTML=nameEl.textContent+' '+socialHtml;
+  // 更新底部按鈕
+  const lbl=$('botMemberLabel');
+  if(lbl) lbl.textContent='會員登出';
+  $('memberName').textContent=member?.name||email;
+  $('memberEmail2').textContent=email;
+  // 渲染會員資料卡片
+  const card=$('memberCardBody');
+  if(card && member){
+    const links=[];
+    if(member.fb) links.push(`<a href="${member.fb}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#1877F2;color:#fff;padding:5px 10px;border-radius:8px;font-size:12px;text-decoration:none;margin:2px">FB ↗</a>`);
+    if(member.ig) links.push(`<a href="${member.ig}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;padding:5px 10px;border-radius:8px;font-size:12px;text-decoration:none;margin:2px">IG ↗</a>`);
+    if(member.photo) links.push(`<a href="${member.photo}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#555;color:#fff;padding:5px 10px;border-radius:8px;font-size:12px;text-decoration:none;margin:2px">出攤照 ↗</a>`);
+    card.innerHTML=`
+      ${member.brand?`<div style="font-size:15px;font-weight:700;margin-bottom:4px">${member.brand}</div>`:''}
+      ${member.brandIntro?`<div style="font-size:13px;color:var(--md);margin-bottom:8px">${member.brandIntro}</div>`:''}
+      ${links.length?`<div style="margin-bottom:8px">${links.join('')}</div>`:''}
+      ${member.phone?`<div style="font-size:12px;color:var(--lt)">手機：${member.phone}</div>`:''}
+    `;
   }
   renderMyRegs(regs||[]);
 }
@@ -1261,9 +1293,12 @@ function showMemberEdit(){
   $('editLineId').value=m.lineId||'';
   $('editBrand').value=m.brand||'';
   $('editBrandIntro').value=m.brandIntro||'';
-  $('editPhoto').value=m.photo||'';
   $('editFb').value=m.fb||'';
   $('editIg').value=m.ig||'';
+  $('editPhoto').value=m.photo||'';
+  $('editCompany').value=m.company||'';
+  $('editTaxId').value=m.taxId||'';
+  $('editInvoiceEmail').value=m.invoiceEmail||'';
   $('editCollabUrl').value=m.collabUrl||'';
   $('editCollabDesc').value=m.collabDesc||'';
   $('editModal').classList.add('show');
@@ -1276,9 +1311,12 @@ async function saveMemberEdit(){
     lineId:$('editLineId').value.trim(),
     brand:$('editBrand').value.trim(),
     brandIntro:$('editBrandIntro').value.trim(),
-    photo:$('editPhoto').value.trim(),
     fb:$('editFb').value.trim(),
     ig:$('editIg').value.trim(),
+    photo:$('editPhoto').value.trim(),
+    company:$('editCompany').value.trim(),
+    taxId:$('editTaxId').value.trim(),
+    invoiceEmail:$('editInvoiceEmail').value.trim(),
     collabUrl:$('editCollabUrl').value.trim(),
     collabDesc:$('editCollabDesc').value.trim()};
   const res=await apiPost(body);
