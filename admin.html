@@ -196,84 +196,76 @@ textarea{min-height:64px;resize:vertical}
 
       <!-- ── 場次總覽 ── -->
       <div id="page-overview" class="tab-page active">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  <!-- 上方固定按鈕 -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <div class="page-title" style="margin:0">總覽</div>
-    <button class="btn btn-g btn-sm" onclick="openEventModal()">＋ 新增活動</button>
+    <button class="btn btn-g btn-sm" onclick="openEventModal()">＋ 新增場次</button>
   </div>
-  <div id="overviewEventList"></div>
+
+  <!-- 活動卡片橫向滑動 -->
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:16px">
+    <div id="eventCardRow" style="display:flex;gap:10px;padding-bottom:8px;min-width:max-content"></div>
+  </div>
+
+  <!-- 全場次列表 -->
+  <div id="overviewSessionList"></div>
 </div>
 
-      <div id="page-regs" class="tab-page">
+<div id="page-regs" class="tab-page">
   <div class="page-title">報名審核</div>
-  <!-- 只顯示待審核 -->
-  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-    <select class="filter-sel" id="regEventFilter" onchange="onRegEventChange()" style="flex:1">
-      <option value="">所有活動</option>
-    </select>
-    <select class="filter-sel" id="regSesFilter" onchange="renderRegs()" style="flex:1">
-      <option value="">所有場次</option>
-    </select>
-  </div>
-  <input class="search-input" id="regSearch" placeholder="搜尋姓名/品牌/Email" oninput="renderRegs()" style="margin-bottom:10px">
-  <div id="regsCount" style="font-size:13px;color:var(--md);margin-bottom:8px"></div>
+  <!-- 搜尋 -->
+  <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email" oninput="renderRegs()" style="margin-bottom:10px">
+  <div id="regCount" style="font-size:12px;color:var(--md);margin-bottom:8px"></div>
+  <!-- 報名列表 -->
   <div id="regsCardList"></div>
+  <!-- 明細 Modal -->
+  <div class="modal-overlay" id="regDetailModal" onclick="if(event.target===this)closeModal('regDetailModal')">
+    <div class="modal-box" style="max-height:85vh;overflow-y:auto">
+      <div class="modal-title">報名明細</div>
+      <div id="regDetailBody"></div>
+      <div class="modal-actions">
+        <button class="btn btn-s" onclick="closeModal('regDetailModal')" style="flex:1">關閉</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-
-      <div id="page-checkin" class="tab-page">
+<div id="page-checkin" class="tab-page">
   <div class="page-title">現場管理</div>
-
-  <!-- 場次選擇（有多場次才顯示）-->
-  <div id="checkinSesArea" style="margin-bottom:12px">
-    <select class="filter-sel" id="checkinSesFilter" onchange="loadCheckinRegs()" style="width:100%;font-size:15px;padding:10px">
-      <option value="">請選擇場次</option>
-    </select>
-  </div>
-
-  <!-- 已選場次後顯示 -->
+  <!-- 場次下拉選單 -->
+  <select id="checkinSesFilter" onchange="loadCheckinRegs()" style="width:100%;padding:11px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:15px;margin-bottom:12px;background:#fff">
+    <option value="">請選擇場次</option>
+  </select>
+  <!-- 選了場次後顯示 -->
   <div id="checkinBody" style="display:none">
-    <!-- 統計卡片 -->
-    <div id="checkinStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
-
+    <!-- 統計 -->
+    <div id="checkinStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px"></div>
     <!-- 搜尋 -->
-    <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/電話/Email/攤位號碼"
-      oninput="filterCheckinList()"
-      style="margin-bottom:10px;font-size:15px;padding:11px">
-
-    <!-- 狀態篩選 -->
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button class="btn btn-sm" id="cf-all" onclick="setCFFilter('')" style="flex:1;background:var(--g);color:#fff">全部</button>
-      <button class="btn btn-sm" id="cf-not" onclick="setCFFilter('未報到')" style="flex:1;background:#f0f0f0;color:var(--md)">未報到</button>
-      <button class="btn btn-sm" id="cf-in" onclick="setCFFilter('已報到')" style="flex:1;background:#f0f0f0;color:var(--md)">已報到</button>
+    <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/電話/Email/攤位" oninput="filterCheckinList()" style="margin-bottom:10px;font-size:14px;padding:10px">
+    <!-- 篩選 -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="cf-all" onclick="setCFFilter('')" class="btn btn-sm" style="flex:1;background:var(--g);color:#fff">全部</button>
+      <button id="cf-not" onclick="setCFFilter('未報到')" class="btn btn-sm" style="flex:1;background:#f0f0f0;color:var(--md)">未報到</button>
+      <button id="cf-in" onclick="setCFFilter('已報到')" class="btn btn-sm" style="flex:1;background:#f0f0f0;color:var(--md)">已報到</button>
     </div>
-
-    <!-- 列表 -->
+    <!-- 名單 -->
     <div id="checkinList"></div>
   </div>
+</div>
 
 <div id="page-settings" class="tab-page">
-        <div class="page-title">設定</div>
+  <div class="page-title">設定</div>
 
-        <!-- 管理員 -->
-        <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--gp)">👥 管理員帳號</div>
-        <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
-          <button class="btn btn-g btn-sm" onclick="openAddStaffModal()">＋ 新增管理員</button>
-        </div>
-        <div id="staffList" style="margin-bottom:24px"></div>
+  <!-- 管理員 -->
+  <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">👥 管理員帳號</div>
+  <button class="btn btn-g btn-sm" onclick="openAddStaffModal()" style="margin-bottom:10px">＋ 新增管理員</button>
+  <div id="staffList" style="margin-bottom:24px"></div>
 
-        <!-- 付款紀錄 -->
-        <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--gp)">💰 付款紀錄</div>
-        <div id="paymentsBody2" style="margin-bottom:24px">
-          <div style="color:#aaa;font-size:13px;text-align:center;padding:16px">載入中...</div>
-        </div>
-
-        <!-- 公告 -->
-        <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--gp)">📢 公告管理</div>
-        <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
-          <button class="btn btn-g btn-sm" onclick="openAnnModal()">＋ 新增公告</button>
-        </div>
-        <div id="announceList" style="margin-bottom:24px"></div>
-      </div>
+  <!-- 公告 -->
+  <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">📢 公告管理</div>
+  <button class="btn btn-g btn-sm" onclick="openAnnModal()" style="margin-bottom:10px">＋ 新增公告</button>
+  <div id="announceList" style="margin-bottom:24px"></div>
+</div>
 
 </div><!-- /main -->
   </div><!-- /layout -->
@@ -816,77 +808,98 @@ async function quickRefund(regId, deposit, btn){
   toast('已記錄退押金');
 }
 
-// ── 總覽：開關式活動卡片 ──
-let expandedEvents = new Set();
-
+// ── 總覽 ──
 function renderOverviewCards(){
-  const el=$('overviewEventList');
-  if(!el) return;
+  // 活動橫向卡片
+  const row=$('eventCardRow');
   const events=ST.events||[];
-  if(!events.length){el.innerHTML='<div style="color:#aaa;text-align:center;padding:20px">無活動</div>';return;}
-  el.innerHTML=events.map(ev=>{
-    const ses=(ST.sdData||[]).filter(s=>s.eventId===ev.id);
-    const isOpen=expandedEvents.has(ev.id);
-    const totalRegs=ses.reduce((s,x)=>s+(x.total||0),0);
-    const pending=ses.reduce((s,x)=>s+(x.pending||0),0);
-    const paid=ses.reduce((s,x)=>s+(x.paid||0),0);
-    return `<div style="background:#fff;border-radius:14px;box-shadow:var(--sh);margin-bottom:10px;overflow:hidden">
-      <!-- 活動標題列 -->
-      <div onclick="toggleEventSessions('${ev.id}')" style="display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer">
-        ${ev.cover?`<img src="${ev.cover}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">`
-          :`<div style="width:44px;height:44px;border-radius:8px;background:var(--gp);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎪</div>`}
-        <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:700">${ev.title}</div>
-          <div style="font-size:12px;color:var(--md)">${ses.length}個場次　報名${totalRegs}　待審核${pending}　已繳費${paid}</div>
+  if(row){
+    row.innerHTML=events.length?events.map(ev=>`
+      <div onclick="filterOverviewBySes('${ev.id}')" style="
+        width:120px;flex-shrink:0;background:#fff;border-radius:12px;
+        box-shadow:var(--sh);overflow:hidden;cursor:pointer;
+        border:2px solid ${ST.activeEventId===ev.id?'var(--g)':'transparent'}">
+        ${ev.cover
+          ?`<img src="${ev.cover}" style="width:100%;height:80px;object-fit:cover">`
+          :`<div style="width:100%;height:80px;background:var(--gp);display:flex;align-items:center;justify-content:center;font-size:28px">🎪</div>`}
+        <div style="padding:6px 8px">
+          <div style="font-size:12px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${ev.title}</div>
+          <div style="font-size:10px;color:var(--md)">${ev.region||''}</div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-          <button onclick="event.stopPropagation();openSesModalForEvent('${ev.id}')" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">＋場次</button>
-          <button onclick="event.stopPropagation();editEvent('${ev.id}')" style="background:#f0f0f0;border:none;border-radius:8px;padding:6px 8px;cursor:pointer">✏️</button>
-          <span style="font-size:18px;color:var(--md);transition:.2s;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}" id="arrow-${ev.id}">▾</span>
+      </div>`).join('')
+      :'<div style="color:#aaa;font-size:13px;padding:10px">無活動</div>';
+  }
+  renderOverviewSessions();
+}
+
+function filterOverviewBySes(evId){
+  ST.activeEventId = ST.activeEventId===evId ? null : evId;
+  renderOverviewCards();
+}
+
+function renderOverviewSessions(){
+  const el=$('overviewSessionList');
+  if(!el) return;
+  let sessions=ST.sdData||[];
+  if(ST.activeEventId) sessions=sessions.filter(s=>s.eventId===ST.activeEventId);
+  if(!sessions.length){
+    el.innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">無場次資料</div>';
+    return;
+  }
+  el.innerHTML=sessions.map(s=>{
+    const ev=(ST.events||[]).find(e=>e.id===s.eventId);
+    const dateStr=s.dates&&s.dates.length?s.dates.map(d=>d.date).join('/'):'';
+    const limit=s.limit||0;
+    const approved=s.approved||0;
+    const lacking=limit>0?Math.max(0,limit-approved):'不限';
+    // 設備統計
+    let equipStr='';
+    try{
+      const eq=JSON.parse(s.equipDefs||'[]');
+      if(eq.length) equipStr=eq.map(e=>e.name).join('/');
+    }catch(e){}
+    return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh)">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        ${ev?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0">${ev.title}</span>`:''}
+        <span style="font-size:14px;font-weight:700;flex:1">${s.region?'['+s.region+'] ':''}${s.name}</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700;
+          background:${s.status==='報名中'?'#e8f7ee':'#fdecea'};
+          color:${s.status==='報名中'?'var(--g)':'var(--rd)'}">
+          ${s.status==='報名中'?'報名中':'已結束'}
+        </span>
+      </div>
+      <div style="font-size:12px;color:var(--md);margin-bottom:8px">${dateStr}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+        <div style="text-align:center;background:#f8f8f8;border-radius:8px;padding:6px">
+          <div style="font-size:16px;font-weight:900;color:var(--dk)">${s.total||0}</div>
+          <div style="font-size:10px;color:var(--md)">報名</div>
+        </div>
+        <div style="text-align:center;background:#fff8e1;border-radius:8px;padding:6px">
+          <div style="font-size:16px;font-weight:900;color:var(--yl)">${s.pending||0}</div>
+          <div style="font-size:10px;color:var(--md)">待審核</div>
+        </div>
+        <div style="text-align:center;background:#e8f7ee;border-radius:8px;padding:6px">
+          <div style="font-size:16px;font-weight:900;color:var(--g)">${s.paid||0}</div>
+          <div style="font-size:10px;color:var(--md)">已繳費</div>
+        </div>
+        <div style="text-align:center;background:#f0f4ff;border-radius:8px;padding:6px">
+          <div style="font-size:16px;font-weight:900;color:var(--bl)">${lacking}</div>
+          <div style="font-size:10px;color:var(--md)">缺額</div>
         </div>
       </div>
-      <!-- 展開的場次 -->
-      ${isOpen?`<div style="border-top:1px solid #f0f0f0;padding:8px 12px">
-        ${ses.length?ses.map(s=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #fafafa">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:700">${s.region?'['+s.region+'] ':''}${s.name}</div>
-              <div style="font-size:11px;color:var(--md)">${s.dates&&s.dates.length?s.dates[0].date:''}　費用${s.fee>0?'NT$'+s.fee:'免費'}</div>
-              <div style="font-size:11px;color:var(--lt)">報名${s.total||0}　待審${s.pending||0}　已繳${s.paid||0}　已報到${s.seated||0}</div>
-            </div>
-            <div style="display:flex;gap:4px;flex-shrink:0">
-              <button onclick="goToSesRegs('${s.id}')" style="background:var(--blp);color:var(--bl);border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer">審核</button>
-              <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:none;border-radius:6px;padding:5px 6px;font-size:11px;cursor:pointer">✏️</button>
-              <button onclick="toggleSesStatus('${s.id}','${s.status}')" style="background:${s.status==='報名中'?'#fff8e1':'#e8f7ee'};color:${s.status==='報名中'?'var(--yl)':'var(--g)'};border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer">${s.status==='報名中'?'關閉':'開放'}</button>
-            </div>
-          </div>`).join('')
-          :'<div style="color:#aaa;font-size:13px;text-align:center;padding:12px">尚無場次</div>'}
-      </div>`:''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="editSes('${s.id}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">✏️ 編輯</button>
+        <button onclick="toggleSesStatus('${s.id}','${s.status}')" style="background:${s.status==='報名中'?'#fdecea':'#e8f7ee'};color:${s.status==='報名中'?'var(--rd)':'var(--g)'};border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">
+          ${s.status==='報名中'?'關閉報名':'開放報名'}
+        </button>
+        <button onclick="downloadSesData('${s.id}','${s.name}')" style="background:#f0f4ff;color:var(--bl);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">⬇️ 下載</button>
+      </div>
     </div>`;
   }).join('');
 }
 
-function toggleEventSessions(evId){
-  if(expandedEvents.has(evId)) expandedEvents.delete(evId);
-  else expandedEvents.add(evId);
-  renderOverviewCards();
-}
-
-function openSesModalForEvent(evId){
-  resetSesModal();
-  $('sm_eventId').value=evId;
-  openModal('sesModal');
-}
-
-function goToSesRegs(sesId){
-  goPage('regs');
-  const sel=$('regSesFilter');
-  if(sel){ sel.value=sesId; renderRegs(); }
-}
-
-
-
 function toggleMoreMenu(){
+
   const m=$('adminMoreMenu');
   if(m) m.style.display=m.style.display==='none'?'block':'none';
 }
@@ -1492,41 +1505,51 @@ async function loadRegs(){
 }
 function renderRegs(){
   const kw=($('regSearch')?.value||'').toLowerCase();
-  const evId=$('regEventFilter')?.value||'';
-  const sesId=$('regSesFilter')?.value||'';
-  // 只顯示待審核
   let list=(ST.allRegs||[]).filter(r=>{
-    const matchEv=!evId||r.eventId===evId;
-    const matchSes=!sesId||r.sessionId===sesId;
-    const matchKw=!kw||(r.name||'').toLowerCase().includes(kw)||(r.brand||'').toLowerCase().includes(kw)||(r.email||'').toLowerCase().includes(kw);
-    return matchEv&&matchSes&&matchKw&&r.status==='待審核';
+    const matchKw=!kw||(r.brand||'').toLowerCase().includes(kw)||(r.name||'').toLowerCase().includes(kw)||(r.email||'').toLowerCase().includes(kw);
+    return matchKw;
   });
-  const count=$('regsCount');
-  if(count) count.textContent=`待審核 ${list.length} 筆`;
+  // 依報名時間倒序
+  list.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  const cnt=$('regCount');
+  if(cnt) cnt.textContent=`共 ${list.length} 筆`;
   const el=$('regsCardList');
   if(!el) return;
-  if(!list.length){el.innerHTML='<div style="color:#aaa;text-align:center;padding:24px">目前無待審核報名</div>';return;}
+  if(!list.length){el.innerHTML='<div style="color:#aaa;text-align:center;padding:24px">無報名資料</div>';return;}
   el.innerHTML=list.map(r=>{
-    const ses=(ST.sdData||[]).find(s=>s.id===r.sessionId);
-    const dateStr=ses?.dates?.length?ses.dates[0].date:'';
+    const ses=(ST.sdData||[]).find(s=>s.id===r.sessionId)||{};
+    const ev=(ST.events||[]).find(e=>e.id===r.eventId)||{};
+    // 設備字串
+    let equipStr='';
+    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+    // 狀態顏色
+    const statusBg={待審核:'#fff3cd',已錄取:'#d4edda',不錄取:'#f8d7da',備取:'#e2e3ff'}[r.status]||'#f0f0f0';
+    const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',備取:'#383d8a'}[r.status]||'#666';
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh)">
-      <div style="font-size:12px;color:var(--md);margin-bottom:4px">${ses?.name||r.sessionId}　${dateStr}</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:700">${r.brand||r.name}</div>
-          <div style="font-size:12px;color:var(--md)">${r.name}　${r.phone||''}</div>
-          <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
-            <span style="font-size:11px;background:#fff8e1;color:var(--yl);padding:2px 8px;border-radius:6px;font-weight:700">${r.status}</span>
-            <span style="font-size:11px;background:#f5f5f5;color:#888;padding:2px 8px;border-radius:6px">${r.payStatus||'未繳費'}</span>
-            ${r.fb?`<a href="${r.fb}" target="_blank" style="font-size:11px;background:#1877F2;color:#fff;padding:2px 8px;border-radius:6px;text-decoration:none">FB</a>`:''}
-            ${r.ig?`<a href="${r.ig}" target="_blank" style="font-size:11px;background:linear-gradient(135deg,#f09433,#dc2743);color:#fff;padding:2px 8px;border-radius:6px;text-decoration:none">IG</a>`:''}
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-          <button onclick="quickApprove('${r.id}')" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">核准</button>
-          <button onclick="quickReject('${r.id}')" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">拒絕</button>
-          <button onclick="quickFastPass('${r.id}','${r.email}')" style="background:#f0fdf4;color:var(--g);border:1px solid var(--g);border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer">快速通關</button>
-        </div>
+      <!-- 第一行：狀態、活動名、場次名 -->
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <span style="background:${statusBg};color:${statusColor};padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0">${r.status||'待審核'}</span>
+        ${ev.title?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0">${ev.title}</span>`:''}
+        <span style="font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ses.name||r.sessionId}</span>
+      </div>
+      <!-- 第二行：品牌、FB、IG、報名日期 -->
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <span style="font-size:14px;font-weight:700">${r.brand||r.name}</span>
+        ${r.fb?`<a href="${r.fb}" target="_blank" style="background:#1877F2;color:#fff;padding:2px 7px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:700">FB 🔗</a>`:''}
+        ${r.ig?`<a href="${r.ig}" target="_blank" style="background:linear-gradient(135deg,#f09433,#dc2743);color:#fff;padding:2px 7px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:700">IG 🔗</a>`:''}
+        <span style="font-size:11px;color:#aaa;margin-left:auto">${(r.createdAt||'').slice(0,10)}</span>
+      </div>
+      <!-- 第三行：攤位數、設備 -->
+      <div style="font-size:12px;color:var(--md);margin-bottom:10px">
+        攤位 ${r.stallCount||1} 攤
+        ${equipStr?`　${equipStr}`:''}
+      </div>
+      <!-- 操作按鈕 -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${r.status!=='已錄取'?`<button onclick="quickApprove('${r.id}')" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">錄取</button>`:''}
+        ${r.status!=='不錄取'?`<button onclick="quickReject('${r.id}')" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">不錄取</button>`:''}
+        ${r.status!=='備取'?`<button onclick="quickWaitlist('${r.id}')" style="background:#e2e3ff;color:#383d8a;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">備取</button>`:''}
+        <button onclick="openRegDetail('${r.id}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">明細 🔗</button>
       </div>
     </div>`;
   }).join('');
@@ -1676,6 +1699,46 @@ async function batchCheckin(){
   toast('已報到 '+ok+' 筆');
   await loadAllRegs();
 }
+async function quickWaitlist(regId){
+  const res=await apiPost({action:'approveReg',regId,status:'備取'});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('已設為備取');
+  await loadAllRegs(); renderRegs();
+}
+
+async function openRegDetail(regId){
+  const reg=(ST.allRegs||[]).find(r=>r.id===regId);
+  if(!reg){toast('找不到資料');return;}
+  const ses=(ST.sdData||[]).find(s=>s.id===reg.sessionId)||{};
+  const ev=(ST.events||[]).find(e=>e.id===reg.eventId)||{};
+  let equipStr='';
+  try{const eq=JSON.parse(reg.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+  let customStr='';
+  try{const cf=JSON.parse(reg.customFields||'{}');customStr=Object.entries(cf).map(([k,v])=>`<div><strong>${k}：</strong>${v}</div>`).join('');}catch(e){}
+  $('regDetailBody').innerHTML=`
+    <div style="font-size:13px;line-height:2">
+      <div><strong>活動：</strong>${ev.title||''}</div>
+      <div><strong>場次：</strong>${ses.name||''}</div>
+      <div><strong>品牌：</strong>${reg.brand||''}</div>
+      <div><strong>姓名：</strong>${reg.name||''}</div>
+      <div><strong>手機：</strong>${reg.phone||''}</div>
+      <div><strong>Email：</strong>${reg.email||''}</div>
+      ${reg.fb?`<div><strong>FB：</strong><a href="${reg.fb}" target="_blank">${reg.fb}</a></div>`:''}
+      ${reg.ig?`<div><strong>IG：</strong><a href="${reg.ig}" target="_blank">${reg.ig}</a></div>`:''}
+      <div><strong>攤位數：</strong>${reg.stallCount||1} 攤</div>
+      ${equipStr?`<div><strong>設備：</strong>${equipStr}</div>`:''}
+      <div><strong>品牌介紹：</strong>${reg.brandIntro||'-'}</div>
+      <div><strong>販售類別：</strong>${reg.category||'-'}</div>
+      <div><strong>商品說明：</strong>${reg.products||'-'}</div>
+      ${reg.productLink?`<div><strong>商品連結：</strong><a href="${reg.productLink}" target="_blank">🔗</a></div>`:''}
+      ${customStr}
+      <div><strong>審核狀態：</strong>${reg.status||'待審核'}</div>
+      <div><strong>付款狀態：</strong>${reg.payStatus||'未繳費'}</div>
+      <div><strong>報名時間：</strong>${(reg.createdAt||'').slice(0,16)}</div>
+    </div>`;
+  openModal('regDetailModal');
+}
+
 async function quickApprove(regId){
   const res=await apiPost({action:'approveReg',regId,approved:true});
   if(res.error){toast('❌ '+res.error);return;}
