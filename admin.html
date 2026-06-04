@@ -907,78 +907,66 @@ function renderOverviewSessions(){
     el.innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">無場次資料</div>';
     return;
   }
-  // 電腦版 table + 手機版自動捲動
-  el.innerHTML=`
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px">
-        <thead>
-          <tr style="background:var(--color-background-secondary,#f5f5f5);border-bottom:1.5px solid #e0e0e0">
-            <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap"></th>
-            <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">狀態</th>
-            <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">地區</th>
-            <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">主題活動</th>
-            <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">場次名稱</th>
-            <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">日期</th>
-            <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">報名</th>
-            <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">待審核</th>
-            <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">已繳費</th>
-            <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">設備</th>
-            <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">已報到</th>
-            <th style="padding:8px 6px;text-align:right;font-weight:500;color:#666;white-space:nowrap">已收費用</th>
-            <th style="padding:8px 6px;text-align:right;font-weight:500;color:#666;white-space:nowrap">押金</th>
-            <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">操作</th>
-          </tr>
-        </thead>
-        <tbody id="overviewTbody"></tbody>
-      </table>
-    </div>`;
-
   const ev_map={};(ST.events||[]).forEach(e=>ev_map[e.id]=e);
-  const rows=sessions.map(s=>{
-    const ev=ev_map[s.eventId]||{};
-    const dateStr=s.dates&&s.dates.length?s.dates[0].date:'';
-    const isOpen=s.status==='報名中';
-    let equipCount=0;
-    try{const defs=JSON.parse(s.equipDefs||'[]');equipCount=defs.reduce((sum,d)=>sum+(parseInt(d.qty)||0),0);}catch(e){}
-    return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
-      <td style="padding:8px 6px">
-        ${s.cover||ev.cover
-          ?`<img src="${s.cover||ev.cover}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;display:block">`
-          :`<div style="width:36px;height:36px;border-radius:6px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:18px">🎪</div>`}
-      </td>
-      <td style="padding:8px 6px;white-space:nowrap">
-        <span style="padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500;background:${isOpen?'#E1F5EE':'#FCEBEB'};color:${isOpen?'#0F6E56':'#A32D2D'}">${isOpen?'報名中':'已結束'}</span>
-      </td>
-      <td style="padding:8px 6px;font-size:12px;color:#666;white-space:nowrap">${s.region||''}</td>
-      <td style="padding:8px 6px">
-        ${ev.title?`<span style="background:#E1F5EE;color:#0F6E56;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap">${ev.title}</span>`:''}
-      </td>
-      <td style="padding:8px 6px;font-size:13px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</td>
-      <td style="padding:8px 6px;text-align:center;font-size:12px;color:#666;white-space:nowrap">${dateStr}</td>
-      <td style="padding:8px 6px;text-align:center">
-        <span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:500;cursor:pointer;text-decoration:underline;font-size:13px">${s.total||0}</span>
-      </td>
-      <td style="padding:8px 6px;text-align:center">
-        <span onclick="goToSesRegs('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;text-decoration:underline;font-size:13px">${s.pending||0}</span>
-      </td>
-      <td style="padding:8px 6px;text-align:center">
-        <span style="color:#1D9E75;font-weight:500;font-size:13px">${s.paid||0}</span>
-      </td>
-      <td style="padding:8px 6px;text-align:center;font-size:13px;color:#555">${equipCount||'-'}</td>
-      <td style="padding:8px 6px;text-align:center">
-        <span style="color:#185FA5;font-weight:500;font-size:13px">${s.seated||0}</span>
-      </td>
-      <td style="padding:8px 6px;text-align:right;font-size:12px;font-weight:500;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
-      <td style="padding:8px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
-      <td style="padding:8px 6px;text-align:center;white-space:nowrap">
-        <button onclick="editSes('${s.id}')" title="編輯" style="background:none;border:0.5px solid #e0e0e0;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:13px;margin:0 2px">✏️</button>
-        <button onclick="downloadSesData('${s.id}','${s.name}')" title="下載" style="background:none;border:0.5px solid #e0e0e0;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:13px;margin:0 2px">⬇️</button>
-        <button onclick="openFinanceModal('${s.id}','${s.name}','${ev.title||''}')" title="財報" style="background:#fdf4ff;border:0.5px solid #ddd5fe;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:13px;margin:0 2px">💰</button>
-      </td>
-    </tr>`;
-  }).join('');
 
-  document.getElementById('overviewTbody').innerHTML=rows;
+  el.innerHTML=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:860px">
+      <thead>
+        <tr style="background:#f5f5f5;border-bottom:1.5px solid #e0e0e0">
+          <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;width:44px"></th>
+          <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">地區</th>
+          <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">場次名稱</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">活動日期</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">報名</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">待審核</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">已繳費</th>
+          <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">設備</th>
+          <th style="padding:8px 6px;text-align:right;font-weight:500;color:#666;white-space:nowrap">已收費用</th>
+          <th style="padding:8px 6px;text-align:right;font-weight:500;color:#666;white-space:nowrap">押金</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">已報到</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">操作</th>
+        </tr>
+      </thead>
+      <tbody>${sessions.map(s=>{
+        const ev=ev_map[s.eventId]||{};
+        const dateStr=s.dates&&s.dates.length?s.dates.map(d=>d.date).join('/'):(s.date||'');
+        // 設備：顯示該場次開放的設備品項及數量
+        let equipStr='-';
+        try{
+          const defs=JSON.parse(s.equipDefs||'[]');
+          if(defs.length) equipStr=defs.map(d=>d.name+(d.qty?'×'+d.qty:'')).join(' ');
+        }catch(e){}
+        const cover=s.cover||ev.cover||'';
+        return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
+          <td style="padding:7px 6px">
+            ${cover
+              ?`<img src="${cover}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;display:block">`
+              :`<div style="width:36px;height:36px;border-radius:6px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:18px">🎪</div>`}
+          </td>
+          <td style="padding:7px 6px;font-size:12px;color:#666;white-space:nowrap">${s.region||''}</td>
+          <td style="padding:7px 6px;max-width:180px">
+            <span onclick="openSesDetail('${s.id}')" style="font-size:13px;font-weight:500;cursor:pointer;color:#1D9E75;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${s.name}</span>
+          </td>
+          <td style="padding:7px 6px;text-align:center;font-size:12px;color:#555;white-space:nowrap">${dateStr}</td>
+          <td style="padding:7px 6px;text-align:center">
+            <span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:500;cursor:pointer;font-size:13px">${s.total||0}</span>
+          </td>
+          <td style="padding:7px 6px;text-align:center">
+            <span onclick="goToSesRegs('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;font-size:13px">${s.pending||0}</span>
+          </td>
+          <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:500;color:#1D9E75">${s.paid||0}</td>
+          <td style="padding:7px 6px;font-size:11px;color:#555;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${equipStr}</td>
+          <td style="padding:7px 6px;text-align:right;font-size:12px;font-weight:500;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
+          <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
+          <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
+          <td style="padding:7px 6px;text-align:center;white-space:nowrap">
+            <button onclick="downloadSesData('${s.id}','${s.name}')" title="下載" style="background:none;border:0.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">⬇️</button>
+            <button onclick="openFinanceModal('${s.id}','${s.name}','${ev.title||''}')" title="財報" style="background:#fdf4ff;border:0.5px solid #ddd5fe;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">💰</button>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
 }
 
 function toggleMoreMenu(){
