@@ -330,25 +330,44 @@ textarea{min-height:72px;resize:vertical}
   </div>
 
   <!-- 已登入區 -->
-  <div id="memberArea" style="display:none;padding:0 0 20px">
+  <div id="memberArea" style="display:none;padding:0 0 100px">
 
-    <!-- 會員資料卡片 -->
-    <div id="memberInfoCard" style="margin:12px 16px;background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden">
-      <div style="background:linear-gradient(135deg,#2d6a4f,#52b788);padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center">
+    <!-- 會員資料卡片（直接可編輯）-->
+    <div style="margin:12px 16px;background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden">
+      <div style="background:linear-gradient(135deg,#2d6a4f,#52b788);padding:14px 16px;color:#fff;display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div style="font-size:17px;font-weight:900" id="memberName"></div>
+          <div style="font-size:16px;font-weight:900" id="memberName"></div>
           <div style="font-size:12px;opacity:.8" id="memberEmail2"></div>
         </div>
-        <button onclick="showMemberEdit()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:7px 14px;border-radius:10px;font-size:13px;cursor:pointer">編輯資料</button>
+        <button onclick="memberLogout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">登出</button>
       </div>
-      <div style="padding:14px 16px" id="memberCardBody">
-        <!-- 動態填入 -->
+      <div style="padding:14px 16px">
+        <label style="font-size:12px;color:var(--md)">姓名</label>
+        <input type="text" id="editName" style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">手機</label>
+        <input type="tel" id="editPhone" inputmode="tel" style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">品牌名稱</label>
+        <input type="text" id="editBrand" style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">FB 粉絲專頁</label>
+        <input type="url" id="editFb" placeholder="https://facebook.com/..." style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">IG 帳號</label>
+        <input type="url" id="editIg" placeholder="https://instagram.com/..." style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">官網 / 作品集</label>
+        <input type="url" id="editCollabUrl" placeholder="https://..." style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">出攤照連結</label>
+        <input type="url" id="editPhoto" placeholder="https://..." style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">品牌介紹</label>
+        <textarea id="editBrandIntro" placeholder="簡短介紹品牌或商品" style="margin-bottom:8px"></textarea>
+        <label style="font-size:12px;color:var(--md)">LINE ID</label>
+        <input type="text" id="editLineId" style="margin-bottom:12px">
+        <button class="btn-p" onclick="saveMemberEdit()" style="width:100%">更新資料</button>
+        <div id="saveSuccessMsg" style="display:none;text-align:center;color:var(--g);font-weight:700;padding:8px;font-size:14px">✓ 更新完成！</div>
       </div>
     </div>
 
     <!-- 報名紀錄 -->
     <div style="padding:0 16px">
-      <div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:10px">我的報名紀錄</div>
+      <div style="font-size:14px;font-weight:700;color:var(--md);margin:4px 0 10px">我的報名紀錄</div>
       <div id="myRegsList"></div>
     </div>
   </div>
@@ -1078,6 +1097,7 @@ async function memberLogin(){
   ST.member=member;
   $('memberLoginArea').style.display='none';
   $('memberArea').style.display='block';
+  fillMemberCard(member);
   // 更新底部按鈕
   const lbl=$('botMemberLabel');
   if(lbl) lbl.textContent='會員登出';
@@ -1110,32 +1130,38 @@ function memberLogout(){
 async function renderMyRegs(regs){
   const el=$('myRegsList');
   if(!regs.length){el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:20px">目前無報名紀錄</div>';return;}
-  const sesNames={};
+  const sesCache={};
   await Promise.all([...new Set(regs.map(r=>r.sessionId))].map(async id=>{
     const s=await api({action:'getSession',id});
-    sesNames[id]=s?.name||id;
+    sesCache[id]=s||{};
   }));
   el.innerHTML=regs.map(r=>{
-    const badge={待審核:'badge-wait',已錄取:'badge-ok',不錄取:'badge-no'}[r.status]||'badge-wait';
-    const payBadge=r.payStatus==='已繳費 ✓'?'badge-ok':r.payStatus==='待確認'?'badge-wait':'';
+    const s=sesCache[r.sessionId]||{};
+    const region=s.region||'';
+    const sesName=s.name||r.sessionId;
+    let equipStr='';
+    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+    const stalls=r.stallCount||1;
+    const statusColor={待審核:'#b7860b',已錄取:'#2d6a4f',不錄取:'#c0392b'}[r.status]||'#888';
     const canPay=r.status==='已錄取'&&r.payStatus!=='已繳費 ✓'&&r.amount>0;
-    const canSelect=r.status==='已錄取';
-    return `<div class="reg-record">
-      <div class="reg-rec-top">
-        <div class="reg-ses-name">${sesNames[r.sessionId]||r.sessionId}</div>
-        <span class="status-badge ${badge}">${r.status}</span>
+    const paidTag=r.payStatus==='已繳費 ✓'
+      ?'<span style="background:#e8f7ee;color:#2d6a4f;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700">已繳費</span>'
+      :r.payStatus==='待確認'
+      ?'<span style="background:#fff8e1;color:#b7860b;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700">待確認</span>'
+      :'<span style="background:#f5f5f5;color:#888;padding:2px 7px;border-radius:6px;font-size:11px">未繳費</span>';
+    return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.07)">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">
+        ${region?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${region}</span>`:''}
+        <span style="font-size:14px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sesName}</span>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
-        <div style="font-size:12px;color:var(--md)">
-          ${r.amount>0?`NT$ ${r.amount}　`:''}
-          <span class="status-badge ${payBadge}" style="font-size:10px">${r.payStatus||'未繳費'}</span>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${canPay?`<button onclick="showPayPage('${r.id}','${sesNames[r.sessionId]||r.sessionId}',${r.amount})" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">去繳費</button>`:''}
-          ${canSelect?`<button onclick="showStallPicker('${r.id}','${r.sessionId}')" style="background:var(--bl);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">選位</button>`:''}
-        </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--md)">
+        <span>${stalls}攤</span>
+        ${equipStr?`<span style="color:#888">${equipStr}</span>`:''}
+        <span style="color:${statusColor};font-weight:700">${r.status}</span>
+        ${r.amount>0?`<span style="font-weight:700;color:var(--dk)">NT$${r.amount}</span>`:'<span>免費</span>'}
+        ${paidTag}
+        ${canPay?`<button onclick="showPayPage('${r.id}','${sesName}',${r.amount})" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">去繳費</button>`:''}
       </div>
-      <div style="font-size:11px;color:#ccc;margin-top:4px">${r.createdAt?.slice(0,10)||''}</div>
     </div>`;
   }).join('');
 }
@@ -1287,21 +1313,20 @@ async function pickStall(stallName){
 }
 
 function showMemberEdit(){
-  const m=ST.member||{};
+  // 現在卡片直接可編輯，不用開 modal
+  // 這個函數保留備用
+}
+function fillMemberCard(m){
+  if(!m) return;
   $('editName').value=m.name||'';
   $('editPhone').value=m.phone||'';
-  $('editLineId').value=m.lineId||'';
   $('editBrand').value=m.brand||'';
-  $('editBrandIntro').value=m.brandIntro||'';
   $('editFb').value=m.fb||'';
   $('editIg').value=m.ig||'';
-  $('editPhoto').value=m.photo||'';
-  $('editCompany').value=m.company||'';
-  $('editTaxId').value=m.taxId||'';
-  $('editInvoiceEmail').value=m.invoiceEmail||'';
   $('editCollabUrl').value=m.collabUrl||'';
-  $('editCollabDesc').value=m.collabDesc||'';
-  $('editModal').classList.add('show');
+  $('editPhoto').value=m.photo||'';
+  $('editBrandIntro').value=m.brandIntro||'';
+  $('editLineId').value=m.lineId||'';
 }
 
 async function saveMemberEdit(){
@@ -1321,10 +1346,11 @@ async function saveMemberEdit(){
     collabDesc:$('editCollabDesc').value.trim()};
   const res=await apiPost(body);
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 更新完成！', 3000);
+  // 顯示成功訊息
+  const msg=$('saveSuccessMsg');
+  if(msg){msg.style.display='block';setTimeout(()=>msg.style.display='none',3000);}
   ST.member={...ST.member,...body};
-  $('memberName').textContent=(body.name||ST.memberEmail)+' 的報名紀錄';
-  closeModal('editModal');
+  $('memberName').textContent=body.name||ST.memberEmail;
 }
 
 // LOGO 長按3秒進後台
