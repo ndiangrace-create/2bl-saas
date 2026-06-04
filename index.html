@@ -88,7 +88,7 @@ img{display:block;max-width:100%}
 .event-more{font-size:10px;color:var(--g);font-weight:700;margin-top:6px}
 
 /* ── 場次頁 ── */
-.page{display:none;padding-bottom:100px}
+.page{display:none;padding-bottom:100px;max-width:640px;margin:0 auto}
 .page.active{display:block}
 .back-bar{display:flex;align-items:center;gap:8px;padding:14px 16px;background:#fff;border-bottom:1px solid #f0f0f0;cursor:pointer;position:sticky;top:0;z-index:10}
 .back-bar .arrow{font-size:18px;color:var(--g)}
@@ -187,7 +187,6 @@ textarea{min-height:72px;resize:vertical}
 .modal-actions{display:flex;gap:10px;margin-top:18px}
 
 /* ── 首頁容器 ── */
-#pageHome{display:block}
 </style>
 </head>
 <body>
@@ -282,7 +281,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 場次頁 ══ -->
-<div id="pageSession" class="page" style="max-width:640px;margin:0 auto">
+<div id="pageSession" class="page">
   <div class="back-bar" onclick="backToHome()">
     <span class="arrow">←</span>
     <span class="title" id="sessionEventName">場次列表</span>
@@ -291,7 +290,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 報名表頁 ══ -->
-<div id="pageForm" class="page" style="display:none">
+<div id="pageForm" class="page">
   <div class="back-bar" onclick="backToSessions()">
     <span class="arrow">←</span>
     <span class="title" id="formBackTitle">報名表</span>
@@ -314,7 +313,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 會員頁 ══ -->
-<div id="pageMember" class="page" style="max-width:640px;margin:0 auto">
+<div id="pageMember" class="page">
   <div class="back-bar" onclick="navTo('home')">
     <span class="arrow">←</span>
     <span class="title">會員 / 我的報名</span>
