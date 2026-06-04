@@ -20,7 +20,7 @@
   --line:#06C755;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow-x:hidden}
+html,body{min-height:100vh;overflow-x:hidden;font-size:16px;padding-bottom:80px}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--wh);color:var(--dk);padding-bottom:80px}
 
 /* ── 圖片 ── */
@@ -88,7 +88,7 @@ img{display:block;max-width:100%}
 .event-more{font-size:10px;color:var(--g);font-weight:700;margin-top:6px}
 
 /* ── 場次頁 ── */
-.page{display:none;padding-bottom:100px;max-width:640px;margin:0 auto}
+.page{display:none;padding-bottom:100px}
 .page.active{display:block}
 .back-bar{display:flex;align-items:center;gap:8px;padding:14px 16px;background:#fff;border-bottom:1px solid #f0f0f0;cursor:pointer;position:sticky;top:0;z-index:10}
 .back-bar .arrow{font-size:18px;color:var(--g)}
@@ -167,7 +167,7 @@ textarea{min-height:72px;resize:vertical}
 .badge-no{background:var(--rdp);color:var(--rd)}
 
 /* ── 底部固定三按鈕 ── */
-.bottom-fixed{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:640px;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
+.bottom-fixed{position:fixed;bottom:0;left:0;right:0;width:100%;max-width:640px;margin:0 auto;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
 .bot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:12px 6px;border-radius:14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;transition:all .15s}
 .bot-btn:active{transform:scale(.96)}
 .bot-line{background:#06C755;color:#fff;box-shadow:0 3px 10px rgba(6,199,85,.3)}
@@ -190,7 +190,6 @@ textarea{min-height:72px;resize:vertical}
 </style>
 </head>
 <body>
-
 <!-- ══ 首頁 ══ -->
 <div id="pageHome" class="page active" style="max-width:640px;margin:0 auto">
 
@@ -281,7 +280,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 場次頁 ══ -->
-<div id="pageSession" class="page">
+<div id="pageSession" class="page" style="max-width:640px;margin:0 auto">
   <div class="back-bar" onclick="backToHome()">
     <span class="arrow">←</span>
     <span class="title" id="sessionEventName">場次列表</span>
@@ -290,7 +289,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 報名表頁 ══ -->
-<div id="pageForm" class="page">
+<div id="pageForm" class="page" style="max-width:640px;margin:0 auto">
   <div class="back-bar" onclick="backToSessions()">
     <span class="arrow">←</span>
     <span class="title" id="formBackTitle">報名表</span>
@@ -313,7 +312,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 會員頁 ══ -->
-<div id="pageMember" class="page">
+<div id="pageMember" class="page" style="max-width:640px;margin:0 auto">
   <div class="back-bar" onclick="navTo('home')">
     <span class="arrow">←</span>
     <span class="title">會員 / 我的報名</span>
