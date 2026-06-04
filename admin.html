@@ -29,7 +29,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);mi
 /* ── 佈局 ── */
 .layout{min-height:calc(100vh - 80px);display:block}
 .sidebar{display:none!important}
-.main{flex:1;padding:16px;min-width:0;overflow-x:hidden}
+
 .nav-section{font-size:10px;color:#bbb;padding:10px 14px 3px;letter-spacing:.1em;font-weight:700}
 .nav-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:15px;color:var(--md);cursor:pointer;border-left:3px solid transparent;transition:all .15s;user-select:none}
 .nav-item:hover{background:var(--gp2);color:var(--g)}
@@ -43,7 +43,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);mi
 .admin-tab.active{color:var(--g)}
 .admin-tab-icon{font-size:24px;line-height:1}
 .admin-tab-label{font-size:10px;font-weight:700}
-.main{padding:16px 16px 80px;max-width:800px;margin:0 auto}
+
 
 /* ── 卡片 ── */
 .card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px}
@@ -138,11 +138,12 @@ textarea{min-height:64px;resize:vertical}
 
 /* ── 手機 sidebar ── */
 
-  .main{padding:10px}
+  
   .form-row{grid-template-columns:1fr}
   .mod-grid{grid-template-columns:1fr}
   .ses-table,.reg-table{font-size:12px}
 }
+.main{padding:16px 16px 80px;max-width:800px;margin:0 auto;overflow-x:hidden}
 .tab-page{display:none}
 .tab-page.active{display:block}
 </style>
@@ -218,21 +219,7 @@ textarea{min-height:64px;resize:vertical}
   <div id="regsCardList"></div>
 </div>
 
-      <!-- ── 付款管理 ── -->
-      <div id="page-payments" class="tab-page">
-        <div class="page-title">付款管理</div>
-        <div class="card">
-          <div class="card-hd"><h3>付款紀錄</h3></div>
-          <div class="table-wrap">
-            <table class="reg-table">
-              <thead><tr><th>Email</th><th>金額</th><th>方式</th><th>狀態</th><th>時間</th></tr></thead>
-              <tbody id="paymentsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
 
-      <!-- ── 公告管理 ── -->
       <div id="page-checkin" class="tab-page">
   <div class="page-title">現場管理</div>
 
@@ -264,11 +251,7 @@ textarea{min-height:64px;resize:vertical}
     <div id="checkinList"></div>
   </div>
 
-      <!-- ── 公告管理 ── -->
-      
-
-      <!-- ── 設定（合併管理員+公告） ── -->
-      <div id="page-settings" class="tab-page">
+<div id="page-settings" class="tab-page">
         <div class="page-title">設定</div>
 
         <!-- 管理員 -->
@@ -294,6 +277,28 @@ textarea{min-height:64px;resize:vertical}
 
 </div><!-- /main -->
   </div><!-- /layout -->
+
+<!-- ── 底部 Tab Bar ── -->
+<div class="admin-bottom-bar" id="adminBottomBar">
+  <div class="admin-tab-row">
+    <button class="admin-tab active" id="atab-overview" onclick="goPage('overview')">
+      <span class="admin-tab-icon">📊</span>
+      <span class="admin-tab-label">總覽</span>
+    </button>
+    <button class="admin-tab" id="atab-regs" onclick="goPage('regs')">
+      <span class="admin-tab-icon">📋</span>
+      <span class="admin-tab-label">報名審核</span>
+    </button>
+    <button class="admin-tab" id="atab-checkin" onclick="goPage('checkin')">
+      <span class="admin-tab-icon">✅</span>
+      <span class="admin-tab-label">現場管理</span>
+    </button>
+    <button class="admin-tab" id="atab-settings" onclick="goPage('settings')">
+      <span class="admin-tab-icon">⚙️</span>
+      <span class="admin-tab-label">設定</span>
+    </button>
+  </div>
+</div>
 </div>
 
 <!-- ══ Modal：活動 ══ -->
@@ -1890,26 +1895,6 @@ async function removeStaff(email,name){
   toast('✅ 已移除');loadStaff();
 }
 </script>
-<!-- ── 底部 Tab Bar ── -->
-<div class="admin-bottom-bar" id="adminBottomBar">
-  <div class="admin-tab-row">
-    <button class="admin-tab active" id="atab-overview" onclick="goPage('overview')">
-      <span class="admin-tab-icon">📊</span>
-      <span class="admin-tab-label">總覽</span>
-    </button>
-    <button class="admin-tab" id="atab-regs" onclick="goPage('regs')">
-      <span class="admin-tab-icon">📋</span>
-      <span class="admin-tab-label">報名審核</span>
-    </button>
-    <button class="admin-tab" id="atab-checkin" onclick="goPage('checkin')">
-      <span class="admin-tab-icon">✅</span>
-      <span class="admin-tab-label">現場管理</span>
-    </button>
-    <button class="admin-tab" id="atab-settings" onclick="goPage('settings')">
-      <span class="admin-tab-icon">⚙️</span>
-      <span class="admin-tab-label">設定</span>
-    </button>
-  </div>
-</div>
+
 </body>
 </html>
