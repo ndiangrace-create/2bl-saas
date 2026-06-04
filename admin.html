@@ -311,26 +311,35 @@ textarea{min-height:64px;resize:vertical}
 
       <!-- ── 公告管理 ── -->
       <div id="page-checkin" class="tab-page">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-    <div class="page-title" style="margin:0">現場管理</div>
-  </div>
-  <!-- 場次篩選 -->
-  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-    <select class="filter-sel" id="checkinSesFilter" onchange="loadCheckinRegs()" style="flex:1">
+  <div class="page-title">現場管理</div>
+
+  <!-- 場次選擇（有多場次才顯示）-->
+  <div id="checkinSesArea" style="margin-bottom:12px">
+    <select class="filter-sel" id="checkinSesFilter" onchange="loadCheckinRegs()" style="width:100%;font-size:15px;padding:10px">
       <option value="">請選擇場次</option>
     </select>
-    <select class="filter-sel" id="checkinStatusFilter" onchange="filterCheckinList()">
-      <option value="">全部</option>
-      <option value="未報到">未報到</option>
-      <option value="已報到">已報到</option>
-    </select>
   </div>
-  <!-- 統計 -->
-  <div id="checkinStats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
-  <!-- 搜尋 -->
-  <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/Email" oninput="filterCheckinList()" style="margin-bottom:10px">
-  <!-- 列表 -->
-  <div id="checkinList"></div>
+
+  <!-- 已選場次後顯示 -->
+  <div id="checkinBody" style="display:none">
+    <!-- 統計卡片 -->
+    <div id="checkinStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
+
+    <!-- 搜尋 -->
+    <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/電話/Email/攤位號碼"
+      oninput="filterCheckinList()"
+      style="margin-bottom:10px;font-size:15px;padding:11px">
+
+    <!-- 狀態篩選 -->
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-sm" id="cf-all" onclick="setCFFilter('')" style="flex:1;background:var(--g);color:#fff">全部</button>
+      <button class="btn btn-sm" id="cf-not" onclick="setCFFilter('未報到')" style="flex:1;background:#f0f0f0;color:var(--md)">未報到</button>
+      <button class="btn btn-sm" id="cf-in" onclick="setCFFilter('已報到')" style="flex:1;background:#f0f0f0;color:var(--md)">已報到</button>
+    </div>
+
+    <!-- 列表 -->
+    <div id="checkinList"></div>
+  </div>
 </div>
 
 <div id="page-announce" class="tab-page">
@@ -616,7 +625,7 @@ textarea{min-height:64px;resize:vertical}
     <label>姓名</label><input type="text" id="sf_name">
     <label>角色</label>
     <select id="sf_role" onchange="toggleSuperAdminPerms(this.value)">
-      <option value="staff">一般管理員（自訂權限）</option>
+      <option value="活動夥伴">活動夥伴（自訂權限）</option>
       <option value="superadmin">超級管理員（全部權限）</option>
     </select>
     <div id="sf_perms_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
@@ -710,10 +719,52 @@ function initAdmin(name,role){
 // ── 頁面切換 ──
 // ── 現場管理 ──
 let ST_checkinRegs = [];
+let ST_cfFilter = '';
+
+function setCFFilter(val){
+  ST_cfFilter=val;
+  ['all','not','in'].forEach(k=>{
+    const btn=$('cf-'+k);
+    if(btn) btn.style.background=
+      (k==='all'&&!val)||(k==='not'&&val==='未報到')||(k==='in'&&val==='已報到')
+      ?'var(--g)':'#f0f0f0';
+    if(btn) btn.style.color=
+      (k==='all'&&!val)||(k==='not'&&val==='未報到')||(k==='in'&&val==='已報到')
+      ?'#fff':'var(--md)';
+  });
+  filterCheckinList();
+}
+
+function fillCheckinSesFilter(){
+  const sel=$('checkinSesFilter');
+  if(!sel) return;
+  // 活動夥伴只看指派的場次
+  const isSuperAdmin=ST.role==='superadmin';
+  let sessions=ST.sdData||[];
+  if(!isSuperAdmin && ST.limitSessions && ST.limitSessions.length){
+    sessions=sessions.filter(s=>ST.limitSessions.includes(s.id));
+  }
+  sel.innerHTML='<option value="">請選擇場次</option>';
+  sessions.forEach(s=>{
+    const opt=document.createElement('option');
+    opt.value=s.id;
+    opt.textContent=(s.region?'['+s.region+'] ':'')+s.name;
+    sel.appendChild(opt);
+  });
+  // 只有一個場次直接自動選入
+  if(sessions.length===1){
+    sel.value=sessions[0].id;
+    loadCheckinRegs();
+  }
+  // 隱藏場次選單（只有一個場次時）
+  const area=$('checkinSesArea');
+  if(area) area.style.display=sessions.length<=1?'none':'block';
+}
 
 async function loadCheckinRegs(){
   const sesId=$('checkinSesFilter').value;
-  if(!sesId){ $('checkinList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px">請選擇場次</div>'; return; }
+  if(!sesId){$('checkinBody').style.display='none';return;}
+  $('checkinBody').style.display='block';
   $('checkinList').innerHTML='<div style="text-align:center;padding:20px;color:#aaa">載入中...</div>';
   const regs=await apiPost({action:'getRegsBySession',sessionId:sesId});
   ST_checkinRegs=regs||[];
@@ -724,46 +775,77 @@ async function loadCheckinRegs(){
 function updateCheckinStats(){
   const total=ST_checkinRegs.length;
   const checked=ST_checkinRegs.filter(r=>r.checkin==='已報到').length;
-  const paid=ST_checkinRegs.filter(r=>r.payStatus==='已繳費 ✓').length;
+  const cleared=ST_checkinRegs.filter(r=>r.clearStatus==='已撤場').length;
+  const depositTotal=ST_checkinRegs.reduce((sum,r)=>sum+(r.deposit||0),0);
+  const refunded=ST_checkinRegs.filter(r=>r.depositRefunded==='已退').length;
   $('checkinStats').innerHTML=`
-    <div style="background:#fff;border-radius:10px;padding:10px 16px;flex:1;text-align:center;box-shadow:var(--sh)">
-      <div style="font-size:22px;font-weight:900;color:var(--g)">${checked}</div>
+    <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)">
+      <div style="font-size:24px;font-weight:900;color:var(--g)">${checked}</div>
       <div style="font-size:11px;color:var(--md)">已報到</div>
     </div>
-    <div style="background:#fff;border-radius:10px;padding:10px 16px;flex:1;text-align:center;box-shadow:var(--sh)">
-      <div style="font-size:22px;font-weight:900;color:var(--yl)">${total-checked}</div>
+    <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)">
+      <div style="font-size:24px;font-weight:900;color:var(--yl)">${total-checked}</div>
       <div style="font-size:11px;color:var(--md)">未報到</div>
     </div>
-    <div style="background:#fff;border-radius:10px;padding:10px 16px;flex:1;text-align:center;box-shadow:var(--sh)">
-      <div style="font-size:22px;font-weight:900;color:var(--bl)">${paid}</div>
-      <div style="font-size:11px;color:var(--md)">已繳費</div>
+    <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)">
+      <div style="font-size:18px;font-weight:900;color:var(--rd)">NT$${depositTotal}</div>
+      <div style="font-size:11px;color:var(--md)">應退押金</div>
     </div>`;
 }
 
 function filterCheckinList(){
   const kw=($('checkinSearch')?.value||'').toLowerCase();
-  const status=$('checkinStatusFilter')?.value||'';
   let list=ST_checkinRegs.filter(r=>{
-    const matchKw=!kw||(r.name||'').toLowerCase().includes(kw)||(r.brand||'').toLowerCase().includes(kw)||(r.email||'').toLowerCase().includes(kw);
-    const matchStatus=!status||(r.checkin||'未報到')===status;
+    const matchKw=!kw||
+      (r.name||'').toLowerCase().includes(kw)||
+      (r.brand||'').toLowerCase().includes(kw)||
+      (r.phone||'').includes(kw)||
+      (r.email||'').toLowerCase().includes(kw)||
+      (r.stallNo||'').toLowerCase().includes(kw);
+    const matchStatus=!ST_cfFilter||(r.checkin||'未報到')===ST_cfFilter;
     return matchKw&&matchStatus;
   });
-  if(!list.length){$('checkinList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px">無資料</div>';return;}
+  if(!list.length){$('checkinList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px">無符合資料</div>';return;}
   $('checkinList').innerHTML=list.map(r=>{
     const checked=r.checkin==='已報到';
-    const cleared=r.clearStatus==='已清場';
-    return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px">${r.name||'-'}</div>
-        <div style="font-size:12px;color:var(--md)">${r.brand||''}　攤位：${r.stallNo||'未分配'}</div>
-        <div style="font-size:11px;color:#aaa">${r.email}</div>
+    const cleared=r.clearStatus==='已撤場';
+    const refunded=r.depositRefunded==='已退';
+    // 設備字串
+    let equipStr='';
+    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+    return `<div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh)">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:16px;font-weight:900">${r.brand||r.name||'-'}</div>
+          <div style="font-size:12px;color:var(--md);margin-top:2px">
+            攤位：<strong>${r.stallNo||'未分配'}</strong>
+            ${equipStr?'　設備：'+equipStr:''}
+          </div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px">${r.phone||''}　${r.email||''}</div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:${checked?'var(--g)':'var(--yl)'};background:${checked?'#e8f7ee':'#fffaed'};padding:3px 8px;border-radius:6px;flex-shrink:0">
+          ${checked?'已報到':'未報到'}
+        </span>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-        <button onclick="quickCheckin('${r.id}',this)" style="background:${checked?'#e8f7ee':'var(--g)'};color:${checked?'var(--g)':'#fff'};border:${checked?'1.5px solid var(--g)':'none'};border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
-          ${checked?'已報到':'報到'}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button onclick="quickCheckin('${r.id}',this)" style="
+          background:${checked?'#e8f7ee':'var(--g)'};
+          color:${checked?'var(--g)':'#fff'};
+          border:${checked?'1.5px solid var(--g)':'none'};
+          border-radius:10px;padding:12px 8px;font-size:14px;font-weight:700;cursor:pointer">
+          ${checked?'✓ 已報到':'報到'}
         </button>
-        <button onclick="quickClear('${r.id}',this)" style="background:${cleared?'#fdecea':'#f0f0f0'};color:${cleared?'var(--rd)':'var(--md)'};border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
-          ${cleared?'已清場':'清場'}
+        <button onclick="quickClear('${r.id}',this)" style="
+          background:${cleared?'#fdecea':'#f0f0f0'};
+          color:${cleared?'var(--rd)':'var(--md)'};
+          border:none;border-radius:10px;padding:12px 8px;font-size:14px;font-weight:700;cursor:pointer">
+          ${cleared?'✓ 已撤場':'撤場'}
+        </button>
+        <button onclick="quickRefund('${r.id}',${r.deposit||0},this)" style="
+          background:${refunded?'#e8f0fe':'#f0f0f0'};
+          color:${refunded?'var(--bl)':'var(--md)'};
+          border:none;border-radius:10px;padding:12px 8px;font-size:14px;font-weight:700;cursor:pointer">
+          ${refunded?'✓ 已退':'退押金'}
         </button>
       </div>
     </div>`;
@@ -773,32 +855,32 @@ function filterCheckinList(){
 async function quickCheckin(regId, btn){
   const res=await apiPost({action:'checkin',regId});
   if(res.error){toast('❌ '+res.error);return;}
-  btn.style.background='#e8f7ee';btn.style.color='var(--g)';
-  btn.style.border='1.5px solid var(--g)';btn.textContent='已報到';
   const reg=ST_checkinRegs.find(r=>r.id===regId);
   if(reg) reg.checkin='已報到';
   updateCheckinStats();
+  filterCheckinList();
   toast('已報到');
 }
 
 async function quickClear(regId, btn){
   const res=await apiPost({action:'markClear',regId});
   if(res.error){toast('❌ '+res.error);return;}
-  btn.style.background='#fdecea';btn.style.color='var(--rd)';
-  btn.textContent='已清場';
-  toast('已清場');
+  const reg=ST_checkinRegs.find(r=>r.id===regId);
+  if(reg) reg.clearStatus='已撤場';
+  filterCheckinList();
+  toast('已撤場');
 }
 
-function fillCheckinSesFilter(){
-  const sel=$('checkinSesFilter');
-  if(!sel) return;
-  sel.innerHTML='<option value="">請選擇場次</option>';
-  (ST.sdData||[]).forEach(s=>{
-    const opt=document.createElement('option');
-    opt.value=s.id;
-    opt.textContent=(s.region?'['+s.region+'] ':'')+s.name;
-    sel.appendChild(opt);
-  });
+async function quickRefund(regId, deposit, btn){
+  if(!deposit||deposit<=0){toast('此報名無押金');return;}
+  if(!confirm('確認退還押金 NT$'+deposit+' 給此攤友？'))return;
+  const res=await apiPost({action:'refundDeposit',regId});
+  if(res.error){toast('❌ '+res.error);return;}
+  const reg=ST_checkinRegs.find(r=>r.id===regId);
+  if(reg) reg.depositRefunded='已退';
+  updateCheckinStats();
+  filterCheckinList();
+  toast('已記錄退押金');
 }
 
 function toggleMoreMenu(){
