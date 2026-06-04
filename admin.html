@@ -2128,14 +2128,8 @@ async function downloadSesData(sesId,sesName){
   });
   const finHdrs=['類型','品項','金額','自動手動'];
   const finRows=(finItems||[]).map(i=>[i['類型']==='income'?'收入':'支出',i['品項'],i['金額'],i['自動']==='TRUE'?'自動':'手動']);
-  const toCSV=(hdrs,rows)=>[hdrs,...rows].map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('
-');
-  const csv=`場次：${sesName}
-報名資料
-${toCSV(regHdrs,regRows)}
-
-財報明細
-${toCSV(finHdrs,finRows)}`;
+  const toCSV=(hdrs,rows)=>[hdrs,...rows].map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const csv='場次：'+sesName+'\n報名資料\n'+toCSV(regHdrs,regRows)+'\n\n財報明細\n'+toCSV(finHdrs,finRows);
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=sesName+'_完整資料.csv';
