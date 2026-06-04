@@ -387,7 +387,7 @@ textarea{min-height:64px;resize:vertical}
       <option value="市集場次">🏪 市集場次</option>
       <option value="活動報名">🎨 活動報名</option>
       <option value="合作申請">🤝 合作申請</option>
-      <option value="百貨寄賣">🏬 百貨寄賣</option>
+      <option value="通路寄賣">🏬 通路寄賣</option>
     </select>
 
     <!-- 多日期時段 -->
@@ -451,7 +451,7 @@ textarea{min-height:64px;resize:vertical}
           <input type="checkbox" id="portal_activity" value="體驗活動" style="width:15px;height:15px;accent-color:var(--g)"> 體驗活動
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer">
-          <input type="checkbox" id="portal_dept" value="百貨寄賣" style="width:15px;height:15px;accent-color:var(--g)"> 百貨寄賣
+          <input type="checkbox" id="portal_dept" value="通路寄賣" style="width:15px;height:15px;accent-color:var(--g)"> 通路寄賣
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer">
           <input type="checkbox" id="portal_collab" value="合作洽詢" style="width:15px;height:15px;accent-color:var(--g)"> 合作洽詢
@@ -624,7 +624,7 @@ const MOD_PRESETS = {
   '市集場次': {brand:1,sell_item:0,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
   '活動報名': {brand:0,sell_item:0,sell_link:0,photo:0,adult:1,child:1,diet:1,act_name:1,act_content:1,act_fee:1,collab_social:0,collab_price:0,remark:1},
   '合作申請': {brand:1,sell_item:0,sell_link:0,photo:0,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:1,collab_price:1,remark:1},
-  '百貨寄賣': {brand:1,sell_item:1,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
+  '通路寄賣': {brand:1,sell_item:1,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
 };
 
 let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],currentReg:null,sdData:[]};
