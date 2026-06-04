@@ -960,7 +960,8 @@ function renderOverviewSessions(){
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
-            <button onclick="downloadSesData('${s.id}','${s.name}')" title="下載" style="background:none;border:0.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">⬇️</button>
+            <button onclick="editSes('${s.id}')" title="編輯報名表設定" style="background:#f0f0f0;border:0.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">✏️</button>
+            <button onclick="downloadSesData('${s.id}','${s.name}')" title="下載全部資料" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">⬇️</button>
             <button onclick="openFinanceModal('${s.id}','${s.name}','${ev.title||''}')" title="財報" style="background:#fdf4ff;border:0.5px solid #ddd5fe;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">💰</button>
           </td>
         </tr>`;
@@ -985,6 +986,7 @@ function goPage(name){
   const tab=$('atab-'+name);
   if(tab) tab.classList.add('active');
   // 初始化
+  ST._showAllRegStatus=false;
   const inits={
     overview: ()=>{ renderOverviewCards(); },
     regs: ()=>{ renderRegs(); },
@@ -1578,7 +1580,8 @@ function renderRegs(){
   const kw=($('regSearch')?.value||'').toLowerCase();
   let list=(ST.allRegs||[]).filter(r=>{
     const matchKw=!kw||(r.brand||'').toLowerCase().includes(kw)||(r.name||'').toLowerCase().includes(kw)||(r.email||'').toLowerCase().includes(kw);
-    return matchKw;
+    const matchStatus=ST._showAllRegStatus?true:(r.status==='待審核');
+    return matchKw&&matchStatus;
   });
   // 依報名時間倒序
   list.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
@@ -2093,6 +2096,14 @@ async function toggleInvoiceStatus(regId,current){
   const res=await apiPost({action:'updateInvoiceStatus',regId,status:newStatus});
   if(res.error){toast('錯誤: '+res.error);return;}
   await loadInvoiceList();
+}
+
+function openSesDetail(sesId){
+  goPage('regs');
+  const sel=$('regSesFilter');
+  if(sel) sel.value=sesId;
+  ST._showAllRegStatus=true;
+  renderRegs();
 }
 </script>
 
