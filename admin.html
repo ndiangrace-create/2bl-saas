@@ -27,8 +27,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);mi
 .topbar-right{display:flex;gap:8px;align-items:center;font-size:13px;opacity:.9}
 
 /* ── 佈局 ── */
-.layout{min-height:calc(100vh - 80px)}
-.sidebar{width:190px;background:#fff;border-right:1px solid #e8e8e8;flex-shrink:0;position:sticky;top:46px;height:calc(100vh - 46px);overflow-y:auto;padding:8px 0}
+.layout{min-height:calc(100vh - 80px);display:block}
+.sidebar{display:none!important}
 .main{flex:1;padding:16px;min-width:0;overflow-x:hidden}
 .nav-section{font-size:10px;color:#bbb;padding:10px 14px 3px;letter-spacing:.1em;font-weight:700}
 .nav-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:15px;color:var(--md);cursor:pointer;border-left:3px solid transparent;transition:all .15s;user-select:none}
@@ -37,15 +37,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);mi
 .nav-icon{font-size:16px;width:20px;text-align:center}
 
 /* ── 手機版底部 Tab Bar ── */
-.admin-bottom-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;z-index:200;padding:6px 0 calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.06)}
+.admin-bottom-bar{display:block;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;z-index:200;padding:6px 0 calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.06)}
 .admin-tab-row{display:flex;justify-content:space-around;align-items:center;max-width:640px;margin:0 auto}
 .admin-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--md);font-size:12px;font-family:inherit;transition:color .15s}
 .admin-tab.active{color:var(--g)}
 .admin-tab-icon{font-size:24px;line-height:1}
 .admin-tab-label{font-size:10px;font-weight:700}
-/* 所有尺寸都顯示底部 tab bar */
-.sidebar{display:none}
-.admin-bottom-bar{display:block}
 .main{padding:16px 16px 80px;max-width:800px;margin:0 auto}
 
 /* ── 卡片 ── */
@@ -140,9 +137,7 @@ textarea{min-height:64px;resize:vertical}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
 /* ── 手機 sidebar ── */
-@media(max-width:640px){
-  .sidebar{position:fixed;left:-195px;top:46px;height:calc(100vh - 46px);z-index:50;transition:left .25s;box-shadow:4px 0 12px rgba(0,0,0,.1)}
-  .sidebar.open{left:0}
+
   .main{padding:10px}
   .form-row{grid-template-columns:1fr}
   .mod-grid{grid-template-columns:1fr}
@@ -315,7 +310,30 @@ textarea{min-height:64px;resize:vertical}
       </div>
 
       <!-- ── 公告管理 ── -->
-      <div id="page-announce" class="tab-page">
+      <div id="page-checkin" class="tab-page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div class="page-title" style="margin:0">現場管理</div>
+  </div>
+  <!-- 場次篩選 -->
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <select class="filter-sel" id="checkinSesFilter" onchange="loadCheckinRegs()" style="flex:1">
+      <option value="">請選擇場次</option>
+    </select>
+    <select class="filter-sel" id="checkinStatusFilter" onchange="filterCheckinList()">
+      <option value="">全部</option>
+      <option value="未報到">未報到</option>
+      <option value="已報到">已報到</option>
+    </select>
+  </div>
+  <!-- 統計 -->
+  <div id="checkinStats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+  <!-- 搜尋 -->
+  <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/Email" oninput="filterCheckinList()" style="margin-bottom:10px">
+  <!-- 列表 -->
+  <div id="checkinList"></div>
+</div>
+
+<div id="page-announce" class="tab-page">
         <div class="page-title">公告管理</div>
         <div class="card">
           <div class="card-hd">
@@ -690,6 +708,99 @@ function initAdmin(name,role){
 }
 
 // ── 頁面切換 ──
+// ── 現場管理 ──
+let ST_checkinRegs = [];
+
+async function loadCheckinRegs(){
+  const sesId=$('checkinSesFilter').value;
+  if(!sesId){ $('checkinList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px">請選擇場次</div>'; return; }
+  $('checkinList').innerHTML='<div style="text-align:center;padding:20px;color:#aaa">載入中...</div>';
+  const regs=await apiPost({action:'getRegsBySession',sessionId:sesId});
+  ST_checkinRegs=regs||[];
+  updateCheckinStats();
+  filterCheckinList();
+}
+
+function updateCheckinStats(){
+  const total=ST_checkinRegs.length;
+  const checked=ST_checkinRegs.filter(r=>r.checkin==='已報到').length;
+  const paid=ST_checkinRegs.filter(r=>r.payStatus==='已繳費 ✓').length;
+  $('checkinStats').innerHTML=`
+    <div style="background:#fff;border-radius:10px;padding:10px 16px;flex:1;text-align:center;box-shadow:var(--sh)">
+      <div style="font-size:22px;font-weight:900;color:var(--g)">${checked}</div>
+      <div style="font-size:11px;color:var(--md)">已報到</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:10px 16px;flex:1;text-align:center;box-shadow:var(--sh)">
+      <div style="font-size:22px;font-weight:900;color:var(--yl)">${total-checked}</div>
+      <div style="font-size:11px;color:var(--md)">未報到</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:10px 16px;flex:1;text-align:center;box-shadow:var(--sh)">
+      <div style="font-size:22px;font-weight:900;color:var(--bl)">${paid}</div>
+      <div style="font-size:11px;color:var(--md)">已繳費</div>
+    </div>`;
+}
+
+function filterCheckinList(){
+  const kw=($('checkinSearch')?.value||'').toLowerCase();
+  const status=$('checkinStatusFilter')?.value||'';
+  let list=ST_checkinRegs.filter(r=>{
+    const matchKw=!kw||(r.name||'').toLowerCase().includes(kw)||(r.brand||'').toLowerCase().includes(kw)||(r.email||'').toLowerCase().includes(kw);
+    const matchStatus=!status||(r.checkin||'未報到')===status;
+    return matchKw&&matchStatus;
+  });
+  if(!list.length){$('checkinList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px">無資料</div>';return;}
+  $('checkinList').innerHTML=list.map(r=>{
+    const checked=r.checkin==='已報到';
+    const cleared=r.clearStatus==='已清場';
+    return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px">${r.name||'-'}</div>
+        <div style="font-size:12px;color:var(--md)">${r.brand||''}　攤位：${r.stallNo||'未分配'}</div>
+        <div style="font-size:11px;color:#aaa">${r.email}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+        <button onclick="quickCheckin('${r.id}',this)" style="background:${checked?'#e8f7ee':'var(--g)'};color:${checked?'var(--g)':'#fff'};border:${checked?'1.5px solid var(--g)':'none'};border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+          ${checked?'已報到':'報到'}
+        </button>
+        <button onclick="quickClear('${r.id}',this)" style="background:${cleared?'#fdecea':'#f0f0f0'};color:${cleared?'var(--rd)':'var(--md)'};border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+          ${cleared?'已清場':'清場'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function quickCheckin(regId, btn){
+  const res=await apiPost({action:'checkin',regId});
+  if(res.error){toast('❌ '+res.error);return;}
+  btn.style.background='#e8f7ee';btn.style.color='var(--g)';
+  btn.style.border='1.5px solid var(--g)';btn.textContent='已報到';
+  const reg=ST_checkinRegs.find(r=>r.id===regId);
+  if(reg) reg.checkin='已報到';
+  updateCheckinStats();
+  toast('已報到');
+}
+
+async function quickClear(regId, btn){
+  const res=await apiPost({action:'markClear',regId});
+  if(res.error){toast('❌ '+res.error);return;}
+  btn.style.background='#fdecea';btn.style.color='var(--rd)';
+  btn.textContent='已清場';
+  toast('已清場');
+}
+
+function fillCheckinSesFilter(){
+  const sel=$('checkinSesFilter');
+  if(!sel) return;
+  sel.innerHTML='<option value="">請選擇場次</option>';
+  (ST.sdData||[]).forEach(s=>{
+    const opt=document.createElement('option');
+    opt.value=s.id;
+    opt.textContent=(s.region?'['+s.region+'] ':'')+s.name;
+    sel.appendChild(opt);
+  });
+}
+
 function toggleMoreMenu(){
   const m=$('adminMoreMenu');
   if(m) m.style.display=m.style.display==='none'?'block':'none';
@@ -726,6 +837,17 @@ async function loadAllData(){
   renderOverview();
   renderEventsWithSessions();
   await loadAllRegs();
+  // 載入管理員清單供指派用
+  api({action:'getStaff'}).then(list=>{ ST.staffList=list||[]; });
+}
+
+function filterRegsBySes(sesId){
+  // 切到報名審核後篩選指定場次
+  const sel=$('sesFilter');
+  if(sel){
+    sel.value=sesId;
+    renderRegs();
+  }
 }
 
 async function loadAllRegs(){
@@ -987,7 +1109,11 @@ function getStallList(){
   });
   return items;
 }
-function openSesModal(){resetSesModal();openModal('sesModal');}
+function openSesModal(){
+  resetSesModal();
+  fillAssignStaff([]);
+  openModal('sesModal');
+}
 function resetSesModal(){
   $('sm_id').value='';$('sm_name').value='';$('sm_venue').value='';
   $('sm_region').value='';$('sm_fee').value=0;$('sm_deposit').value=0;
@@ -1005,6 +1131,16 @@ function resetSesModal(){
   $('addonsList').innerHTML='';
   addDateSlot(); // 預設一個日期欄
   updateModPresets();buildEquipDefs({});
+}
+
+function fillAssignStaff(selected){
+  const grid=$('sm_assignStaff');
+  if(!grid) return;
+  grid.innerHTML=(ST.staffList||[]).filter(s=>s.role!=='superadmin').map(s=>`
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:3px 0">
+      <input type="checkbox" data-staffemail="${s.email}" ${selected.includes(s.email)?'checked':''} style="width:14px;height:14px;accent-color:var(--g)">
+      ${s.name||s.email}
+    </label>`).join('') || '<div style="font-size:12px;color:#aaa">無可指派的管理員</div>';
 }
 
 document.addEventListener('change', function(e){
@@ -1220,6 +1356,7 @@ async function saveSession(){
     stallList:getStallList(),
     stallFee:parseInt($('sm_stallFee').value)||0,
     status:'報名中',
+    assignedStaff:Array.from(document.querySelectorAll('#sm_assignStaff input:checked')).map(c=>c.dataset.staffemail),
   };
   const res=await apiPost(body);
   if(res.error){toast('❌ '+res.error);return;}
@@ -1643,6 +1780,10 @@ async function removeStaff(email,name){
     <button class="admin-tab" id="atab-regs" onclick="goPage('regs')">
       <span class="admin-tab-icon">📋</span>
       <span class="admin-tab-label">報名審核</span>
+    </button>
+    <button class="admin-tab" id="atab-checkin" onclick="goPage('checkin')">
+      <span class="admin-tab-icon">✅</span>
+      <span class="admin-tab-label">現場管理</span>
     </button>
     <button class="admin-tab" id="atab-announce" onclick="goPage('announce')">
       <span class="admin-tab-icon">📢</span>
