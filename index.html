@@ -342,24 +342,24 @@ textarea{min-height:72px;resize:vertical}
         <button onclick="memberLogout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">登出</button>
       </div>
       <div style="padding:14px 16px">
-        <label style="font-size:12px;color:var(--md)">姓名</label>
-        <input type="text" id="editName" style="margin-bottom:8px">
-        <label style="font-size:12px;color:var(--md)">手機</label>
-        <input type="tel" id="editPhone" inputmode="tel" style="margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><label style="font-size:12px;color:var(--md)">姓名</label><input type="text" id="editName"></div>
+          <div><label style="font-size:12px;color:var(--md)">手機</label><input type="tel" id="editPhone" inputmode="tel"></div>
+        </div>
         <label style="font-size:12px;color:var(--md)">品牌名稱</label>
         <input type="text" id="editBrand" style="margin-bottom:8px">
-        <label style="font-size:12px;color:var(--md)">FB 粉絲專頁</label>
-        <input type="url" id="editFb" placeholder="https://facebook.com/..." style="margin-bottom:8px">
-        <label style="font-size:12px;color:var(--md)">IG 帳號</label>
-        <input type="url" id="editIg" placeholder="https://instagram.com/..." style="margin-bottom:8px">
-        <label style="font-size:12px;color:var(--md)">官網 / 作品集</label>
-        <input type="url" id="editCollabUrl" placeholder="https://..." style="margin-bottom:8px">
-        <label style="font-size:12px;color:var(--md)">出攤照連結</label>
-        <input type="url" id="editPhoto" placeholder="https://..." style="margin-bottom:8px">
-        <label style="font-size:12px;color:var(--md)">品牌介紹</label>
-        <textarea id="editBrandIntro" placeholder="簡短介紹品牌或商品" style="margin-bottom:8px"></textarea>
-        <label style="font-size:12px;color:var(--md)">LINE ID</label>
-        <input type="text" id="editLineId" style="margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><label style="font-size:12px;color:var(--md)">FB</label><input type="url" id="editFb" placeholder="https://facebook.com/..."></div>
+          <div><label style="font-size:12px;color:var(--md)">IG</label><input type="url" id="editIg" placeholder="https://instagram.com/..."></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><label style="font-size:12px;color:var(--md)">官網</label><input type="url" id="editCollabUrl" placeholder="https://..."></div>
+          <div><label style="font-size:12px;color:var(--md)">出攤照</label><input type="url" id="editPhoto" placeholder="https://..."></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><label style="font-size:12px;color:var(--md)">品牌介紹</label><textarea id="editBrandIntro" placeholder="簡短介紹" style="height:60px"></textarea></div>
+          <div><label style="font-size:12px;color:var(--md)">LINE ID</label><input type="text" id="editLineId"></div>
+        </div>
         <button class="btn-p" onclick="saveMemberEdit()" style="width:100%">更新資料</button>
         <div id="saveSuccessMsg" style="display:none;text-align:center;color:var(--g);font-weight:700;padding:8px;font-size:14px">✓ 更新完成！</div>
       </div>
@@ -378,11 +378,11 @@ textarea{min-height:72px;resize:vertical}
   <button class="bot-btn bot-line" onclick="openLine()">
     <span class="bot-icon">💬</span>官方 LINE
   </button>
-  <button class="bot-btn bot-member" id="botMemberBtn" onclick="goMemberPage()">
-    <span class="bot-icon">👤</span><span id="botMemberLabel">會員登入</span>
+  <button class="bot-btn bot-member" onclick="goMemberPage()">
+    <span class="bot-icon">📋</span><span id="botMemberLabel">我的紀錄</span>
   </button>
-  <button class="bot-btn bot-profile" onclick="goMemberPage()">
-    <span class="bot-icon">📋</span>我的資料
+  <button class="bot-btn bot-profile" onclick="window.open('https://www.facebook.com/groups/1210942742382927','_blank')">
+    <span class="bot-icon">🗺️</span>全台市集資訊
   </button>
 </div>
 
@@ -442,37 +442,6 @@ textarea{min-height:72px;resize:vertical}
   </div>
 </div>
 
-<!-- ══ 編輯資料 Modal ══ -->
-<div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeModal('editModal')">
-  <div class="modal-box">
-    <div class="modal-title">編輯個人資料</div>
-
-    <div style="font-size:13px;font-weight:700;color:var(--g);margin:0 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">👤 基本資料</div>
-    <label>姓名</label><input type="text" id="editName">
-    <label>手機</label><input type="tel" id="editPhone" inputmode="tel">
-    <label>LINE ID</label><input type="text" id="editLineId">
-
-    <div style="font-size:13px;font-weight:700;color:var(--g);margin:14px 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">🏷️ 攤商資料</div>
-    <label>品牌名稱</label><input type="text" id="editBrand">
-    <label>品牌介紹</label><textarea id="editBrandIntro" placeholder="簡短介紹您的品牌或商品"></textarea>
-    <label>FB 粉絲專頁（選填）</label><input type="url" id="editFb" placeholder="https://facebook.com/...">
-    <label>IG 帳號（選填）</label><input type="url" id="editIg" placeholder="https://instagram.com/...">
-    <label>出攤照連結（選填）</label><input type="url" id="editPhoto" placeholder="https://...">
-
-    <div style="font-size:13px;font-weight:700;color:var(--g);margin:14px 0 8px;padding:8px 0 4px;border-bottom:1px solid #f0f0f0">🤝 合作廠商資料</div>
-    <div style="font-size:11px;color:var(--lt);margin-bottom:8px">填寫後可接受品牌合作、活動邀約、場地合作等機會</div>
-    <label>公司名稱</label><input type="text" id="editCompany" placeholder="公司或品牌全名">
-    <label>統一編號</label><input type="text" id="editTaxId" placeholder="8碼統編（選填）" inputmode="numeric">
-    <label>發票/聯絡 Email</label><input type="email" id="editInvoiceEmail" placeholder="發票或合作聯絡信箱" inputmode="email">
-    <label>合作官網 / 作品集</label><input type="url" id="editCollabUrl" placeholder="https://...">
-    <label>願意提供的合作項目</label>
-    <textarea id="editCollabDesc" placeholder="例：場地合作、聯名商品、活動贊助、技術支援、媒體曝光..."></textarea>
-
-    <div class="modal-actions">
-      <button class="btn-s2" onclick="closeModal('editModal')" style="flex:1">取消</button>
-      <button class="btn-p" onclick="saveMemberEdit()" style="flex:2">儲存更新</button>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -512,7 +481,6 @@ function navTo(tab){
 }
 function backToHome(){navTo('home');}
 function goMemberPage(){
-  // 如果還沒登入，先顯示登入區
   navTo('member');
   if(!ST.memberEmail){
     $('memberLoginArea').style.display='block';
@@ -520,6 +488,7 @@ function goMemberPage(){
   } else {
     $('memberLoginArea').style.display='none';
     $('memberArea').style.display='block';
+    fillMemberCard(ST.member);
   }
 }
 function closePortalSessions(){
@@ -1125,6 +1094,8 @@ function memberLogout(){
   $('loginEmail').value='';
   $('memberLoginArea').style.display='block';
   $('memberArea').style.display='none';
+  const lbl=$('botMemberLabel');
+  if(lbl) lbl.textContent='會員登入';
 }
 
 async function renderMyRegs(regs){
