@@ -36,6 +36,19 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);mi
 .nav-item.active{background:var(--gp2);color:var(--g);border-left-color:var(--g);font-weight:700}
 .nav-icon{font-size:16px;width:20px;text-align:center}
 
+/* ── 手機版底部 Tab Bar ── */
+.admin-bottom-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;z-index:200;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+.admin-tab-row{display:flex;justify-content:space-around;align-items:center}
+.admin-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;border:none;background:none;color:var(--md);font-size:10px;font-family:inherit;transition:color .15s}
+.admin-tab.active{color:var(--g)}
+.admin-tab-icon{font-size:22px;line-height:1}
+.admin-tab-label{font-size:10px;font-weight:700}
+@media(max-width:640px){
+  .sidebar{display:none}
+  .admin-bottom-bar{display:block}
+  .main{padding:12px 12px 80px}
+}
+
 /* ── 卡片 ── */
 .card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px}
 .card-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f0f0f0}
@@ -592,6 +605,11 @@ textarea{min-height:64px;resize:vertical}
     <div id="sf_perms_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
       <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:8px">開放權限</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sf_perms_grid"></div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0">
+        <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">限定場次（選填）</div>
+        <div style="font-size:11px;color:var(--lt);margin-bottom:6px">不選=可管理所有場次</div>
+        <div id="sf_sessions_grid" style="display:grid;gap:4px;max-height:120px;overflow-y:auto"></div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('staffModal')" style="flex:1">取消</button>
@@ -673,6 +691,20 @@ function initAdmin(name,role){
 }
 
 // ── 頁面切換 ──
+function toggleMoreMenu(){
+  const m=$('adminMoreMenu');
+  if(m) m.style.display=m.style.display==='none'?'block':'none';
+}
+// 點其他地方關閉設定選單
+document.addEventListener('click',function(e){
+  const menu=$('adminMoreMenu');
+  if(menu&&menu.style.display==='block'){
+    if(!e.target.closest('#adminMoreMenu')&&!e.target.closest('#atab-more')){
+      menu.style.display='none';
+    }
+  }
+});
+
 function goPage(name){
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1403,6 +1435,18 @@ async function markClearReg(){
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已清場');closeModal('regModal');
 }
+async function batchCheckin(){
+  const ids=getCheckedIds();
+  if(!ids.length){toast('請先勾選報名');return;}
+  if(!confirm('確定批次報到 '+ids.length+' 筆？'))return;
+  let ok=0;
+  for(const id of ids){
+    const res=await apiPost({action:'checkin',regId:id});
+    if(!res.error) ok++;
+  }
+  toast('已報到 '+ok+' 筆');
+  await loadAllRegs();
+}
 async function batchApprove(){
   const ids=getChecked();if(!ids.length){toast('請先勾選報名');return;}
   const res=await apiPost({action:'batchUpdateStatus',regIds:ids,status:'已錄取'});
@@ -1489,6 +1533,7 @@ async function deleteAnn(id){
 const PERM_DEFS=[
   {k:'view_regs',label:'查看報名'},
   {k:'review',label:'審核報名'},
+  {k:'checkin',label:'現場報到'},
   {k:'pay',label:'確認付款'},
   {k:'sessions',label:'管理場次'},
   {k:'events',label:'管理活動'},
@@ -1505,12 +1550,14 @@ async function loadStaff(){
     let perms={};
     try{perms=JSON.parse(s.permsJson||s.role==='superadmin'?'{}':s.permsJson||'{}');}catch(e){}
     const isSuperAdmin=s.role==='superadmin';
+    const limitStr=s.limitSessions&&s.limitSessions.length?
+      '<div style="font-size:11px;color:var(--yl);margin-top:4px">限定場次：'+s.limitSessions.length+'個</div>':'';
     const permHtml=isSuperAdmin
-      ?'<div style="font-size:11px;color:var(--g);margin-top:4px">✅ 超級管理員（全部權限）</div>'
+      ?'<div style="font-size:11px;color:var(--g);margin-top:4px">超級管理員（全部權限）</div>'
       :PERM_DEFS.map(p=>`<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;margin:2px 4px 2px 0;cursor:pointer">
           <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${perms[p.k]||isSuperAdmin?'checked':''} style="width:12px;height:12px;accent-color:var(--g)" onchange="updatePerm('${s.email}',this)">
           ${p.label}
-        </label>`).join('');
+        </label>`).join('')+limitStr;
     return `<div style="padding:12px 0;border-bottom:1px solid #f5f5f5">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1">
@@ -1571,7 +1618,12 @@ async function saveStaff(){
     perms[c.dataset.perm]=c.checked;
   });
   const role=$('sf_role').value;
-  const res=await apiPost({action:'addStaff',targetEmail:email,targetName:name,role,perms});
+  // 收集限定場次
+  const limitSessions=[];
+  document.querySelectorAll('#sf_sessions_grid input:checked').forEach(c=>{
+    limitSessions.push(c.dataset.sesid);
+  });
+  const res=await apiPost({action:'addStaff',targetEmail:email,targetName:name,role,perms,limitSessions});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已新增');closeModal('staffModal');loadStaff();
 }
@@ -1582,5 +1634,33 @@ async function removeStaff(email,name){
   toast('✅ 已移除');loadStaff();
 }
 </script>
+<!-- ── 手機版底部 Tab Bar ── -->
+<div class="admin-bottom-bar" id="adminBottomBar">
+  <div class="admin-tab-row">
+    <button class="admin-tab active" id="atab-overview" onclick="goPage('overview')">
+      <span class="admin-tab-icon">📊</span>
+      <span class="admin-tab-label">總覽</span>
+    </button>
+    <button class="admin-tab" id="atab-regs" onclick="goPage('regs')">
+      <span class="admin-tab-icon">📋</span>
+      <span class="admin-tab-label">報名審核</span>
+    </button>
+    <button class="admin-tab" id="atab-announce" onclick="goPage('announce')">
+      <span class="admin-tab-icon">📢</span>
+      <span class="admin-tab-label">公告</span>
+    </button>
+    <button class="admin-tab" id="atab-more" onclick="toggleMoreMenu()">
+      <span class="admin-tab-icon">⚙️</span>
+      <span class="admin-tab-label">設定</span>
+    </button>
+  </div>
+</div>
+
+<!-- 設定選單 -->
+<div id="adminMoreMenu" style="display:none;position:fixed;bottom:70px;right:0;left:0;background:#fff;border-top:1px solid #e0e0e0;z-index:199;padding:8px 0">
+  <div onclick="goPage('staff');toggleMoreMenu()" style="padding:14px 20px;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px"><span>👥</span>管理員</div>
+  <div onclick="goPage('pay');toggleMoreMenu()" style="padding:14px 20px;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px"><span>💰</span>付款管理</div>
+  <div onclick="goPage('events');toggleMoreMenu()" style="padding:14px 20px;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px"><span>🎪</span>活動管理</div>
+</div>
 </body>
 </html>
