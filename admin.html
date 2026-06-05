@@ -115,6 +115,8 @@ textarea{min-height:64px;resize:vertical}
 /* ── Modal ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .overlay.show{display:flex}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
 @media(min-width:640px){.overlay{align-items:center}}
 .modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding:22px 20px 40px}
 @media(min-width:640px){.modal{border-radius:16px;margin:0 12px}}
@@ -291,6 +293,68 @@ textarea{min-height:64px;resize:vertical}
     </button>
   </div>
 </div>
+
+<!-- ══ Modal：場次財報 ══ -->
+<div class="modal-overlay" id="financeModal" onclick="if(event.target===this)closeModal('financeModal')">
+  <div class="modal-box" style="max-height:88vh;overflow-y:auto;padding:0">
+    <div style="padding:14px 16px;border-bottom:0.5px solid var(--color-border-tertiary);position:sticky;top:0;background:var(--color-background-primary);z-index:1">
+      <div style="font-size:15px;font-weight:500" id="financeTitle">場次財報</div>
+      <div style="font-size:11px;color:var(--color-text-secondary)" id="financeSub"></div>
+      <div style="display:flex;gap:0;margin-top:10px;border-bottom:0.5px solid var(--color-border-tertiary)">
+        <div class="ftab active" id="ftab-report" onclick="switchFTab('report',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid #1D9E75;color:#1D9E75;margin-bottom:-1px;font-weight:500">財報</div>
+        <div class="ftab" id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px">發票清單</div>
+      </div>
+    </div>
+    <div style="padding:14px 16px">
+      <!-- 財報 -->
+      <div id="fpage-report">
+        <!-- 發票含稅設定 -->
+        <div style="background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">本場發票含稅項目</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px">
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-stall" checked> 攤位費</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-equip"> 設備租金</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-extra"> 臨時收入</label>
+          </div>
+        </div>
+        <!-- 收入 -->
+        <div id="f-income-section" style="margin-bottom:12px"></div>
+        <!-- 支出 -->
+        <div id="f-expense-section" style="margin-bottom:12px"></div>
+        <!-- 淨利 -->
+        <div id="f-net" style="margin-bottom:12px"></div>
+        <!-- 設備差價 -->
+        <div id="f-equip-diff" style="margin-bottom:12px"></div>
+        <!-- 押金 -->
+        <div id="f-deposit" style="margin-bottom:12px"></div>
+        <!-- 新增表單 -->
+        <div id="f-add-form" style="display:none;background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:500;margin-bottom:8px" id="f-add-title">新增</div>
+          <input type="text" id="f-add-name" placeholder="品項名稱">
+          <input type="number" id="f-add-amt" placeholder="金額 NT$" inputmode="numeric" style="margin-top:6px">
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="btn btn-s" onclick="$('f-add-form').style.display='none'" style="flex:1">取消</button>
+            <button class="btn btn-g" onclick="submitFinanceItem()" style="flex:2">確認新增</button>
+          </div>
+        </div>
+        <!-- 按鈕 -->
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button onclick="printFinance()" style="flex:1;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:10px;font-size:13px;cursor:pointer">🖨️ 列印/匯出</button>
+          <button onclick="shareLineFinance()" style="flex:1;padding:10px;background:#E1F5EE;color:#1D9E75;border:0.5px solid #9FE1CB;border-radius:10px;font-size:13px;cursor:pointer">💚 分享 LINE</button>
+        </div>
+      </div>
+      <!-- 發票清單 -->
+      <div id="fpage-invoice" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:12px;color:var(--color-text-secondary)" id="inv-count"></div>
+          <button onclick="downloadInvoiceList()" style="font-size:11px;background:none;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:4px 8px;cursor:pointer">⬇️ 下載清單</button>
+        </div>
+        <div id="invoiceListBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /adminPage -->
 </div>
 
@@ -538,67 +602,6 @@ textarea{min-height:64px;resize:vertical}
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('stallModal')" style="flex:1">取消</button>
       <button class="btn btn-g" onclick="saveStallConfig()" style="flex:2">儲存攤位清單</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ Modal：場次財報 ══ -->
-<div class="modal-overlay" id="financeModal" onclick="if(event.target===this)closeModal('financeModal')">
-  <div class="modal-box" style="max-height:88vh;overflow-y:auto;padding:0">
-    <div style="padding:14px 16px;border-bottom:0.5px solid var(--color-border-tertiary);position:sticky;top:0;background:var(--color-background-primary);z-index:1">
-      <div style="font-size:15px;font-weight:500" id="financeTitle">場次財報</div>
-      <div style="font-size:11px;color:var(--color-text-secondary)" id="financeSub"></div>
-      <div style="display:flex;gap:0;margin-top:10px;border-bottom:0.5px solid var(--color-border-tertiary)">
-        <div class="ftab active" id="ftab-report" onclick="switchFTab('report',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid #1D9E75;color:#1D9E75;margin-bottom:-1px;font-weight:500">財報</div>
-        <div class="ftab" id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px">發票清單</div>
-      </div>
-    </div>
-    <div style="padding:14px 16px">
-      <!-- 財報 -->
-      <div id="fpage-report">
-        <!-- 發票含稅設定 -->
-        <div style="background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:12px">
-          <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">本場發票含稅項目</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px">
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-stall" checked> 攤位費</label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-equip"> 設備租金</label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-extra"> 臨時收入</label>
-          </div>
-        </div>
-        <!-- 收入 -->
-        <div id="f-income-section" style="margin-bottom:12px"></div>
-        <!-- 支出 -->
-        <div id="f-expense-section" style="margin-bottom:12px"></div>
-        <!-- 淨利 -->
-        <div id="f-net" style="margin-bottom:12px"></div>
-        <!-- 設備差價 -->
-        <div id="f-equip-diff" style="margin-bottom:12px"></div>
-        <!-- 押金 -->
-        <div id="f-deposit" style="margin-bottom:12px"></div>
-        <!-- 新增表單 -->
-        <div id="f-add-form" style="display:none;background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:12px">
-          <div style="font-size:12px;font-weight:500;margin-bottom:8px" id="f-add-title">新增</div>
-          <input type="text" id="f-add-name" placeholder="品項名稱">
-          <input type="number" id="f-add-amt" placeholder="金額 NT$" inputmode="numeric" style="margin-top:6px">
-          <div style="display:flex;gap:6px;margin-top:8px">
-            <button class="btn btn-s" onclick="$('f-add-form').style.display='none'" style="flex:1">取消</button>
-            <button class="btn btn-g" onclick="submitFinanceItem()" style="flex:2">確認新增</button>
-          </div>
-        </div>
-        <!-- 按鈕 -->
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button onclick="printFinance()" style="flex:1;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:10px;font-size:13px;cursor:pointer">🖨️ 列印/匯出</button>
-          <button onclick="shareLineFinance()" style="flex:1;padding:10px;background:#E1F5EE;color:#1D9E75;border:0.5px solid #9FE1CB;border-radius:10px;font-size:13px;cursor:pointer">💚 分享 LINE</button>
-        </div>
-      </div>
-      <!-- 發票清單 -->
-      <div id="fpage-invoice" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-size:12px;color:var(--color-text-secondary)" id="inv-count"></div>
-          <button onclick="downloadInvoiceList()" style="font-size:11px;background:none;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:4px 8px;cursor:pointer">⬇️ 下載清單</button>
-        </div>
-        <div id="invoiceListBody"></div>
-      </div>
     </div>
   </div>
 </div>
