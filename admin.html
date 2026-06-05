@@ -302,7 +302,8 @@ textarea{min-height:64px;resize:vertical}
       <div style="font-size:11px;color:var(--color-text-secondary)" id="financeSub"></div>
       <div style="display:flex;gap:0;margin-top:10px;border-bottom:0.5px solid var(--color-border-tertiary)">
         <div class="ftab active" id="ftab-report" onclick="switchFTab('report',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid #1D9E75;color:#1D9E75;margin-bottom:-1px;font-weight:500">財報</div>
-        <div class="ftab" id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px">發票清單</div>
+        <div class="ftab" <div class="ftab" id="ftab-sesregs" onclick="switchFTab('sesregs',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px">報名名單</div>
+        id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px">發票清單</div>
       </div>
     </div>
     <div style="padding:14px 16px">
@@ -344,6 +345,13 @@ textarea{min-height:64px;resize:vertical}
         </div>
       </div>
       <!-- 發票清單 -->
+      <div id="fpage-sesregs" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:12px;color:#666" id="sesregs-count"></div>
+          <input type="text" id="sesregs-search" placeholder="搜尋品牌/姓名" oninput="renderSesRegsList()" style="font-size:12px;padding:6px 10px;border:0.5px solid #e0e0e0;border-radius:8px;width:160px">
+        </div>
+        <div id="sesRegsList"></div>
+      </div>
       <div id="fpage-invoice" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <div style="font-size:12px;color:var(--color-text-secondary)" id="inv-count"></div>
@@ -619,23 +627,13 @@ textarea{min-height:64px;resize:vertical}
     </select>
     <div id="sf_perms_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
       <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:8px">開放權限</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sf_perms_grid"></div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0">
-        <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">限定場次（選填）</div>
-        <div style="font-size:11px;color:var(--lt);margin-bottom:6px">不選=可管理所有場次</div>
-        <div id="sf_sessions_grid" style="display:grid;gap:4px;max-height:120px;overflow-y:auto"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sf_sessions_grid">
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-s" onclick="closeModal('staffModal')" style="flex:1">取消</button>
-      <button class="btn btn-g" onclick="saveStaff()" style="flex:2">新增</button>
-    </div>
-  </div>
-</div>
+</div><!-- end modal -->
 
-<div class="toast" id="toast"></div>
-
-<script>let ST_finSesId="";
+<script>
+let ST_finSesId="";
 let ST_finItems=[];
 let ST_finAddType="income";
 
@@ -1426,7 +1424,7 @@ function getAddons(){
   });
   return addons;
 }
-async function editSes(id){
+async async function editSes(id){
   // 強制從 API 取完整資料確保地區/日期等新欄位有帶出
   const s=await api({action:'getSession',id,email:ST.email,token:ST.token});
   if(!s||s.error){toast('❌ '+(s?.error||'找不到場次'));return;}
@@ -2107,13 +2105,10 @@ async function toggleInvoiceStatus(regId,current){
 }
 
 function openSesDetail(sesId){
-  ST._filterSesId=sesId;
-  ST._showAllRegStatus=true;
-  goPage('regs');
-  // 同步 select UI
-  const sel=$('regSesFilter');
-  if(sel) sel.value=sesId;
-  renderRegs();
+  // 點場次名稱 → 開財報Modal（含完整報名名單）
+  const s=(ST.sdData||[]).find(x=>x.id===sesId)||{};
+  const ev=(ST.events||[]).find(e=>e.id===s.eventId)||{};
+  openFinanceModal(sesId, s.name||sesId, ev.title||'');
 }
 
 function goToSesRegs(sesId){
@@ -2274,10 +2269,59 @@ function switchFTab(name, el){
   el.style.borderBottom='2px solid #1D9E75';
   el.style.fontWeight='500';
   $('fpage-report').style.display=name==='report'?'block':'none';
+  $('fpage-sesregs').style.display=name==='sesregs'?'block':'none';
   $('fpage-invoice').style.display=name==='invoice'?'block':'none';
   if(name==='invoice') loadInvoiceList();
+  if(name==='sesregs') renderSesRegsList();
+}
+
+// ── 財報 Modal ──
+let ST_finSesId='', ST_finItems=[], ST_finAddType='income';
+
+async function openFinanceModal(sesId, sesName, evName){
+  ST_finSesId=sesId;
+  const title=$('financeTitle');
+  const sub=$('financeSub');
+  if(title) title.textContent=sesName||'場次財報';
+  if(sub) sub.textContent=evName||'';
+  // 切換到財報分頁
+  const ftab=$('ftab-report');
+  if(ftab) switchFTab('report', ftab);
+  await loadFinanceData();
+  openModal('financeModal');
+}
+
+function renderSesRegsList(){
+  const kw=($('sesregs-search')?.value||'').toLowerCase();
+  const regs=(ST.allRegs||[]).filter(r=>{
+    const matchSes=r.sessionId===ST_finSesId;
+    const matchKw=!kw||(r.brand||'').toLowerCase().includes(kw)||(r.name||'').toLowerCase().includes(kw);
+    return matchSes&&matchKw;
+  });
+  const cnt=$('sesregs-count');
+  if(cnt) cnt.textContent='共 '+regs.length+' 筆';
+  const el=$('sesRegsList');
+  if(!el) return;
+  if(!regs.length){el.innerHTML='<div style="color:#aaa;text-align:center;padding:20px">無報名資料</div>';return;}
+  const statusColor={'待審核':'#856404','已錄取':'#155724','不錄取':'#721c24','備取':'#383d8a'};
+  const statusBg={'待審核':'#fff3cd','已錄取':'#d4edda','不錄取':'#f8d7da','備取':'#e2e3ff'};
+  el.innerHTML=regs.map(r=>{
+    let equipStr='';
+    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+    return `<div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:6px;border:0.5px solid #e0e0e0">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+        <span style="background:${statusBg[r.status]||'#f0f0f0'};color:${statusColor[r.status]||'#666'};padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">${r.status||'待審核'}</span>
+        <span style="font-size:13px;font-weight:600">${r.brand||r.name}</span>
+        <span style="font-size:11px;color:#aaa;margin-left:auto">${(r.createdAt||'').slice(0,10)}</span>
+      </div>
+      <div style="font-size:12px;color:#666">${r.name} · ${r.phone||''} · 攤位${r.stallCount||1}攤 ${equipStr?'· '+equipStr:''}</div>
+      <div style="font-size:12px;color:#666">付款：${r.payStatus||'未繳費'} ${r.payStatus==='已繳費 ✓'?'· NT$'+(r.amount||0).toLocaleString():''}</div>
+      ${r.taxId?`<div style="font-size:11px;color:#854F0B">發票：${r.invoiceTitle}（${r.taxId}）</div>`:''}
+    </div>`;
+  }).join('');
 }
 </script>
+
 
 </body>
 </html>
