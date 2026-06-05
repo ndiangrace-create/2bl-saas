@@ -969,9 +969,9 @@ function renderOverviewSessions(){
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
-            <button onclick="editSes(s.id)" style="background:#f0f0f0;border:0.5px solid #ccc;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;margin:0 2px">編輯</button>
-            <button onclick="downloadSesData(s.id,s.name)" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;margin:0 2px">下載</button>
-            <button onclick="openFinanceModal(s.id,s.name,ev.title||'')" style="background:#f3e8ff;border:0.5px solid #d8b4fe;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;margin:0 2px">財報</button>
+            <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:0.5px solid #ccc;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;margin:0 2px">編輯</button>
+            <button onclick="downloadSesData('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;margin:0 2px">下載</button>
+            <button onclick="openFinanceModal('${s.id}','${(s.name||'').replace(/'/g,'')}','${(ev.title||'').replace(/'/g,'')}')" style="background:#f3e8ff;border:0.5px solid #d8b4fe;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;margin:0 2px">財報</button>
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -1080,7 +1080,7 @@ function renderOverview(){
       <td>
         <div class="action-cell">
           <button class="btn btn-y btn-xs" onclick="toggleSes('${s.id}','${s.status}')">${s.status==='關閉'?'開放':'關閉'}</button>
-          <button class="btn btn-b btn-xs" onclick="editSes(s.id)">✏️</button>
+          <button class="btn btn-b btn-xs" onclick="editSes('${s.id}')">✏️</button>
           <button class="btn btn-s btn-xs" onclick="copySes('${s.id}')">複製</button>
           <button class="btn btn-r btn-xs" onclick="deleteSes('${s.id}','${esc(s.name)}')">🗑</button>
         </div>
@@ -1146,7 +1146,7 @@ function renderEventsWithSessions(){
               </div>
               <div style="display:flex;gap:4px;flex-shrink:0">
                 <button class="btn btn-y btn-xs" onclick="toggleSes('${s.id}','${s.status}')">${s.status==='關閉'?'開放':'關閉'}</button>
-                <button class="btn btn-b btn-xs" onclick="editSes(s.id)">✏️</button>
+                <button class="btn btn-b btn-xs" onclick="editSes('${s.id}')">✏️</button>
                 <button class="btn btn-s btn-xs" onclick="copySes('${s.id}')">複製</button>
                 <button class="btn btn-r btn-xs" onclick="deleteSes('${s.id}','${esc(s.name)}')">🗑</button>
               </div>
