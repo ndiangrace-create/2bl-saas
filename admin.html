@@ -968,9 +968,9 @@ function renderOverviewSessions(){
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
-            <button onclick="editSes('${s.id}')" title="編輯報名表設定" style="background:#f0f0f0;border:0.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">✏️</button>
-            <button onclick="downloadSesData('${s.id}','${s.name}')" title="下載全部資料" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">⬇️</button>
-            <button onclick="openFinanceModal('${s.id}','${s.name}','${ev.title||''}')" title="財報" style="background:#fdf4ff;border:0.5px solid #ddd5fe;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">💰</button>
+            <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:0.5px solid #ccc;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:500;margin:0 2px">編輯</button>
+            <button onclick="downloadSesData('${s.id}','${s.name}')" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:500;margin:0 2px">下載</button>
+            <button onclick="(function(el){openFinanceModal(el.dataset.id,el.dataset.name,'');})(this)" data-id="${s.id}" data-name="${s.name}" style="background:#f3e8ff;border:0.5px solid #d8b4fe;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:500;margin:0 2px">財報</button>
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -2291,7 +2291,7 @@ async function openFinanceModal(sesId, sesName, evName){
 function renderSesRegsList(){
   const kw=($('sesregs-search')?.value||'').toLowerCase();
   const regs=(ST.allRegs||[]).filter(r=>{
-    const matchSes=r.sessionId===ST_finSesId;
+    const matchSes=r.sessionId===ST_finSesId||r['sessionId']===ST_finSesId;
     const matchKw=!kw||(r.brand||'').toLowerCase().includes(kw)||(r.name||'').toLowerCase().includes(kw);
     return matchSes&&matchKw;
   });
