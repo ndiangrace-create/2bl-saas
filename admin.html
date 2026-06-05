@@ -2143,9 +2143,7 @@ async function downloadSesData(sesId,sesName){
 function shareLineFinance(){
   const title=$('financeTitle')?.textContent||'場次';
   const net=$('f-net')?.textContent?.match(/NT\$[\d,]+/)?.[0]||'';
-  const text='【兔彼樂財報】'+title+'
-本場淨利：'+net+'
-詳細請洽主辦。';
+  const text='【兔彼樂財報】'+title+'\n本場淨利：'+net+'\n詳細請洽主辦。';
   window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
 }
 async function loadFinanceData(){
