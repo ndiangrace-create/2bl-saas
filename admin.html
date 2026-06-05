@@ -968,9 +968,9 @@ function renderOverviewSessions(){
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
-            <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:0.5px solid #ccc;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:500;margin:0 2px">編輯</button>
-            <button onclick="downloadSesData('${s.id}','${s.name}')" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:500;margin:0 2px">下載</button>
-            <button onclick="(function(el){openFinanceModal(el.dataset.id,el.dataset.name,'');})(this)" data-id="${s.id}" data-name="${s.name}" style="background:#f3e8ff;border:0.5px solid #d8b4fe;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:500;margin:0 2px">財報</button>
+            <button onclick="editSes('${s.id}')" title="編輯報名表設定" style="background:#f0f0f0;border:0.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">✏️</button>
+            <button onclick="downloadSesData('${s.id}','${s.name}')" title="下載全部資料" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">⬇️</button>
+            <button onclick="openFinanceModal('${s.id}','${s.name}','${ev.title||''}')" title="財報" style="background:#fdf4ff;border:0.5px solid #ddd5fe;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">💰</button>
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -2291,7 +2291,7 @@ async function openFinanceModal(sesId, sesName, evName){
 function renderSesRegsList(){
   const kw=($('sesregs-search')?.value||'').toLowerCase();
   const regs=(ST.allRegs||[]).filter(r=>{
-    const matchSes=r.sessionId===ST_finSesId||r['sessionId']===ST_finSesId;
+    const matchSes=r.sessionId===ST_finSesId;
     const matchKw=!kw||(r.brand||'').toLowerCase().includes(kw)||(r.name||'').toLowerCase().includes(kw);
     return matchSes&&matchKw;
   });
@@ -2316,6 +2316,51 @@ function renderSesRegsList(){
       ${r.taxId?`<div style="font-size:11px;color:#854F0B">發票：${r.invoiceTitle}（${r.taxId}）</div>`:''}
     </div>`;
   }).join('');
+}
+
+
+// ── 補上缺少的三個函數 ──
+async function confirmPayById(payId){
+  // 從付款管理列表確認付款（payId 其實是 regId）
+  if(!confirm('確認此筆付款？'))return;
+  const res=await apiPost({action:'confirmPayment',regId:payId,method:'手動確認'});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('✅ 已確認付款');
+  if(typeof loadPayments==='function') await loadPayments();
+  if(typeof loadAllRegs==='function'){ await loadAllRegs(); }
+}
+
+function showFinAdd(type){
+  // 顯示財報新增表單，type = 'income' 或 'expense'
+  ST_finAddType = type;
+  const form = $('f-add-form');
+  const title = $('f-add-title');
+  if(title) title.textContent = (type==='income'?'新增收入':'新增支出');
+  if(form) form.style.display = 'block';
+  const nameEl = $('f-add-name');
+  if(nameEl){ nameEl.value=''; nameEl.focus(); }
+  const amtEl = $('f-add-amt');
+  if(amtEl) amtEl.value='';
+}
+
+function downloadInvoiceList(){
+  // 下載發票清單 CSV
+  if(typeof ST_invoiceData==='undefined' || !ST_invoiceData || !ST_invoiceData.length){
+    toast('無發票資料可下載');return;
+  }
+  const hdrs=['品牌','統一編號','發票抬頭','發票Email','未稅金額','稅金5%','含稅總額','狀態'];
+  const rows=ST_invoiceData.map(i=>[
+    i.brand||'', i.taxId||'', i.invoiceTitle||'', i.invoiceEmail||'',
+    i.amount||0, i.taxAmount||0, i.totalAmount||0, i.invoiceStatus||'待開立'
+  ]);
+  const csv=[hdrs,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='發票清單.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✅ 發票清單已下載');
 }
 </script>
 
