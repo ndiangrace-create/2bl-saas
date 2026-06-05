@@ -1585,10 +1585,13 @@ async function loadRegs(){
 }
 function renderRegs(){
   const kw=($('regSearch')?.value||'').toLowerCase();
+  const sesId=ST._filterSesId||$('regSesFilter')?.value||'';
+  if(ST._filterSesId){const s=$('regSesFilter');if(s&&s.value!==ST._filterSesId)s.value=ST._filterSesId;}
   let list=(ST.allRegs||[]).filter(r=>{
     const matchKw=!kw||(r.brand||'').toLowerCase().includes(kw)||(r.name||'').toLowerCase().includes(kw)||(r.email||'').toLowerCase().includes(kw);
+    const matchSes=!sesId||(r.sessionId===sesId);
     const matchStatus=ST._showAllRegStatus?true:(r.status==='待審核');
-    return matchKw&&matchStatus;
+    return matchKw&&matchSes&&matchStatus;
   });
   // 依報名時間倒序
   list.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
@@ -1907,7 +1910,8 @@ async function loadAnnounce(){
       </div>
       <div style="display:flex;gap:5px;flex-shrink:0;margin-left:10px">
         <button class="btn btn-b btn-xs" onclick="editAnn('${a.id}')">✏️</button>
-        <button class="btn btn-r btn-xs" onclick="deleteAnn('${a.id}')">🗑</button>
+        <button class="btn btn-r btn-xs" onclick="closeAnn('${a.id||a['公告ID']}')" style="background:#fff8e1;color:#b7860b;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">關閉</button>
+          <button onclick="deleteAnn('${a.id}')">🗑</button>
       </div>
     </div>`).join('');
 }
@@ -2218,6 +2222,23 @@ async function submitFinanceItem(){
 
 function printFinance(){
   window.print();
+}
+
+async function toggleSesStatus(sesId, currentStatus){
+  const newStatus = currentStatus==='報名中'?'已關閉':'報名中';
+  if(!confirm('確定'+(newStatus==='報名中'?'開放':'關閉')+'報名？'))return;
+  const res = await apiPost({action:'toggleSessionStatus', sessionId:sesId, status:newStatus});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast(newStatus==='報名中'?'✅ 已開放報名':'已關閉報名');
+  await loadAllData();
+  renderOverviewCards();
+}
+
+async function closeAnn(id){
+  if(!confirm('確定關閉此公告（前台不顯示）？'))return;
+  const res=await apiPost({action:'saveAnnouncement',id,status:'關閉'});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('公告已關閉');loadAnnounce();
 }
 </script>
 
