@@ -1070,13 +1070,19 @@ async function submitReg(){
   try{
     const res=await apiPost(body);
     if(res.error){toast('❌ '+res.error);btn.disabled=false;btn.textContent='送出報名';return;}
-    toast('✅ 報名成功！請查看 Email 通知',4000);
+    toast('✅ 報名成功！',3000);
     ST.memberEmail=email;
-    // 更新會員資料
     const updatedMember=await api({action:'getMember',email});
     if(updatedMember&&!updatedMember.error) ST.member=updatedMember;
-    $('pageForm').style.display='none';
+    $('pageForm').style.display='none'
+    if(res&&res.regId&&(s.fee||0)>0){
+      setTimeout(()=>showPayPage(res.regId, s.name||'', res.totalAmount||s.fee||0), 600);
+    };
     window.scrollTo(0,0);
+    // 若有費用，跳到繳費
+    if(res.regId && (s.fee||0) > 0){
+      setTimeout(()=>showPayPage(res.regId, s.name, res.totalAmount||s.fee||0), 500);
+    }
   }catch(e){toast('網路錯誤，請重試');}
   btn.disabled=false;btn.textContent='送出報名';
 }

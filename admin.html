@@ -852,6 +852,7 @@ async function quickCheckin(regId, btn){
   updateCheckinStats();
   filterCheckinList();
   toast('已報到');
+  await loadCheckinRegs();
 }
 
 async function quickClear(regId, btn){
@@ -861,6 +862,7 @@ async function quickClear(regId, btn){
   if(reg) reg.clearStatus='已撤場';
   filterCheckinList();
   toast('已撤場');
+  await loadCheckinRegs();
 }
 
 async function quickRefund(regId, deposit, btn){
@@ -873,6 +875,8 @@ async function quickRefund(regId, deposit, btn){
   updateCheckinStats();
   filterCheckinList();
   toast('已記錄退押金');
+
+  await loadCheckinRegs();
 }
 
 // ── 總覽 ──
@@ -1727,19 +1731,12 @@ async function saveFastPass(){
 }
 async function approveReg(){await updateStatus(ST.currentReg?.id,'已錄取');closeModal('regModal');}
 async function rejectReg(){await updateStatus(ST.currentReg?.id,'不錄取');closeModal('regModal');}
-async function quickApprove(id){await updateStatus(id,'已錄取');}
-async function quickReject(id){await updateStatus(id,'不錄取');}
-async function updateStatus(id,status){
+async function quickApprove(id){
   if(!id)return;
-  const res=await apiPost({action:'updateRegStatus',regId:id,status,adminNote:$('regNote')?.value||''});
+  const res=await apiPost({action:'approveReg',regId:id,approved:true});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 狀態已更新');
-  // 更新本地
-  [ST.regs,ST.allRegs].forEach(arr=>{const r=arr.find(x=>x.id===id);if(r)r.status=status;});
-  renderRegs();
-  // 後台重新抓統計
-  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
-  ST.sdData=sd||[];renderOverview();
+  toast('✅ 已錄取，系統發送通知');
+  await loadAllRegs(); renderRegs();
 }
 async function confirmPay(){
   if(!ST.currentReg)return;
@@ -2137,14 +2134,15 @@ async function downloadSesData(sesId,sesName){
   if(!regs||regs.error){toast('下載失敗');return;}
   const regHdrs=['報名ID','姓名','品牌','手機','Email','攤位數','設備','審核狀態','付款狀態','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間'];
   const regRows=(regs||[]).map(r=>{
-    let eq='';try{eq=Object.entries(JSON.parse(r.equip||'{}')).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+    let eq='';
+    try{eq=Object.entries(JSON.parse(r.equip||'{}')).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
     return [r.id,r.name,r.brand,r.phone,r.email,r.stallCount||1,eq,r.status,r.payStatus,r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',(r.createdAt||'').slice(0,16)];
   });
   const finHdrs=['類型','品項','金額','自動手動'];
   const finRows=(finItems||[]).map(i=>[i['類型']==='income'?'收入':'支出',i['品項'],i['金額'],i['自動']==='TRUE'?'自動':'手動']);
-  const toCSV=(hdrs,rows)=>[hdrs,...rows].map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const csv='場次：'+sesName+'\n報名資料\n'+toCSV(regHdrs,regRows)+'\n\n財報明細\n'+toCSV(finHdrs,finRows);
-  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=sesName+'_完整資料.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
@@ -2239,6 +2237,45 @@ async function closeAnn(id){
   const res=await apiPost({action:'saveAnnouncement',id,status:'關閉'});
   if(res.error){toast('❌ '+res.error);return;}
   toast('公告已關閉');loadAnnounce();
+}
+
+async function loadInvoiceList(){
+  const list=await apiPost({action:'getInvoiceList', sessionId:ST_finSesId});
+  const el=$('invoiceListBody');
+  const cnt=$('inv-count');
+  if(!list||list.error||!list.length){
+    if(el) el.innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">無發票資料</div>';
+    if(cnt) cnt.textContent='無待開立發票';
+    return;
+  }
+  const pending=list.filter(i=>i.invoiceStatus==='待開立').length;
+  if(cnt) cnt.textContent=list.length+'筆 · 待開立'+pending+'筆';
+  if(el) el.innerHTML=list.map(i=>`
+    <div style="display:flex;align-items:flex-start;padding:10px 12px;background:var(--color-background-primary,#fff);border:0.5px solid #e0e0e0;border-radius:10px;margin-bottom:6px;gap:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500">${i.brand}</div>
+        <div style="font-size:10px;color:#666;margin-top:2px">統編：${i.taxId}　抬頭：${i.invoiceTitle}</div>
+        <div style="font-size:10px;color:#666">未稅 NT$${(i.amount||0).toLocaleString()}　稅金 NT$${(i.taxAmount||0).toLocaleString()}　含稅 <strong>NT$${(i.totalAmount||0).toLocaleString()}</strong></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        <span onclick="toggleInvoiceStatus('${i.id}','${i.invoiceStatus}')" style="background:${i.invoiceStatus==='待開立'?'#FAEEDA':'#E1F5EE'};color:${i.invoiceStatus==='待開立'?'#854F0B':'#0F6E56'};padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500;cursor:pointer">${i.invoiceStatus||'待開立'}</span>
+        <span style="font-size:13px;font-weight:500">NT$${(i.totalAmount||0).toLocaleString()}</span>
+      </div>
+    </div>`).join('');
+}
+
+function switchFTab(name, el){
+  document.querySelectorAll('.ftab').forEach(t=>{
+    t.style.color='var(--color-text-secondary,#666)';
+    t.style.borderBottom='2px solid transparent';
+    t.style.fontWeight='normal';
+  });
+  el.style.color='#1D9E75';
+  el.style.borderBottom='2px solid #1D9E75';
+  el.style.fontWeight='500';
+  $('fpage-report').style.display=name==='report'?'block':'none';
+  $('fpage-invoice').style.display=name==='invoice'?'block':'none';
+  if(name==='invoice') loadInvoiceList();
 }
 </script>
 
