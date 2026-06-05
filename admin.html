@@ -221,7 +221,7 @@ textarea{min-height:64px;resize:vertical}
   <!-- 報名列表 -->
   <div id="regsCardList"></div>
   <!-- 明細 Modal -->
-  <div class="modal-overlay" id="regDetailModal" onclick="if(event.target===this)closeModal('regDetailModal')">
+  <div class="modal-overlay" id="regDetailModal" style="display:none" onclick="if(event.target===this)closeModal('regDetailModal')">
     <div class="modal-box" style="max-height:85vh;overflow-y:auto">
       <div class="modal-title">報名明細</div>
       <div id="regDetailBody"></div>
@@ -295,15 +295,15 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：場次財報 ══ -->
-<div class="modal-overlay" id="financeModal" onclick="if(event.target===this)closeModal('financeModal')">
+<div class="modal-overlay" id="financeModal" style="display:none" onclick="if(event.target===this)closeModal('financeModal')">
   <div class="modal-box" style="max-height:88vh;overflow-y:auto;padding:0">
     <div style="padding:14px 16px;border-bottom:0.5px solid var(--color-border-tertiary);position:sticky;top:0;background:var(--color-background-primary);z-index:1">
       <div style="font-size:15px;font-weight:500" id="financeTitle">場次財報</div>
       <div style="font-size:11px;color:var(--color-text-secondary)" id="financeSub"></div>
       <div style="display:flex;gap:0;margin-top:10px;border-bottom:0.5px solid var(--color-border-tertiary)">
         <div class="ftab active" id="ftab-report" onclick="switchFTab('report',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid #1D9E75;color:#1D9E75;margin-bottom:-1px;font-weight:500">財報</div>
-        <div class="ftab" <div class="ftab" id="ftab-sesregs" onclick="switchFTab('sesregs',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px">報名名單</div>
-        id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px">發票清單</div>
+        <div class="ftab" id="ftab-sesregs" onclick="switchFTab('sesregs',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px">報名名單</div>
+        <div class="ftab" id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px">發票清單</div>
       </div>
     </div>
     <div style="padding:14px 16px">
@@ -937,12 +937,15 @@ function renderOverviewSessions(){
       </thead>
       <tbody>${sessions.map(s=>{
         const ev=ev_map[s.eventId]||{};
-        const dateStr=s.dates&&s.dates.length?s.dates.map(d=>d.date).join('/'):(s.date||'');
+        let _dates=s.dates;
+        if(typeof _dates==='string'){try{_dates=JSON.parse(_dates);}catch(e){_dates=[];}}
+        dateStr=Array.isArray(_dates)&&_dates.length?_dates.map(d=>d.date||d).join('/'):(s.date||s.activeDates||'');
         // 設備：顯示該場次開放的設備品項及數量
         let equipStr='-';
         try{
-          const defs=JSON.parse(s.equipDefs||'[]');
-          if(defs.length) equipStr=defs.map(d=>d.name+(d.qty?'×'+d.qty:'')).join(' ');
+          let _defs=s.equipDefs||'[]';
+          if(typeof _defs==='string') _defs=JSON.parse(_defs);
+          if(Array.isArray(_defs)&&_defs.length) equipStr=_defs.map(d=>d.name+(d.qty?'×'+d.qty:'')).join(' ');
         }catch(e){}
         const cover=s.cover||ev.cover||'';
         return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
@@ -1426,7 +1429,7 @@ function getAddons(){
 }
 async function editSes(id){
   // 強制從 API 取完整資料確保地區/日期等新欄位有帶出
-  const s=await api({action:'getSession',id,email:ST.email,token:ST.token});
+  const s=await apiPost({action:'getSession',id});
   if(!s||s.error){toast('❌ '+(s?.error||'找不到場次'));return;}
   resetSesModal();
   $('sm_id').value=s.id;
