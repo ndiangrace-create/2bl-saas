@@ -1424,7 +1424,7 @@ function getAddons(){
   });
   return addons;
 }
-async async function editSes(id){
+async function editSes(id){
   // 強制從 API 取完整資料確保地區/日期等新欄位有帶出
   const s=await api({action:'getSession',id,email:ST.email,token:ST.token});
   if(!s||s.error){toast('❌ '+(s?.error||'找不到場次'));return;}
@@ -2276,8 +2276,6 @@ function switchFTab(name, el){
 }
 
 // ── 財報 Modal ──
-let ST_finSesId='', ST_finItems=[], ST_finAddType='income';
-
 async function openFinanceModal(sesId, sesName, evName){
   ST_finSesId=sesId;
   const title=$('financeTitle');
