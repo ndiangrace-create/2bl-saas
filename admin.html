@@ -2122,11 +2122,13 @@ function goToSesRegs(sesId){
 
 async function downloadSesData(sesId,sesName){
   toast('準備下載...');
-  const [regs, finItems] = await Promise.all([
+  const [regsRaw2, finRaw2] = await Promise.all([
     apiPost({action:'getRegsBySession', sessionId:sesId}),
     apiPost({action:'getFinance', sessionId:sesId})
   ]);
-  if(!regs||regs.error){toast('下載失敗');return;}
+  const regs = Array.isArray(regsRaw2) ? regsRaw2 : [];
+  const finItems = Array.isArray(finRaw2) ? finRaw2 : [];
+  if(!regs.length && !finItems.length){toast('無資料可下載');return;}
   const regHdrs=['報名ID','姓名','品牌','手機','Email','攤位數','設備','審核狀態','付款狀態','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間'];
   const regRows=(regs||[]).map(r=>{
     let eq='';
@@ -2153,11 +2155,13 @@ function shareLineFinance(){
 async function loadFinanceData(){
   const ses=(ST.sdData||[]).find(s=>s.id===ST_finSesId)||{};
   const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
-  const [regs, manualItems] = await Promise.all([
+  const [regsRaw, finRaw] = await Promise.all([
     apiPost({action:'getRegsBySession', sessionId:ST_finSesId}),
     apiPost({action:'getFinance', sessionId:ST_finSesId})
   ]);
-  ST_finItems = manualItems||[];
+  // 防護：確保是陣列
+  const regs = Array.isArray(regsRaw) ? regsRaw : [];
+  ST_finItems = Array.isArray(finRaw) ? finRaw : [];
   const paidRegs=(regs||[]).filter(r=>r.payStatus==='已繳費 ✓');
   const stallTotal=paidRegs.reduce((s,r)=>s+(r.amount||0),0);
   let equipTotal=0;
