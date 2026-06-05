@@ -632,7 +632,10 @@ textarea{min-height:64px;resize:vertical}
 
 <div class="toast" id="toast"></div>
 
-<script>
+<script>let ST_finSesId="";
+let ST_finItems=[];
+let ST_finAddType="income";
+
 const API = 'https://script.google.com/macros/s/AKfycbz34vXdofbWxMBSKVkDxsvSjLwI_TPlFdX420bXDmxDbNGe5cXcG2RzeeoUsGySI8Ipjw/exec';
 
 const EQUIP_LIST = [
@@ -2135,6 +2138,81 @@ async function downloadSesData(sesId,sesName){
   const a=document.createElement('a');a.href=url;a.download=sesName+'_完整資料.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   toast('下載完成（含財報）');
+}
+
+function shareLineFinance(){
+  const title=$('financeTitle')?.textContent||'場次';
+  const net=$('f-net')?.textContent?.match(/NT\$[\d,]+/)?.[0]||'';
+  const text='【兔彼樂財報】'+title+'
+本場淨利：'+net+'
+詳細請洽主辦。';
+  window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
+}
+async function loadFinanceData(){
+  const ses=(ST.sdData||[]).find(s=>s.id===ST_finSesId)||{};
+  const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
+  const [regs, manualItems] = await Promise.all([
+    apiPost({action:'getRegsBySession', sessionId:ST_finSesId}),
+    apiPost({action:'getFinance', sessionId:ST_finSesId})
+  ]);
+  ST_finItems = manualItems||[];
+  const paidRegs=(regs||[]).filter(r=>r.payStatus==='已繳費 ✓');
+  const stallTotal=paidRegs.reduce((s,r)=>s+(r.amount||0),0);
+  let equipTotal=0;
+  paidRegs.forEach(r=>{try{Object.values(JSON.parse(r.equip||'{}')).forEach(v=>equipTotal+=Number(v)||0);}catch(e){}});
+  const taxStall=$('ftax-stall')?.checked||false;
+  const invoiceRegs=(regs||[]).filter(r=>r.taxId);
+  const taxBase=invoiceRegs.reduce((s,r)=>taxStall?s+(r.amount||0):s,0);
+  const taxAmt=Math.round(taxBase*0.05);
+  const depositTotal=paidRegs.reduce((s,r)=>s+(r.deposit||0),0);
+  const refundedTotal=(regs||[]).filter(r=>r.depositRefunded==='已退').reduce((s,r)=>s+(r.deposit||0),0);
+  const depositLeft=depositTotal-refundedTotal;
+  const manualIncome=ST_finItems.filter(i=>i['類型']==='income');
+  const manualExpense=ST_finItems.filter(i=>i['類型']==='expense');
+  const manualIncomeTotal=manualIncome.reduce((s,i)=>s+safeN(i['金額']),0);
+  const manualExpenseTotal=manualExpense.reduce((s,i)=>s+safeN(i['金額']),0);
+  const totalIncome=stallTotal+equipTotal+taxAmt+manualIncomeTotal;
+  const totalExpense=manualExpenseTotal;
+  const netProfit=totalIncome-totalExpense;
+  if($('f-income-section')) $('f-income-section').innerHTML=renderFinSection('收入',[
+    {name:'攤位費',note:paidRegs.length+'筆已繳費',amt:stallTotal,auto:true},
+    {name:'設備租金',note:'',amt:equipTotal,auto:true},
+    taxAmt>0?{name:'發票稅金5%',note:invoiceRegs.length+'筆',amt:taxAmt,auto:true}:null,
+    ...manualIncome.map(i=>({name:i['品項'],amt:safeN(i['金額']),auto:false,id:i['ID']}))
+  ].filter(Boolean),totalIncome,'income');
+  if($('f-expense-section')) $('f-expense-section').innerHTML=renderFinSection('支出',[
+    ...manualExpense.map(i=>({name:i['品項'],amt:safeN(i['金額']),auto:false,id:i['ID']}))
+  ],totalExpense,'expense');
+  if($('f-net')) $('f-net').innerHTML=`<div style="border-radius:10px;padding:12px 14px;background:#E1F5EE;border:0.5px solid #9FE1CB">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:14px;font-weight:500;color:#085041">本場淨利</span>
+      <span style="font-size:20px;font-weight:500;color:#085041">NT$${netProfit.toLocaleString()}</span>
+    </div>
+    <div style="font-size:10px;color:#1D9E75;margin-top:3px">收入 ${totalIncome.toLocaleString()} － 支出 ${totalExpense.toLocaleString()} ＝ ${netProfit.toLocaleString()}</div>
+  </div>`;
+  if($('f-deposit')) $('f-deposit').innerHTML=`<div style="border-radius:10px;padding:12px 14px;background:#FAEEDA;border:0.5px solid #FAC775">
+    <div style="font-size:11px;font-weight:500;color:#633806;margin-bottom:7px">押金專區（不列入損益）</div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>收取押金</span><span>NT$${depositTotal.toLocaleString()}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>已退還</span><span style="color:#1D9E75">－NT$${refundedTotal.toLocaleString()}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;padding:7px 0 3px;border-top:0.5px solid #FAC775;margin-top:5px"><span>未退餘額</span><span style="color:#854F0B">NT$${depositLeft.toLocaleString()}</span></div>
+    ${depositLeft>0?`<div style="font-size:10px;color:#854F0B;margin-top:5px">未退餘額 = 違約扣款，可轉入收入</div>
+    <button onclick="transferDeposit(${depositLeft})" style="margin-top:6px;font-size:11px;background:#FAEEDA;color:#854F0B;border:0.5px solid #FAC775;border-radius:6px;padding:4px 10px;cursor:pointer">轉入收入 ＋NT$${depositLeft.toLocaleString()}</button>`:''}
+  </div>`;
+}
+
+async function submitFinanceItem(){
+  const name=$('f-add-name')?.value.trim();
+  const amt=Number($('f-add-amt')?.value)||0;
+  if(!name||!amt){toast('請填寫品項和金額');return;}
+  const res=await apiPost({action:'saveFinanceItem',sessionId:ST_finSesId,type:ST_finAddType,name,amount:amt,auto:false});
+  if(res.error){toast('錯誤: '+res.error);return;}
+  if($('f-add-form')) $('f-add-form').style.display='none';
+  toast('已新增');
+  await loadFinanceData();
+}
+
+function printFinance(){
+  window.print();
 }
 </script>
 
