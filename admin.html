@@ -221,7 +221,7 @@ textarea{min-height:64px;resize:vertical}
   <!-- 報名列表 -->
   <div id="regsCardList"></div>
   <!-- 明細 Modal -->
-  <div class="modal-overlay" id="regDetailModal" style="display:none" onclick="if(event.target===this)closeModal('regDetailModal')">
+  <div class="modal-overlay" id="regDetailModal" onclick="if(event.target===this)closeModal('regDetailModal')">
     <div class="modal-box" style="max-height:85vh;overflow-y:auto">
       <div class="modal-title">報名明細</div>
       <div id="regDetailBody"></div>
@@ -937,15 +937,13 @@ function renderOverviewSessions(){
       </thead>
       <tbody>${sessions.map(s=>{
         const ev=ev_map[s.eventId]||{};
-        let _dates=s.dates;
-        if(typeof _dates==='string'){try{_dates=JSON.parse(_dates);}catch(e){_dates=[];}}
-        dateStr=Array.isArray(_dates)&&_dates.length?_dates.map(d=>d.date||d).join('/'):(s.date||s.activeDates||'');
+        let _d=s.dates;if(typeof _d==='string'){try{_d=JSON.parse(_d);}catch(e){_d=[];}}
+        dateStr=Array.isArray(_d)&&_d.length?_d.map(d=>d.date||d).join('/'):(s.date||'');
         // 設備：顯示該場次開放的設備品項及數量
         let equipStr='-';
         try{
-          let _defs=s.equipDefs||'[]';
-          if(typeof _defs==='string') _defs=JSON.parse(_defs);
-          if(Array.isArray(_defs)&&_defs.length) equipStr=_defs.map(d=>d.name+(d.qty?'×'+d.qty:'')).join(' ');
+          const defs=JSON.parse(s.equipDefs||'[]');
+          if(defs.length) equipStr=defs.map(d=>d.name+(d.qty?'×'+d.qty:'')).join(' ');
         }catch(e){}
         const cover=s.cover||ev.cover||'';
         return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
@@ -2125,13 +2123,11 @@ function goToSesRegs(sesId){
 
 async function downloadSesData(sesId,sesName){
   toast('準備下載...');
-  const [regsRaw2, finRaw2] = await Promise.all([
+  const [regs, finItems] = await Promise.all([
     apiPost({action:'getRegsBySession', sessionId:sesId}),
     apiPost({action:'getFinance', sessionId:sesId})
   ]);
-  const regs = Array.isArray(regsRaw2) ? regsRaw2 : [];
-  const finItems = Array.isArray(finRaw2) ? finRaw2 : [];
-  if(!regs.length && !finItems.length){toast('無資料可下載');return;}
+  if(!regs||regs.error){toast('下載失敗');return;}
   const regHdrs=['報名ID','姓名','品牌','手機','Email','攤位數','設備','審核狀態','付款狀態','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間'];
   const regRows=(regs||[]).map(r=>{
     let eq='';
@@ -2158,13 +2154,12 @@ function shareLineFinance(){
 async function loadFinanceData(){
   const ses=(ST.sdData||[]).find(s=>s.id===ST_finSesId)||{};
   const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
-  const [regsRaw, finRaw] = await Promise.all([
+  const [_regsRaw, _finRaw] = await Promise.all([
     apiPost({action:'getRegsBySession', sessionId:ST_finSesId}),
     apiPost({action:'getFinance', sessionId:ST_finSesId})
   ]);
-  // 防護：確保是陣列
-  const regs = Array.isArray(regsRaw) ? regsRaw : [];
-  ST_finItems = Array.isArray(finRaw) ? finRaw : [];
+  const regs = Array.isArray(_regsRaw) ? _regsRaw : [];
+  ST_finItems = Array.isArray(_finRaw) ? _finRaw : [];
   const paidRegs=(regs||[]).filter(r=>r.payStatus==='已繳費 ✓');
   const stallTotal=paidRegs.reduce((s,r)=>s+(r.amount||0),0);
   let equipTotal=0;
@@ -2283,6 +2278,7 @@ function switchFTab(name, el){
 }
 
 // ── 財報 Modal ──
+
 async function openFinanceModal(sesId, sesName, evName){
   ST_finSesId=sesId;
   const title=$('financeTitle');
