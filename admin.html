@@ -214,7 +214,7 @@ textarea{min-height:64px;resize:vertical}
 <div id="page-regs" class="tab-page">
   <div class="page-title">報名審核</div>
   <!-- 搜尋 -->
-  <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email" oninput="renderRegs()" style="margin-bottom:10px">
+  <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email" oninput="ST._filterSesId=null;renderRegs()" style="margin-bottom:10px">
   <div id="regCount" style="font-size:12px;color:var(--md);margin-bottom:8px"></div>
   <!-- 報名列表 -->
   <div id="regsCardList"></div>
@@ -990,6 +990,7 @@ function goPage(name){
   if(tab) tab.classList.add('active');
   // 初始化
   ST._showAllRegStatus=false;
+  if(!['regs'].includes(name)) ST._filterSesId=null;
   const inits={
     overview: ()=>{ renderOverviewCards(); },
     regs: ()=>{ renderRegs(); },
@@ -2102,10 +2103,12 @@ async function toggleInvoiceStatus(regId,current){
 }
 
 function openSesDetail(sesId){
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=true;
   goPage('regs');
+  // 同步 select UI
   const sel=$('regSesFilter');
   if(sel) sel.value=sesId;
-  ST._showAllRegStatus=true;
   renderRegs();
 }
 
@@ -2114,6 +2117,7 @@ function goToSesRegs(sesId){
   const sel=$('regSesFilter');
   if(sel) sel.value=sesId;
   ST._showAllRegStatus=false;
+  if(!['regs'].includes(name)) ST._filterSesId=null;
   renderRegs();
 }
 
