@@ -2104,6 +2104,11 @@ async function saveStaff(){
     perms[c.dataset.perm]=c.checked;
   });
   const role=$('sf_role').value;
+  // 防呆：非超管但完全沒勾權限
+  const anyPerm=Object.values(perms).some(v=>v);
+  if(role!=='superadmin' && !anyPerm){
+    if(!confirm('你還沒勾選任何權限，這位管理員將無法操作任何功能。\n確定要這樣新增嗎？（建議至少勾一項）')) return;
+  }
   // 收集限定場次
   const limitSessions=[];
   document.querySelectorAll('#sf_sessions_grid input:checked').forEach(c=>{
