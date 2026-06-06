@@ -977,12 +977,13 @@ function renderOverviewSessions(){
       <tbody>${sessions.map(s=>{
         const ev=ev_map[s.eventId]||{};
         const dateStr=s.dates&&s.dates.length?s.dates.map(d=>d.date).join('/'):(s.date||'');
-        // 設備：顯示該場次開放的設備品項及數量
+        // 設備需求總計（已錄取/已繳費的攤主實際要的桌椅）
         let equipStr='-';
-        try{
-          const defs=JSON.parse(s.equipDefs||'[]');
-          if(defs.length) equipStr=defs.map(d=>d.name+(d.qty?'×'+d.qty:'')).join(' ');
-        }catch(e){}
+        const need=s.equipNeed||{};
+        const needItems=Object.entries(need).filter(([k,v])=>v>0);
+        if(needItems.length){
+          equipStr=needItems.map(([k,v])=>k+'×'+v).join(' ');
+        }
         const cover=s.cover||ev.cover||'';
         return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
           <td style="padding:7px 6px">
