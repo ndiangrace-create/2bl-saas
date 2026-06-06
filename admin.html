@@ -678,11 +678,22 @@ function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  const r=await fetch(API+'?'+qs);return r.json();
+  try{
+    const r=await fetch(API+'?'+qs);
+    if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')：請確認 Apps Script 已正確部署'); return {error:'連線失敗 '+r.status}; }
+    return await r.json();
+  }catch(e){ toast('⚠️ 無法連線後端，請確認部署網址'); return {error:'連線失敗'}; }
 }
 async function apiPost(body){
-  const r=await fetch(API,{method:'POST',body:JSON.stringify({...body,email:ST.email,token:ST.token})});
-  return r.json();
+  try{
+    const r=await fetch(API,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({...body,email:ST.email,token:ST.token})
+    });
+    if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
+    return await r.json();
+  }catch(e){ toast('⚠️ 無法連線後端'); return {error:'連線失敗'}; }
 }
 function closeModal(id){$(id).classList.remove('show');}
 function openModal(id){$(id).classList.add('show');}
@@ -1437,7 +1448,7 @@ function getAddons(){
 }
 async function editSes(id){
   // 強制從 API 取完整資料確保地區/日期等新欄位有帶出
-  const s=await apiPost({action:'getSession',id});
+  const s=await api({action:'getSession',id,email:ST.email,token:ST.token});
   if(!s||s.error){toast('❌ '+(s?.error||'找不到場次'));return;}
   resetSesModal();
   $('sm_id').value=s.id;
@@ -2187,7 +2198,7 @@ function shareLineFinance(){
 async function loadFinanceData(){
   const ses=(ST.sdData||[]).find(s=>s.id===ST_finSesId)||{};
   const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
-  const [_rr,_fr]=await Promise.all([apiPost({action:'getRegsBySession',sessionId:ST_finSesId}),apiPost({action:'getFinance',sessionId:ST_finSesId})]);
+  const [_rr,_fr]=await Promise.all([api({action:'getRegsBySession',sessionId:ST_finSesId,email:ST.email,token:ST.token}),api({action:'getFinance',sessionId:ST_finSesId,email:ST.email,token:ST.token})]);
   const regs=Array.isArray(_rr)?_rr:[];
   ST_finItems=Array.isArray(_fr)?_fr:[];
   const paidRegs=(regs||[]).filter(r=>r.payStatus==='已繳費 ✓');
@@ -2267,7 +2278,7 @@ async function closeAnn(id){
 }
 
 async function loadInvoiceList(){
-  const list=await apiPost({action:'getInvoiceList', sessionId:ST_finSesId});
+  const list=await api({action:'getInvoiceList',sessionId:ST_finSesId,email:ST.email,token:ST.token});
   const el=$('invoiceListBody');
   const cnt=$('inv-count');
   if(!list||list.error||!list.length){

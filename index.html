@@ -473,10 +473,15 @@ function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  const r=await fetch(API+'?'+qs);return r.json();
+  try{ const r=await fetch(API+'?'+qs); if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'fail'};} return await r.json(); }
+  catch(e){ toast&&toast('⚠️ 網路連線失敗'); return {error:'fail'}; }
 }
 async function apiPost(body){
-  const r=await fetch(API,{method:'POST',body:JSON.stringify(body)});return r.json();
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+    if(!r.ok){ toast&&toast('⚠️ 連線失敗'); return {error:'fail'}; }
+    return await r.json();
+  }catch(e){ toast&&toast('⚠️ 網路錯誤'); return {error:'fail'}; }
 }
 function closeModal(id){$(id).classList.remove('show');}
 function openLine(){window.open(LINE_URL,'_blank');}
