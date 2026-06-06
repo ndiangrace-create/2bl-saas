@@ -242,6 +242,7 @@ textarea{min-height:64px;resize:vertical}
   <div id="checkinBody" style="display:none">
     <!-- 統計 -->
     <div id="checkinStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px"></div>
+  <div id="checkinEquipTotal"></div>
     <!-- 搜尋 -->
     <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/電話/Email/攤位" oninput="filterCheckinList()" style="margin-bottom:10px;font-size:14px;padding:10px">
     <!-- 篩選 -->
@@ -444,18 +445,17 @@ textarea{min-height:64px;resize:vertical}
     <div class="form-row">
       <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"></div>
       <div>
-  <label>租攤設定</label>
+  <label>開放選位（付費選項）</label>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-    <input type="checkbox" id="sm_enableStalls" style="width:16px;height:16px;accent-color:var(--g)">
-    <span style="font-size:13px">開放選擇租攤數</span>
+    <input type="checkbox" id="sm_enableStalls" onchange="toggleStallConfig(this.checked)" style="width:18px;height:18px;accent-color:var(--g)">
+    <span style="font-size:13px">開放攤主自選攤位（付款後鎖定，未付款2日內釋出）</span>
   </div>
-  <div id="sm_stallsConfig" style="display:none;margin-top:6px">
-    <label style="font-size:12px;color:var(--md)">最多租幾攤</label>
-    <input type="number" id="sm_maxStalls" value="3" inputmode="numeric" placeholder="例：3">
-    <label style="font-size:12px;color:var(--md);margin-top:8px;display:block">攤位號碼清單（選填，用逗號分隔，例：A1,A2,A3）</label>
-    <input type="text" id="sm_stallNumbers" placeholder="A1,A2,A3,B1,B2">
-    <div id="stallPreview" style="margin-top:6px"></div>
+  <div id="sm_stallsConfig" style="display:none;margin-top:8px;padding:10px;background:#f7faf8;border-radius:8px">
+    <label style="font-size:12px;color:var(--md);display:block">攤位號碼清單（用逗號分隔，對應你的場地圖，例：A1,A2,A3）</label>
+    <input type="text" id="sm_stallNumbers" placeholder="A1,A2,A3,B1,B2" style="margin-top:4px">
+    <div id="stallPreview" style="margin-top:6px;font-size:12px;color:var(--md)"></div>
   </div>
+  <input type="hidden" id="sm_maxStalls" value="0">
 </div>
     </div>
     <div class="form-row">
@@ -803,6 +803,23 @@ function updateCheckinStats(){
       <div style="font-size:18px;font-weight:900;color:var(--rd)">NT$${depositTotal}</div>
       <div style="font-size:11px;color:var(--md)">應退押金</div>
     </div>`;
+  // 設備需求總計（這場要準備多少桌椅）
+  const equipTotal={};
+  ST_checkinRegs.forEach(r=>{
+    try{
+      const eq=JSON.parse(r.equip||'{}');
+      Object.entries(eq).forEach(([k,v])=>{ if(v>0) equipTotal[k]=(equipTotal[k]||0)+Number(v); });
+    }catch(e){}
+  });
+  const equipEl=$('checkinEquipTotal');
+  if(equipEl){
+    const items=Object.entries(equipTotal).filter(([k,v])=>v>0);
+    if(items.length){
+      equipEl.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;margin-top:10px"><div style="font-size:13px;font-weight:700;color:#9a3412;margin-bottom:6px">📦 本場設備需求總計（要準備/租借的數量）</div><div style="font-size:15px;font-weight:700;color:#7c2d12">'+items.map(([k,v])=>k+' '+v+' 件').join('　')+'</div></div>';
+    } else {
+      equipEl.innerHTML='';
+    }
+  }
 }
 
 function filterCheckinList(){
@@ -1255,12 +1272,18 @@ function buildModGrid(mods){
 }
 function buildEquipDefs(equipObj){
   $('equipDefs').innerHTML=EQUIP_LIST.map(eq=>`
-    <div class="equip-def">
-      <div class="equip-def-name">${eq.icon} ${eq.k}</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <input type="checkbox" id="eq_open_${eq.k}" ${equipObj[eq.k]?.open?'checked':''} style="width:16px;height:16px;accent-color:var(--g)">
-        <span style="font-size:11px;color:var(--lt)">開放</span>
-        <input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" class="equip-def-price" inputmode="numeric" placeholder="單價">
+    <div class="equip-def" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #f5f5f5">
+      <label style="display:flex;align-items:center;gap:4px;min-width:90px;cursor:pointer">
+        <input type="checkbox" id="eq_open_${eq.k}" ${equipObj[eq.k]?.open?'checked':''} style="width:18px;height:18px;accent-color:var(--g)">
+        <span style="font-size:14px;font-weight:600">${eq.icon} ${eq.k}</span>
+      </label>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:11px;color:var(--lt)">每攤內含</span>
+        <input type="number" id="eq_incl_${eq.k}" value="${equipObj[eq.k]?.incl||0}" inputmode="numeric" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:11px;color:var(--lt)">超過單價</span>
+        <input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" inputmode="numeric" placeholder="單價" style="width:60px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
       </div>
     </div>`).join('');
 }
@@ -1272,8 +1295,14 @@ function updateModPresets(){
 function getModulesJson(){
   const obj={};MOD_DEFS.forEach(d=>{obj[d.k]=!!$('mod_'+d.k)?.checked;});return obj;
 }
+
+function toggleStallConfig(checked){
+  const cfg=$('sm_stallsConfig');
+  if(cfg) cfg.style.display=checked?'block':'none';
+}
+
 function getEquipJson(){
-  const obj={};EQUIP_LIST.forEach(eq=>{obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked,price:parseInt($('eq_price_'+eq.k)?.value)||0};});return obj;
+  const obj={};EQUIP_LIST.forEach(eq=>{obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked,price:parseInt($('eq_price_'+eq.k)?.value)||0,incl:parseInt($('eq_incl_'+eq.k)?.value)||0};});return obj;
 }
 
 function quickAddEvent(){
@@ -1467,10 +1496,10 @@ async function editSes(id){
   $('sm_fee').value=Math.max(0,Number(s.fee)||0);
   $('sm_deposit').value=Math.max(0,Number(s.deposit)||0);
   $('sm_limit').value=Math.max(0,Number(s.limit)||0);
-  const hasStalls=s.maxStalls>0;
-  $('sm_enableStalls').checked=hasStalls;
+  const hasStalls=(s.stallList&&s.stallList.length>0)||s.enableStalls;
+  $('sm_enableStalls').checked=!!hasStalls;
   $('sm_stallsConfig').style.display=hasStalls?'block':'none';
-  $('sm_maxStalls').value=s.maxStalls||3;
+  if($('sm_maxStalls')) $('sm_maxStalls').value=0;
   $('sm_organizer').value=s.organizer||'';
   $('sm_coorg').value=s.coorg||'';
   $('sm_basicEquip').value=s.basicEquip||'';

@@ -864,17 +864,21 @@ function renderDynForm(s){
     html+=`</div></div>`;
   }
 
-  // 設備加購
+  // 設備（總共需要幾張，內含免費，超過加購）
   const equipOpen=Object.entries(s.equip||{}).filter(([k,v])=>v&&v.open);
   if(equipOpen.length>0){
-    html+=`<div class="fcard"><div class="fcard-t">🪑 設備加購（選填）</div><div class="fcard-body">`;
+    const stallN=ST.stallCount||1;
+    html+=`<div class="fcard"><div class="fcard-t">🪑 設備需求</div><div class="fcard-body"><div style="font-size:12px;color:#888;margin-bottom:8px">請填「總共需要幾張」。每攤內含的數量免費，超過的部分才加購；少於內含或自備也可以調低。</div>`;
     equipOpen.forEach(([k,v])=>{
       const def=EQUIP_LIST_DEFS[k]||{icon:'📦'};
+      const incl=(v.incl||0)*stallN;
+      // 預設帶內含數量
+      if(ST.equipQty[k]===undefined) ST.equipQty[k]=incl;
       html+=`<div class="equip-row">
-        <div class="equip-info"><div class="equip-name">${def.icon} ${k}</div><div class="equip-price">NT$ ${v.price}/件</div></div>
+        <div class="equip-info"><div class="equip-name">${def.icon} ${k}</div><div class="equip-price">${incl>0?'內含 '+incl+' 件，':''}超過 NT$ ${v.price}/件</div></div>
         <div class="equip-ctrl">
           <button class="eq-btn" onclick="adjEquip('${k}',-1)">−</button>
-          <div class="eq-num" id="eq_num_${k}">0</div>
+          <div class="eq-num" id="eq_num_${k}">${ST.equipQty[k]}</div>
           <button class="eq-btn" onclick="adjEquip('${k}',1)">＋</button>
         </div>
       </div>`;
@@ -997,7 +1001,7 @@ function adjAddon(i,delta){
 }
 function adjEquip(k,delta){
   const cur=ST.equipQty[k]||0;
-  const next=Math.max(0,Math.min(10,cur+delta));
+  const next=Math.max(0,Math.min(50,cur+delta));
   ST.equipQty[k]=next;
   const el=document.getElementById('eq_num_'+k);
   if(el)el.textContent=next;
@@ -1025,7 +1029,12 @@ function updateFee(){
   }
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
-    if(v&&v.open&&ST.equipQty[k]) equipTotal+=(v.price||0)*ST.equipQty[k];
+    if(v&&v.open){
+      const incl=(v.incl||0)*stalls;
+      const want=ST.equipQty[k]||0;
+      const extra=Math.max(0, want-incl);  // 只算超過內含的部分
+      equipTotal+=(v.price||0)*extra;
+    }
   });
   let addonTotal=0;
   (s.addons||[]).forEach((a,i)=>{
