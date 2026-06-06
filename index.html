@@ -167,7 +167,7 @@ textarea{min-height:72px;resize:vertical}
 .badge-no{background:var(--rdp);color:var(--rd)}
 
 /* ── 底部固定三按鈕 ── */
-.bottom-fixed{position:fixed;bottom:0;left:0;right:0;width:100%;max-width:640px;margin:0 auto;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
+.bottom-fixed{position:fixed;bottom:0;left:0;right:0;width:100%;max-width:720px;margin:0 auto;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
 .bot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:12px 6px;border-radius:14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;transition:all .15s}
 .bot-btn:active{transform:scale(.96)}
 .bot-line{background:#06C755;color:#fff;box-shadow:0 3px 10px rgba(6,199,85,.3)}
@@ -191,7 +191,7 @@ textarea{min-height:72px;resize:vertical}
 </head>
 <body>
 <!-- ══ 首頁 ══ -->
-<div id="pageHome" class="page active" style="max-width:640px;margin:0 auto">
+<div id="pageHome" class="page active" style="max-width:720px;margin:0 auto">
 
   <!-- Hero -->
   <div class="hero">
@@ -280,7 +280,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 場次頁 ══ -->
-<div id="pageSession" class="page" style="max-width:640px;margin:0 auto">
+<div id="pageSession" class="page" style="max-width:720px;margin:0 auto">
   <div class="back-bar" onclick="backToHome()">
     <span class="arrow">←</span>
     <span class="title" id="sessionEventName">場次列表</span>
@@ -289,7 +289,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 報名表頁 ══ -->
-<div id="pageForm" class="page" style="max-width:640px;margin:0 auto">
+<div id="pageForm" class="page" style="max-width:720px;margin:0 auto">
   <div class="back-bar" onclick="backToSessions()">
     <span class="arrow">←</span>
     <span class="title" id="formBackTitle">報名表</span>
@@ -312,7 +312,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 會員頁 ══ -->
-<div id="pageMember" class="page" style="max-width:640px;margin:0 auto">
+<div id="pageMember" class="page" style="max-width:720px;margin:0 auto">
   <div class="back-bar" onclick="navTo('home')">
     <span class="arrow">←</span>
     <span class="title">會員專區</span>
@@ -550,18 +550,19 @@ async function filterCat(type, el){
   }
   portalList.innerHTML=list.map(s=>{
     const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>d.date).join('/'):(s.date||'');
-    return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;margin-bottom:12px;cursor:pointer" onclick="openSession('${s.id}')">
-      ${s.cover
-        ?`<img src="${s.cover}" style="width:100%;aspect-ratio:2/1;object-fit:cover">`
-        :`<div style="width:100%;aspect-ratio:2/1;background:linear-gradient(135deg,var(--gp),#fff);display:flex;align-items:center;justify-content:center;font-size:40px">🎪</div>`}
-      <div style="padding:12px 14px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+    const thumb = s.cover
+      ?`<img src="${s.cover}" style="width:72px;height:72px;border-radius:10px;object-fit:cover;flex-shrink:0">`
+      :`<div style="width:72px;height:72px;border-radius:10px;background:linear-gradient(135deg,var(--gp),#fff);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0">🎪</div>`;
+    return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center">
+      ${thumb}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
           ${s.region?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${s.region}</span>`:''}
           <span style="font-size:15px;font-weight:700">${s.name}</span>
         </div>
-        <div style="font-size:12px;color:var(--md);margin-bottom:10px">${dateStr||''}　${s.limit>0?'共'+s.limit+'攤':'不限攤'}　${s.fee>0?'NT$'+s.fee:'免費'}</div>
-        <button onclick="event.stopPropagation();openSession('${s.id}')" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer">立即報名</button>
+        <div style="font-size:12px;color:var(--md)">${dateStr||''}　${s.limit>0?'共'+s.limit+'攤':'不限攤'}　${s.fee>0?'NT$'+s.fee:'免費'}</div>
       </div>
+      <button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">報名</button>
     </div>`;
   }).join('');
 }
@@ -614,21 +615,17 @@ async function openEvent(eventId){
 function renderSessionCard(s, onclick=true){
   const full=s.limit>0&&s.count>=s.limit;
   const closed=s.status==='關閉'||full;
-  const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>`${d.date} ${d.start||''}${d.end?'–'+d.end:''}`).join(' / '):(s.date||'');
-  const clickFn=(!closed&&onclick)?`openSession('${s.id}')`:'';
-  return `<div class="session-card ${closed?'closed':''}" ${clickFn?`onclick="${clickFn}"`:'style="cursor:default"'}>
-    <div class="session-card-inner">
-      <div class="session-name">${s.name}</div>
-      <div class="session-tags">
-        ${s.region?`<span class="tag">📍 ${s.region}</span>`:''}
-        <span class="tag">${s.type}</span>
-        ${dateStr?`<span class="tag">${dateStr}</span>`:''}
-        ${s.venue?`<span class="tag">${s.venue}</span>`:''}
-        ${closed?`<span class="tag red">${full?'名額已滿':'已關閉'}</span>`:''}
+  const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>`${d.date}`).join(' / '):(s.date||'');
+  return `<div style="background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.06);padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+        ${s.region?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">📍 ${s.region}</span>`:''}
+        <span style="font-size:15px;font-weight:700">${s.name}</span>
+        ${closed?`<span style="background:#fde8e8;color:#c0392b;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${full?'名額已滿':'已關閉'}</span>`:''}
       </div>
-      <div class="session-fee">${s.fee>0?'NT$ '+s.fee:'免費'}</div>
-      
+      <div style="font-size:12px;color:var(--md)">${dateStr?dateStr+'　':''}${s.venue?s.venue+'　':''}${s.fee>0?'NT$ '+s.fee:'免費'}</div>
     </div>
+    ${!closed?`<button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">報名</button>`:''}
   </div>`;
 }
 
@@ -728,7 +725,7 @@ function renderDynForm(s){
   }
   html+=`<label>姓名 *</label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="真實姓名">`;
   html+=`<div class="err" id="e_name"></div>`;
-  html+=`<label>手機 *</label><input type="tel" id="f_phone" value="${esc(V.phone||'')}" placeholder="09xxxxxxxx" inputmode="tel">`;
+  html+=`<label>手機 *</label><input type="tel" id="f_phone" value="${esc(String(V.phone||''))}" placeholder="09xxxxxxxx" inputmode="tel">`;
   html+=`<div class="err" id="e_phone"></div>`;
   html+=`<label>Email *</label><input type="email" id="f_email" value="${esc(ST.memberEmail||V.email||'')}" placeholder="your@email.com" inputmode="email">`;
   html+=`<div class="err" id="e_email"></div>`;
@@ -752,16 +749,14 @@ function renderDynForm(s){
     }
   }
 
-  // 攤位加購數量
-  if(s.maxStalls>0){
-    const maxS=s.maxStalls||3;
-    html+=`<label style="font-size:16px;font-weight:700">租幾攤？（最多 ${maxS} 攤）</label>
-    <div class="stall-counter" style="margin-top:8px">
-      <button onclick="adjStall(-1)" style="font-size:28px;padding:14px 24px">－</button>
-      <div class="stall-num" id="stallNum" style="font-size:26px;min-width:60px">1</div>
-      <button onclick="adjStall(1)" style="font-size:28px;padding:14px 24px">＋</button>
+  // 攤位加購數量（永遠顯示，預設最多3攤）
+  const maxS = s.maxStalls>0 ? s.maxStalls : 3;
+  html+=`<label style="font-size:16px;font-weight:700;margin-top:14px;display:block">租幾攤？（最多 ${maxS} 攤）</label>
+    <div class="stall-counter" style="margin-top:8px;display:flex;align-items:center;gap:16px;justify-content:center">
+      <button type="button" onclick="adjStall(-1,${maxS})" style="font-size:28px;padding:10px 22px;border:1px solid #ccc;border-radius:10px;background:#f7f7f7;cursor:pointer">－</button>
+      <div class="stall-num" id="stallNum" style="font-size:26px;min-width:50px;text-align:center;font-weight:700">1</div>
+      <button type="button" onclick="adjStall(1,${maxS})" style="font-size:28px;padding:10px 22px;border:1px solid #ccc;border-radius:10px;background:#f7f7f7;cursor:pointer">＋</button>
     </div>`;
-  }
   html+=`</div></div>`;
 
   // 品牌資料（自動帶出會員資料）
@@ -790,12 +785,10 @@ function renderDynForm(s){
     html+=`<label>FB 粉絲專頁</label>`;
     html+=`<div style="display:flex;align-items:center;gap:8px">`;
     html+=`<input type="url" id="f_fb" value="${esc(V.fb||'')}" placeholder="https://facebook.com/..." style="flex:1">`;
-    if(V.fb) html+=`<a href="${esc(V.fb)}" target="_blank" style="background:#1877F2;color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;text-decoration:none;white-space:nowrap;flex-shrink:0">開啟 ↗</a>`;
     html+=`</div>`;
     html+=`<label>IG 帳號</label>`;
     html+=`<div style="display:flex;align-items:center;gap:8px">`;
     html+=`<input type="url" id="f_ig" value="${esc(V.ig||'')}" placeholder="https://instagram.com/..." style="flex:1">`;
-    if(V.ig) html+=`<a href="${esc(V.ig)}" target="_blank" style="background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;text-decoration:none;white-space:nowrap;flex-shrink:0">開啟 ↗</a>`;
     html+=`</div>`;
     html+=`</div></div>`;
   }
@@ -960,7 +953,7 @@ async function quickMemberLogin(){
 }
 function adjStall(delta){
   const s=ST.currentSession;
-  const max=s?.maxStalls||1;
+  const max=(s&&s.maxStalls>0)?s.maxStalls:3;
   const cur=ST.stallCount||1;
   const next=Math.min(max,Math.max(1,cur+delta));
   ST.stallCount=next;
@@ -1166,8 +1159,26 @@ async function renderMyRegs(regs){
         ${paidTag}
         ${canPay?`<button onclick="showPayPage('${r.id}','${sesName}',${r.amount})" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">去繳費</button>`:''}
       </div>
+      ${r.status!=='不錄取'&&r.status!=='已取消'?`<div style="margin-top:8px;text-align:right">
+        <button onclick="cancelMyReg('${r.id}','${sesName}')" style="background:#fff;color:#c0392b;border:1px solid #e8b5b5;border-radius:8px;padding:5px 12px;font-size:11px;cursor:pointer">取消報名</button>
+      </div>`:''}
     </div>`;
   }).join('');
+}
+
+
+
+async function cancelMyReg(regId, sesName){
+  const rule = '【取消報名規範】\n\n' +
+    '1. 審核中或錄取後未繳費：可直接取消，名額釋出。\n' +
+    '2. 已繳費後取消：費用依本公司退費辦法處理，押金全額退還。\n' +
+    '3. 活動前 7 天內取消：恕不退還已繳費用。\n\n' +
+    '確定要取消「' + sesName + '」的報名嗎？';
+  if(!confirm(rule)) return;
+  const res = await apiPost({action:'cancelReg', regId, email: ST.member?.email||''});
+  if(res.error){ toast('❌ '+res.error); return; }
+  toast('✅ 已取消報名');
+  if(typeof loadMyRegs==='function') await loadMyRegs();
 }
 
 // ── 繳費流程 ──

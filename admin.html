@@ -38,7 +38,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);mi
 
 /* ── 手機版底部 Tab Bar ── */
 .admin-bottom-bar{display:block;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;z-index:200;padding:6px 0 calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.06)}
-.admin-tab-row{display:flex;justify-content:space-around;align-items:center;max-width:640px;margin:0 auto}
+.admin-tab-row{display:flex;justify-content:space-around;align-items:center;max-width:1100px;margin:0 auto}
 .admin-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--md);font-size:12px;font-family:inherit;transition:color .15s}
 .admin-tab.active{color:var(--g)}
 .admin-tab-icon{font-size:24px;line-height:1}
@@ -145,7 +145,7 @@ textarea{min-height:64px;resize:vertical}
   .mod-grid{grid-template-columns:1fr}
   .ses-table,.reg-table{font-size:12px}
 }
-.main{padding:16px 16px 80px;max-width:800px;margin:0 auto;overflow-x:hidden}
+.main{padding:16px 20px 90px;max-width:1100px;margin:0 auto;overflow-x:auto}
 .tab-page{display:none}
 .tab-page.active{display:block}
 </style>
@@ -626,10 +626,18 @@ textarea{min-height:64px;resize:vertical}
       <option value="superadmin">超級管理員（全部權限）</option>
     </select>
     <div id="sf_perms_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
-      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:8px">開放權限</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sf_sessions_grid">
-      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:8px">開放權限</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="sf_perms_grid"></div>
     </div>
+    <div id="sf_sessions_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
+      <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:8px">限定場次（不勾=可管理全部場次）</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:6px;max-height:200px;overflow-y:auto" id="sf_sessions_grid"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn" style="flex:1;background:#eee;color:#333" onclick="closeModal('staffModal')">取消</button>
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveStaff()">儲存</button>
+    </div>
+  </div>
 </div><!-- end modal -->
 
 <script>
@@ -968,9 +976,9 @@ function renderOverviewSessions(){
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
-            <button onclick="editSes('${s.id}')" title="編輯報名表設定" style="background:#f0f0f0;border:0.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">✏️</button>
-            <button onclick="downloadSesData('${s.id}','${s.name}')" title="下載全部資料" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">⬇️</button>
-            <button onclick="openFinanceModal('${s.id}','${s.name}','${ev.title||''}')" title="財報" style="background:#fdf4ff;border:0.5px solid #ddd5fe;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">💰</button>
+            <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">編輯</button>
+            <button onclick="downloadSesData('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">下載</button>
+            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,'')" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">財報</button>
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -1953,14 +1961,14 @@ async function loadStaff(){
   if(!(list||[]).length){el.innerHTML='<div style="color:var(--lt)">無管理員</div>';return;}
   el.innerHTML=(list||[]).map(s=>{
     let perms={};
-    try{perms=JSON.parse(s.permsJson||s.role==='superadmin'?'{}':s.permsJson||'{}');}catch(e){}
+    try{perms=JSON.parse(s.permsJson||'{}');}catch(e){perms={};}
     const isSuperAdmin=s.role==='superadmin';
     const limitStr=s.limitSessions&&s.limitSessions.length?
       '<div style="font-size:11px;color:var(--yl);margin-top:4px">限定場次：'+s.limitSessions.length+'個</div>':'';
     const permHtml=isSuperAdmin
       ?'<div style="font-size:11px;color:var(--g);margin-top:4px">超級管理員（全部權限）</div>'
-      :PERM_DEFS.map(p=>`<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;margin:2px 4px 2px 0;cursor:pointer">
-          <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${perms[p.k]||isSuperAdmin?'checked':''} style="width:12px;height:12px;accent-color:var(--g)" onchange="updatePerm('${s.email}',this)">
+      :PERM_DEFS.map(p=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:13px;margin:4px 10px 4px 0;cursor:pointer;padding:4px 8px;background:#f7f7f7;border-radius:6px">
+          <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${(perms[p.k]||isSuperAdmin)?'checked':''} style="width:18px;height:18px;accent-color:var(--g);cursor:pointer" onchange="updatePerm('${s.email}',this)">
           ${p.label}
         </label>`).join('')+limitStr;
     return `<div style="padding:12px 0;border-bottom:1px solid #f5f5f5">
@@ -2004,7 +2012,30 @@ async function updatePerm(email, chk){
   toast('✅ 權限已更新');
 }
 function openAddStaffModal(){
-  $('sf_email').value='';$('sf_name').value='';$('sf_role').value='staff';openModal('staffModal');
+  // 填入權限格
+  const pg=$('sf_perms_grid');
+  if(pg){
+    pg.innerHTML=PERM_DEFS.map(p=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 0">
+      <input type="checkbox" data-perm="${p.k}" style="width:16px;height:16px;accent-color:var(--g);cursor:pointer" checked> ${p.label}
+    </label>`).join('');
+  }
+  // 填入限定場次格（所有場次）
+  const sg=$('sf_sessions_grid');
+  if(sg){
+    const allSes=(ST.sdData||[]);
+    if(allSes.length){
+      sg.innerHTML=allSes.map(s=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 0">
+        <input type="checkbox" data-sesid="${s.id}" style="width:16px;height:16px;accent-color:var(--g);cursor:pointer"> ${s.region?'['+s.region+'] ':''}${s.name}
+      </label>`).join('');
+    } else {
+      sg.innerHTML='<div style="font-size:12px;color:#aaa">尚無場次</div>';
+    }
+  }
+  $('sf_email').value='';
+  $('sf_name').value='';
+  $('sf_role').value='活動夥伴';
+  $('sf_perms_area').style.display='block';
+  openModal('staffModal');
 }
 function openStaffModal(){
   initStaffModal();
