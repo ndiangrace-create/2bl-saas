@@ -1996,13 +1996,13 @@ async function deleteAnn(id){
 const PERM_DEFS=[
   {k:'view_regs',label:'查看報名'},
   {k:'review',label:'審核報名'},
-  {k:'checkin',label:'現場報到'},
   {k:'pay',label:'確認付款'},
+  {k:'checkin',label:'現場報到'},
   {k:'sessions',label:'管理場次'},
   {k:'events',label:'管理活動'},
+  {k:'finance',label:'財報記帳'},
   {k:'notify',label:'發送通知'},
   {k:'announce',label:'管理公告'},
-  {k:'admin',label:'管理員帳號'},
 ];
 
 async function loadStaff(){
@@ -2028,7 +2028,7 @@ async function loadStaff(){
           <div style="font-size:12px;color:var(--lt)">${s.email}</div>
           <div style="margin-top:6px">${permHtml}</div>
         </div>
-        ${!isSuperAdmin?`<button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button>`:''}
+        ${!isSuperAdmin?`<div style="display:flex;gap:6px"><button class="btn btn-b btn-xs" onclick="resendStaffInvite('${s.email}')">重寄通知</button><button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button></div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -2113,6 +2113,14 @@ async function saveStaff(){
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已新增');closeModal('staffModal');loadStaff();
 }
+
+async function resendStaffInvite(email){
+  if(!confirm('重新寄送後台邀請通知給 '+email+'？'))return;
+  const res=await apiPost({action:'resendInvite',targetEmail:email});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('✅ 已重寄通知信');
+}
+
 async function removeStaff(email,name){
   if(!confirm('確定移除「'+name+'」？'))return;
   const res=await apiPost({action:'removeStaff',targetEmail:email});
