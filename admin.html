@@ -367,7 +367,7 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：活動 ══ -->
-<div class="overlay" id="eventModal" onclick="if(event.target===this)closeModal('eventModal')">
+<div class="overlay" id="eventModal">
   <div class="modal">
     <div class="modal-title" id="evModalTitle">新增活動</div>
     <input type="hidden" id="em_id">
@@ -389,7 +389,7 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：場次 ══ -->
-<div class="overlay" id="sesModal" onclick="if(event.target===this)closeModal('sesModal')">
+<div class="overlay" id="sesModal">
   <div class="modal">
     <div class="modal-title" id="sesModalTitle">新增場次</div>
     <input type="hidden" id="sm_id">
@@ -587,7 +587,7 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：公告 ══ -->
-<div class="overlay" id="annModal" onclick="if(event.target===this)closeModal('annModal')">
+<div class="overlay" id="annModal">
   <div class="modal">
     <div class="modal-title">公告</div>
     <input type="hidden" id="ann_id">
@@ -618,7 +618,7 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：新增管理員 ══ -->
-<div class="overlay" id="staffModal" onclick="if(event.target===this)closeModal('staffModal')">
+<div class="overlay" id="staffModal">
   <div class="modal">
     <div class="modal-title">新增管理員</div>
     <label>Email *</label><input type="email" id="sf_email" inputmode="email">
@@ -1357,6 +1357,13 @@ function previewSesCover(url){
 // ── 多日期時段 ──
 let dateSlotIdx=0;
 function addDateSlot(date='',start='10:00',end='18:00',fee=0){
+  // 正規化日期格式為 YYYY-MM-DD（date input 只接受這格式）
+  if(date){
+    date=String(date).slice(0,10).replace(/\//g,'-');
+    // 處理可能的 ISO 格式或其他
+    const m=date.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) date=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  }
   const idx=dateSlotIdx++;
   const div=document.createElement('div');
   div.id='ds_'+idx;
