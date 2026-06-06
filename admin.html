@@ -778,7 +778,7 @@ async function loadCheckinRegs(){
   if(!sesId){$('checkinBody').style.display='none';return;}
   $('checkinBody').style.display='block';
   $('checkinList').innerHTML='<div style="text-align:center;padding:20px;color:#aaa">載入中...</div>';
-  const regs=await apiPost({action:'getRegsBySession',sessionId:sesId});
+  const regs=await api({action:'getRegsBySession',sessionId:sesId,email:ST.email,token:ST.token});
   ST_checkinRegs=regs||[];
   updateCheckinStats();
   filterCheckinList();
@@ -982,9 +982,9 @@ function renderOverviewSessions(){
             <span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:500;cursor:pointer;font-size:13px">${s.total||0}</span>
           </td>
           <td style="padding:7px 6px;text-align:center">
-            <span onclick="goToSesRegs('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;font-size:13px">${s.pending||0}</span>
+            <span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;font-size:13px">${s.pending||0}</span>
           </td>
-          <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:500;color:#1D9E75">${s.paid||0}</td>
+          <td style="padding:7px 6px;text-align:center"><span onclick="goToSesCheckin('${s.id}')" style="font-size:13px;font-weight:500;color:#1D9E75;cursor:pointer;text-decoration:underline">${s.paid||0}</span></td>
           <td style="padding:7px 6px;font-size:11px;color:#555;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${equipStr}</td>
           <td style="padding:7px 6px;text-align:right;font-size:12px;font-weight:500;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
@@ -2163,13 +2163,36 @@ function openSesDetail(sesId){
   openFinanceModal(sesId, s.name||sesId, ev.title||'');
 }
 
+// 報名數 → 該場次全部報名（不分狀態）
 function goToSesRegs(sesId){
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=true;  // 顯示全部狀態
   goPage('regs');
   const sel=$('regSesFilter');
   if(sel) sel.value=sesId;
-  ST._showAllRegStatus=false;
-  if(!['regs'].includes(name)) ST._filterSesId=null;
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=true;
   renderRegs();
+}
+
+// 待審核數 → 該場次只看待審核
+function goToSesPending(sesId){
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=false;  // 只看待審核
+  goPage('regs');
+  const sel=$('regSesFilter');
+  if(sel) sel.value=sesId;
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=false;
+  renderRegs();
+}
+
+// 已繳費數 → 該場次出席報到名單（現場核對，含設備）
+function goToSesCheckin(sesId){
+  goPage('checkin');
+  const sel=$('checkinSesFilter');
+  if(sel) sel.value=sesId;
+  if(typeof loadCheckinRegs==='function') loadCheckinRegs();
 }
 
 async function downloadSesData(sesId,sesName){
