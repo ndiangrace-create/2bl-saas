@@ -716,9 +716,19 @@ function buildFormHero(s, cover){
 }
 
 async function openSession(sessionId){
-  const s=ST.sessions.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
+  // 優先從已載入的場次清單找（含分享進來的情況）
+  let s = (ST.sessions||[]).find(x=>x.id===sessionId)
+       || (ST.allSessionsData||[]).find(x=>x.id===sessionId);
+  if(!s){
+    // 都找不到才打 API
+    s = await api({action:'getSession',id:sessionId});
+  }
+  if(!s || s.error || !s.id){
+    toast('找不到這個場次，可能已關閉報名');
+    return;
+  }
   ST.currentSession=s; ST.equipQty={}; ST.addonQty={}; ST.stallCount=1;
-  const evt=ST.events.find(e=>e.id===s.eventId);
+  const evt=(ST.events||[]).find(e=>e.id===s.eventId)||{};
   const cover=s.cover||evt?.cover||'';
   buildFormHero(s,cover);
   // 更新標題列
@@ -1510,7 +1520,8 @@ function handleShareParam(){
   const params=new URLSearchParams(location.search);
   const sesId=params.get('s');
   if(sesId && typeof openSession==='function'){
-    setTimeout(()=>{ try{openSession(sesId);}catch(e){} }, 800);
+    // loadHome 已載入 allSessionsData，稍等一下確保 DOM 就緒再開報名表
+    setTimeout(()=>{ try{ openSession(sesId); }catch(e){ console.log('分享開啟失敗',e); } }, 300);
   }
 }
 </script>
