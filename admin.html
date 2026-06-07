@@ -187,7 +187,7 @@ textarea{min-height:64px;resize:vertical}
       <div class="nav-section">管理</div>
 
       <div class="nav-item" id="nav-regs" onclick="goPage('regs')"><span class="nav-icon">📋</span>報名審核</div>
-      <div class="nav-item" id="nav-payments" onclick="goPage('payments')"><span class="nav-icon">💰</span>付款管理</div>
+      <div class="nav-item" id="nav-payments" onclick="goPage('payments')"><span class="nav-icon">💰</span>繳費回報</div>
       <div class="nav-section">其他</div>
       <div class="nav-item" id="nav-announce" onclick="goPage('announce')"><span class="nav-icon">📢</span>公告管理</div>
       <div class="nav-item" id="nav-staff" onclick="goPage('staff')" style="display:none"><span class="nav-icon">👥</span>管理員</div>
@@ -256,6 +256,12 @@ textarea{min-height:64px;resize:vertical}
   </div>
 </div>
 
+<div id="page-payments" class="tab-page">
+  <div class="page-title">繳費回報</div>
+  <div style="font-size:13px;color:#888;margin-bottom:12px">攤主回報繳費後會出現在這裡，待確認的排在最前面。確認收款後按「確認收款」，攤主會收到付款成功通知信。</div>
+  <div id="paymentsBody2"></div>
+</div>
+
 <div id="page-settings" class="tab-page">
   <div class="page-title">設定</div>
 
@@ -287,6 +293,10 @@ textarea{min-height:64px;resize:vertical}
     <button class="admin-tab" id="atab-checkin" onclick="goPage('checkin')">
       <span class="admin-tab-icon">✅</span>
       <span class="admin-tab-label">現場管理</span>
+    </button>
+    <button class="admin-tab" id="atab-payments" onclick="goPage('payments')">
+      <span class="admin-tab-icon">💰</span>
+      <span class="admin-tab-label">繳費回報</span>
     </button>
     <button class="admin-tab" id="atab-settings" onclick="goPage('settings')">
       <span class="admin-tab-icon">⚙️</span>
@@ -1040,7 +1050,8 @@ function goPage(name){
     overview: ()=>{ renderOverviewCards(); },
     regs: ()=>{ renderRegs(); },
     checkin: ()=>{ fillCheckinSesFilter(); },
-    settings: ()=>{ loadStaff(); loadAnnounce(); loadPaymentsSimple(); },
+    payments: ()=>{ loadPaymentsSimple(); },
+    settings: ()=>{ loadStaff(); loadAnnounce(); },
   };
   if(inits[name]) inits[name]();
 }
@@ -2443,9 +2454,9 @@ async function confirmPayById(payId){
   if(!confirm('確認此筆付款？'))return;
   const res=await apiPost({action:'confirmPayment',regId:payId,method:'手動確認'});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已確認付款');
-  if(typeof loadPayments==='function') await loadPayments();
-  if(typeof loadAllRegs==='function'){ await loadAllRegs(); }
+  toast('✅ 已確認付款，已寄送付款成功通知信');
+  if(typeof loadPaymentsSimple==='function') await loadPaymentsSimple();
+  if(typeof renderOverviewCards==='function'){ renderOverviewCards(); }
 }
 
 function showFinAdd(type){

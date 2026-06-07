@@ -196,6 +196,12 @@ textarea{min-height:72px;resize:vertical}
   .cat-btn img{width:56px;height:56px}
 }
 </style>
+  <!-- 分享預覽卡（OG） -->
+  <meta property="og:title" content="兔彼樂共創活動 — 報名系統">
+  <meta property="og:description" content="市集擺攤、體驗活動、百貨寄賣報名，立即加入兔彼樂！">
+  <meta property="og:image" content="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/logo.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
 <!-- ══ 首頁 ══ -->
@@ -298,9 +304,12 @@ textarea{min-height:72px;resize:vertical}
 
 <!-- ══ 報名表頁 ══ -->
 <div id="pageForm" class="page" style="max-width:720px;margin:0 auto">
-  <div class="back-bar" onclick="backToSessions()">
-    <span class="arrow">←</span>
-    <span class="title" id="formBackTitle">報名表</span>
+  <div class="back-bar" style="display:flex;align-items:center">
+    <span onclick="backToSessions()" style="display:flex;align-items:center;cursor:pointer;flex:1">
+      <span class="arrow">←</span>
+      <span class="title" id="formBackTitle">報名表</span>
+    </span>
+    <button id="formShareBtn" style="display:none;align-items:center;gap:4px;background:var(--g);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">🔗 分享</button>
   </div>
   <div class="form-hero" id="formHero">
     <div class="form-hero-placeholder">🎪</div>
@@ -537,6 +546,7 @@ async function loadHome(){
   ST.allSessionsData = allSes||[];
   renderEvents();
   renderAllSessions();
+  handleShareParam();  // 處理分享連結 ?s=場次ID
 }
 
 async function filterCat(type, el){
@@ -714,6 +724,12 @@ async function openSession(sessionId){
   // 更新標題列
   const titleEl=$('formBackTitle');
   if(titleEl) titleEl.textContent=s.name||'報名表';
+  // 分享按鈕
+  const shareBtn=$('formShareBtn');
+  if(shareBtn){
+    shareBtn.style.display='inline-flex';
+    shareBtn.onclick=()=>openShareMenu(s.id, s.name);
+  }
   $('inlineSessionArea').style.display='none';
   $('pageForm').style.display='block';
   $('pageForm').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1422,6 +1438,80 @@ function enableDragScroll(){
     const x=e.pageX-el.offsetLeft;
     el.scrollLeft = scrollLeft - (x-startX)*1.5;
   });
+}
+
+// ── 分享功能 ──
+function getShareUrl(sesId){
+  // 場次分享網址：?s=場次ID（短參數，短網址不易掉）
+  const base = location.origin + location.pathname;
+  return sesId ? (base + '?s=' + sesId) : base;
+}
+
+function shareSession(sesId, sesName){
+  const url = getShareUrl(sesId);
+  const title = sesName ? ('【'+sesName+'】報名') : '兔彼樂報名系統';
+  if(navigator.share){
+    navigator.share({title:title, url:url}).catch(()=>{});
+  } else {
+    copyToClipboard(url);
+  }
+}
+
+function shareToLine(sesId, sesName){
+  const url = encodeURIComponent(getShareUrl(sesId));
+  const text = encodeURIComponent((sesName?('【'+sesName+'】'):'') + '立即報名 ');
+  window.open('https://social-plugins.line.me/lineit/share?url='+url+'&text='+text, '_blank');
+}
+
+function shareToFB(sesId){
+  const url = encodeURIComponent(getShareUrl(sesId));
+  window.open('https://www.facebook.com/sharer/sharer.php?u='+url, '_blank');
+}
+
+function copyToClipboard(text){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>toast('✅ 連結已複製')).catch(()=>fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');toast('✅ 連結已複製');}catch(e){toast('複製失敗，請手動複製');}
+  document.body.removeChild(ta);
+}
+
+// 開分享選單
+function openShareMenu(sesId, sesName){
+  const url = getShareUrl(sesId);
+  const html = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="shareToLine('${sesId}','${(sesName||'').replace(/'/g,'')}')" style="background:#06C755;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer">分享到 LINE</button>
+      <button onclick="shareToFB('${sesId}')" style="background:#1877F2;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer">分享到 Facebook</button>
+      <button onclick="copyToClipboard('${url}')" style="background:#666;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer">複製連結</button>
+      <div style="font-size:11px;color:#999;text-align:center;margin-top:4px;word-break:break-all">${url}</div>
+    </div>`;
+  showSimpleModal(sesName?('分享「'+sesName+'」'):'分享報名連結', html);
+}
+
+// 簡易彈窗
+function showSimpleModal(title, bodyHtml){
+  let ov=document.getElementById('simpleModal');
+  if(!ov){
+    ov=document.createElement('div');ov.id='simpleModal';
+    ov.style='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.onclick=(e)=>{if(e.target===ov)ov.style.display='none';};
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML='<div style="background:#fff;border-radius:16px;padding:24px;max-width:360px;width:100%" onclick="event.stopPropagation()"><div style="font-size:17px;font-weight:700;margin-bottom:16px">'+title+'</div>'+bodyHtml+'<button onclick="document.getElementById(\'simpleModal\').style.display=\'none\'" style="width:100%;margin-top:14px;background:#f0f0f0;border:none;border-radius:10px;padding:12px;font-size:14px;cursor:pointer">關閉</button></div>';
+  ov.style.display='flex';
+}
+
+// 啟動時讀 URL 參數，自動開該場次報名
+function handleShareParam(){
+  const params=new URLSearchParams(location.search);
+  const sesId=params.get('s');
+  if(sesId && typeof openSession==='function'){
+    setTimeout(()=>{ try{openSession(sesId);}catch(e){} }, 800);
+  }
 }
 </script>
 </body>
