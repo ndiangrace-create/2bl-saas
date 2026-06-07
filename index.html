@@ -1474,9 +1474,18 @@ function shareSession(sesId, sesName){
 }
 
 function shareToLine(sesId, sesName){
-  const url = encodeURIComponent(getShareUrl(sesId));
-  const text = encodeURIComponent((sesName?('【'+sesName+'】'):'') + '立即報名 ');
-  window.open('https://social-plugins.line.me/lineit/share?url='+url+'&text='+text, '_blank');
+  const url = getShareUrl(sesId);
+  // 優先用手機原生分享（跳出 LINE/FB/任何App，不需登入網頁）
+  if(navigator.share){
+    navigator.share({
+      title: (sesName?('【'+sesName+'】'):'') + '報名',
+      text: (sesName?('【'+sesName+'】'):'') + '立即報名！',
+      url: url
+    }).catch(()=>{});
+    return;
+  }
+  // 桌面版退而用 line.me 分享頁
+  window.open('https://line.me/R/share?text='+encodeURIComponent((sesName?('【'+sesName+'】'):'')+'立即報名 '+url), '_blank');
 }
 
 function shareToFB(sesId){
@@ -1522,13 +1531,30 @@ function showSimpleModal(title, bodyHtml){
 }
 
 // 啟動時讀 URL 參數，自動開該場次報名
-function handleShareParam(){
+async function handleShareParam(){
   const params=new URLSearchParams(location.search);
   const sesId=params.get('s');
-  if(sesId && typeof openSession==='function'){
-    // loadHome 已載入 allSessionsData，稍等一下確保 DOM 就緒再開報名表
-    setTimeout(()=>{ try{ openSession(sesId); }catch(e){ console.log('分享開啟失敗',e); } }, 300);
+  if(!sesId) return;
+  console.log('[分享] 偵測到場次參數:', sesId);
+  // 直接打 API 取該場次（最可靠，不靠清單是否載入）
+  let tries=0;
+  async function tryOpen(){
+    tries++;
+    console.log('[分享] 第'+tries+'次嘗試開啟');
+    try{
+      await openSession(sesId);
+      // 確認真的切到報名表了
+      const pf=$('pageForm');
+      if(pf && pf.style.display==='block'){
+        console.log('[分享] 成功開啟報名表');
+        return true;
+      }
+    }catch(e){ console.log('[分享] 失敗:', e); }
+    if(tries<3){ setTimeout(tryOpen, 600); }
+    else { console.log('[分享] 三次都失敗'); }
+    return false;
   }
+  await tryOpen();
 }
 </script>
 </body>
