@@ -506,6 +506,7 @@ function closeInlineSessions(){
   ST.sessions=[];
 }
 function backToSessions(){
+  navTo('home');
   $('pageForm').style.display='none';
   // 判斷從哪裡來的
   if($('portalSessionArea').style.display!=='none'){
@@ -715,8 +716,8 @@ async function openSession(sessionId){
   const titleEl=$('formBackTitle');
   if(titleEl) titleEl.textContent=s.name||'報名表';
   $('inlineSessionArea').style.display='none';
-  $('pageForm').style.display='block';
-  $('pageForm').scrollIntoView({behavior:'smooth',block:'start'});
+  $('portalSessionArea').style.display='none';
+  navTo('form');
   renderDynForm(s);
   updateFee();
 }
