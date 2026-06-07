@@ -585,7 +585,10 @@ async function filterCat(type, el){
         </div>
         <div style="font-size:12px;color:var(--md)">${dateStr||''}　${s.limit>0?'共'+s.limit+'攤':'不限攤'}　${s.fee>0?'NT$'+s.fee:'免費'}</div>
       </div>
-      <button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">報名</button>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+        <button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">報名</button>
+        <button onclick="event.stopPropagation();openShareMenu('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#fff;color:var(--g);border:1.5px solid var(--g);border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">🔗 分享</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -649,7 +652,10 @@ function renderSessionCard(s, onclick=true){
       </div>
       <div style="font-size:12px;color:var(--md)">${dateStr?dateStr+'　':''}${s.venue?s.venue+'　':''}${s.fee>0?'NT$ '+s.fee:'免費'}</div>
     </div>
-    ${!closed?`<button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">報名</button>`:''}
+    <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+      ${!closed?`<button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">報名</button>`:''}
+      <button onclick="event.stopPropagation();openShareMenu('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#fff;color:var(--g);border:1.5px solid var(--g);border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">🔗 分享</button>
+    </div>
   </div>`;
 }
 
