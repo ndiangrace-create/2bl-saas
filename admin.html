@@ -2307,8 +2307,7 @@ async function saveStaff(){
   const role=$('sf_role').value;
   const anyPerm=Object.values(perms).some(v=>v);
   if(role!=='superadmin' && !anyPerm){
-    if(!confirm('你還沒勾選任何權限，這位管理員將無法操作任何功能。
-確定要這樣新增嗎？（建議至少勾一項）')) return;
+    if(!confirm('你還沒勾選任何權限，這位管理員將無法操作任何功能。\n確定要這樣新增嗎？（建議至少勾一項）')) return;
   }
   const limitSessions=[];
   document.querySelectorAll('#sf_sessions_grid input:checked').forEach(c=>{limitSessions.push(c.dataset.sesid);});
