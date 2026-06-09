@@ -1052,7 +1052,7 @@ function renderOverviewSessions(){
         const need=s.equipNeed||{};
         const needItems=Object.entries(need).filter(([k,v])=>v>0);
         if(needItems.length){
-          equipStr=needItems.map(([k,v])=>k+'×'+v).join(' ');
+          equipStr=needItems.map(([k,v])=>`<div style="line-height:1.45;white-space:nowrap">${k}×${v}</div>`).join('');
         }
         const cover=s.cover||ev.cover||'';
         return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
@@ -1073,7 +1073,7 @@ function renderOverviewSessions(){
             <span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;font-size:13px">${s.pending||0}</span>
           </td>
           <td style="padding:7px 6px;text-align:center"><span onclick="goToSesCheckin('${s.id}')" style="font-size:13px;font-weight:500;color:#1D9E75;cursor:pointer;text-decoration:underline">${s.paid||0}</span></td>
-          <td style="padding:7px 6px;font-size:11px;color:#555;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${equipStr}</td>
+          <td style="padding:7px 6px;font-size:11px;color:#555;max-width:140px;overflow:visible;white-space:normal">${equipStr}</td>
           <td style="padding:7px 6px;text-align:right;font-size:12px;font-weight:500;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
@@ -2441,45 +2441,63 @@ function goToSesCheckin(sesId){
 
 async function downloadSesData(sesId,sesName){
   toast('準備下載...');
-  const [regs, finItems] = await Promise.all([
-    apiPost({action:'getRegsBySession', sessionId:sesId}),
-    apiPost({action:'getFinance', sessionId:sesId})
-  ]);
-  if(!regs||regs.error){toast('下載失敗');return;}
+  let regs=[];
+  let finItems=[];
+  try{
+    regs=await apiPost({action:'getRegsBySession', sessionId:sesId});
+  }catch(e){
+    console.error(e);
+    toast('下載失敗：報名資料讀取失敗');
+    return;
+  }
+  if(!regs||regs.error){toast('下載失敗：報名資料讀取失敗');return;}
+  try{
+    finItems=await apiPost({action:'getFinance', sessionId:sesId});
+    if(!Array.isArray(finItems)) finItems=[];
+  }catch(e){
+    console.warn('財報明細讀取失敗，仍下載報名與設備資料', e);
+    finItems=[];
+  }
 
-  function parseEquipRows(r){
-    const out=[];
+  function equipEntries(r){
     try{
       const obj=JSON.parse(r.equip||'{}')||{};
-      Object.entries(obj).forEach(([name,qty])=>{
-        qty=Number(qty)||0;
-        if(qty>0) out.push([r.id,r.name,r.brand,r.phone,r.email,name,qty,r.status,r.payStatus,r.stallNo||'',(r.createdAt||'').slice(0,16)]);
-      });
-    }catch(e){}
-    return out;
+      return Object.entries(obj)
+        .map(([name,qty])=>[name,Number(qty)||0])
+        .filter(([name,qty])=>qty>0);
+    }catch(e){return [];}
   }
-  function equipText(r){
-    try{return Object.entries(JSON.parse(r.equip||'{}')).filter(([k,v])=>Number(v)>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){return '';}
+  function splitEquipRegRows(r){
+    const entries=equipEntries(r);
+    const base=[r.id,r.name,r.brand,r.phone,r.email,r.stallCount||1,r.status,r.payStatus,r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',(r.createdAt||'').slice(0,16)];
+    if(!entries.length) return [[...base,'','']];
+    return entries.map(([item,qty])=>[...base,item,qty]);
   }
+  function parseEquipRows(r){
+    return equipEntries(r).map(([name,qty])=>[r.id,r.name,r.brand,r.phone,r.email,name,qty,r.status,r.payStatus,r.stallNo||'',(r.createdAt||'').slice(0,16)]);
+  }
+  const equipTotal={};
+  (regs||[]).forEach(r=>equipEntries(r).forEach(([name,qty])=>{equipTotal[name]=(equipTotal[name]||0)+qty;}));
 
-  const regHdrs=['報名ID','姓名','品牌','手機','Email','攤位數','設備摘要','審核狀態','付款狀態','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間'];
-  const regRows=(regs||[]).map(r=>[
-    r.id,r.name,r.brand,r.phone,r.email,r.stallCount||1,equipText(r),r.status,r.payStatus,r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',(r.createdAt||'').slice(0,16)
-  ]);
+  const regHdrs=['報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間','設備品項','設備數量'];
+  const regRows=(regs||[]).flatMap(splitEquipRegRows);
 
   const equipHdrs=['報名ID','姓名','品牌','手機','Email','設備品項','數量','審核狀態','付款狀態','攤位號碼','報名時間'];
   const equipRows=(regs||[]).flatMap(parseEquipRows);
+  const equipTotalHdrs=['設備品項','總數量'];
+  const equipTotalRows=Object.entries(equipTotal);
 
   const finHdrs=['類型','品項','金額','自動手動'];
-  const finRows=(finItems||[]).map(i=>[i['類型']==='income'?'收入':'支出',i['品項'],i['金額'],i['自動']==='TRUE'?'自動':'手動']);
+  const finRows=(finItems||[]).map(i=>[i['類型']==='income'?'收入':'支出',i['品項']||i.name||'',i['金額']||i.amount||0,i['自動']==='TRUE'?'自動':'手動']);
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const csv='場次：'+sesName+'\n報名資料\n'+toCSV(regHdrs,regRows)+'\n\n設備明細（每個設備獨立一列，方便公式統計）\n'+toCSV(equipHdrs,equipRows)+'\n\n財報明細\n'+toCSV(finHdrs,finRows);
+  const csv='場次：'+sesName+'\n報名資料（設備已拆成獨立列）\n'+toCSV(regHdrs,regRows)+'\n\n設備明細（每個設備獨立一列，方便公式統計）\n'+toCSV(equipHdrs,equipRows)+'\n\n設備總計\n'+toCSV(equipTotalHdrs,equipTotalRows)+'\n\n財報明細\n'+toCSV(finHdrs,finRows);
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=sesName+'_完整資料.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('下載完成（含設備明細）');
+  toast('下載完成（設備已拆列）');
 }
+
 
 function shareLineFinance(){
   const title=$('financeTitle')?.textContent||'場次';
@@ -2635,18 +2653,23 @@ async function toggleInlineFinance(sesId, sesName){
   ST.inlineFinanceCache[sesId]='<div style="padding:18px;text-align:center;color:#777">財報載入中…</div>';
   renderOverviewSessions();
   try{
-    const [regs, finItems] = await Promise.all([
-      apiPost({action:'getRegsBySession', sessionId:sesId}),
-      apiPost({action:'getFinance', sessionId:sesId})
-    ]);
-    if((regs&&regs.error)||(finItems&&finItems.error)) throw new Error('finance api error');
-    ST.inlineFinanceCache[sesId]=buildInlineFinanceHtml(sesId, sesName, regs||[], finItems||[]);
+    const regsResult = await apiPost({action:'getRegsBySession', sessionId:sesId});
+    if(!regsResult || regsResult.error) throw new Error('regs api error');
+    let finItems=[];
+    try{
+      const finResult=await apiPost({action:'getFinance', sessionId:sesId});
+      if(Array.isArray(finResult)) finItems=finResult;
+    }catch(finErr){
+      console.warn('手動財報讀取失敗，改用報名付款資料顯示', finErr);
+    }
+    ST.inlineFinanceCache[sesId]=buildInlineFinanceHtml(sesId, sesName, regsResult||[], finItems||[]);
   }catch(e){
     console.error(e);
-    ST.inlineFinanceCache[sesId]='<div style="padding:14px;border-radius:10px;background:#fdecea;color:#c0392b;font-size:13px">財報載入失敗，請確認後端部署與權限。原本資料下載功能不受影響。</div>';
+    ST.inlineFinanceCache[sesId]='<div style="padding:14px;border-radius:10px;background:#fdecea;color:#c0392b;font-size:13px">財報載入失敗：報名資料讀取失敗。請確認部署權限；下載功能可另外測試。</div>';
   }
   renderOverviewSessions();
 }
+
 function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
   const paidRegs=(regs||[]).filter(r=>isPaidStatus(r.payStatus));
   const pendingPay=(regs||[]).filter(r=>isPendingPayStatus(r.payStatus));
