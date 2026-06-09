@@ -151,7 +151,7 @@ textarea{min-height:64px;resize:vertical}
 
 /* 財報大卡片：手機友善 */
 #financeModal.modal-overlay{align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.45)}
-.finance-card{background:#fff;border-radius:18px;width:min(96vw,760px);height:min(90vh,820px);display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.25);overflow:hidden}
+.finance-card{background:#fff;border-radius:18px;width:min(96vw,1180px);height:min(90vh,860px);display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.25);overflow:hidden}
 .finance-card-head{position:sticky;top:0;background:#fff;z-index:2;padding:14px 16px 10px;border-bottom:1px solid #eeeeee;display:flex;align-items:flex-start;gap:10px}
 .finance-card-title{flex:1;min-width:0}
 .finance-card-close{width:36px;height:36px;border:none;border-radius:50%;background:#f3f3f3;color:#333;font-size:24px;line-height:1;cursor:pointer;flex-shrink:0}
@@ -170,23 +170,31 @@ textarea{min-height:64px;resize:vertical}
 }
 
 
-/* 手機與平板後台可讀性小修 */
-@media(max-width:720px){
-  .main{padding:14px 10px 96px;overflow-x:hidden}
-  .page-title{font-size:22px}
-  #overviewStatusFilters .btn{font-size:15px!important;padding:9px 13px!important}
-  #overviewSessionList table{font-size:14px!important;min-width:980px!important}
-  #overviewSessionList th{font-size:13px!important;padding:9px 7px!important}
-  #overviewSessionList td{font-size:14px!important;padding:9px 7px!important}
-  #overviewSessionList button{font-size:14px!important;padding:8px 10px!important;margin:2px!important}
-  .modal{max-height:92vh;padding:22px 18px 96px;font-size:16px}
-  .modal-title{font-size:20px}
-  label{font-size:15px}
-  input[type=text],input[type=email],input[type=number],input[type=url],input[type=date],input[type=time],input[type=password],textarea,select{font-size:17px;padding:12px}
-  .mod-grid{grid-template-columns:1fr}
-  .mod-item{font-size:15px;padding:10px 12px}
-  .equip-def{align-items:flex-start!important}
-  .finance-card{width:calc(100vw - 18px)!important;max-height:90vh!important}
+/* 總覽：電腦表格、手機卡片，功能一致 */
+.overview-mobile-list{display:none}
+.ov-card{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:13px 14px;margin-bottom:10px;border-left:5px solid var(--g)}
+.ov-card-title{font-size:17px;font-weight:900;color:var(--g);line-height:1.35;margin-bottom:4px}
+.ov-card-meta{font-size:13px;color:#666;line-height:1.5;margin-bottom:10px}
+.ov-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.ov-metric{background:#f7faf8;border:1px solid #e5f2ec;border-radius:10px;padding:9px 10px}
+.ov-metric .label{font-size:12px;color:#666;margin-bottom:3px}
+.ov-metric .num{font-size:20px;font-weight:900;color:#1D9E75;line-height:1.1}
+.ov-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.ov-actions button{font-size:15px!important;padding:11px 8px!important;border-radius:10px!important;font-weight:800!important}
+.ov-equips{font-size:13px;color:#555;line-height:1.55;background:#fafafa;border-radius:10px;padding:8px 10px;margin-top:8px}
+.ov-filter-btn.active{background:var(--g)!important;color:#fff!important;border-color:var(--g)!important}
+.finance-invoice-btn{flex:1;border:none;border-radius:12px;background:#F3E8FF;color:#5B21B6;font-size:15px;font-weight:800;padding:13px 12px;cursor:pointer;font-family:inherit;border:1px solid #D8B4FE}
+@media(max-width:1024px){
+  .main{padding:12px 10px 100px;overflow-x:hidden!important}
+  .overview-desktop-wrap{display:none!important}
+  .overview-mobile-list{display:block!important}
+  .page-title{font-size:22px!important}
+  .finance-card{width:calc(100vw - 16px);height:calc(100vh - 24px);height:calc(100dvh - 24px);border-radius:18px}
+  .finance-card-footer{display:grid;grid-template-columns:1fr;gap:8px}
+  .finance-secondary-btn,.finance-download-btn,.finance-invoice-btn{width:100%;font-size:16px!important}
+}
+@media(min-width:1025px){
+  .finance-card-body{padding:16px 18px 96px}
 }
 
 </style>
@@ -242,16 +250,13 @@ textarea{min-height:64px;resize:vertical}
   <!-- 上方固定按鈕 -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <div class="page-title" style="margin:0">總覽</div>
-    <button class="btn btn-g btn-sm" onclick="openSesModal()">＋ 新增場次</button>
+    <button class="btn btn-g btn-sm" onclick="openSessionCreateModal()">＋ 新增場次</button>
   </div>
 
   <!-- 活動卡片橫向滑動 -->
   <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:16px">
     <div id="eventCardRow" style="display:flex;gap:10px;padding-bottom:8px;min-width:max-content"></div>
   </div>
-
-  <!-- 場次狀態切換 -->
-  <div id="overviewStatusFilters" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 12px"></div>
 
   <!-- 全場次列表 -->
   <div id="overviewSessionList"></div>
@@ -289,7 +294,7 @@ textarea{min-height:64px;resize:vertical}
   <!-- 選了場次後顯示 -->
   <div id="checkinBody" style="display:none">
     <!-- 統計 -->
-    <div id="checkinStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px"></div>
+    <div id="checkinStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
   <div id="checkinEquipTotal"></div>
     <!-- 搜尋 -->
     <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/電話/Email/攤位" oninput="filterCheckinList()" style="margin-bottom:10px;font-size:14px;padding:10px">
@@ -314,7 +319,6 @@ textarea{min-height:64px;resize:vertical}
   </div>
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
     <input type="text" id="paymentSearch" placeholder="搜尋姓名／品牌／Email／手機" oninput="renderPaymentManagement()" style="flex:1;min-width:180px;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px">
-    <select id="paymentSesFilter" onchange="renderPaymentManagement()" style="min-width:150px;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;background:#fff"><option value="">全部場次</option></select>
     <select id="paymentStatusFilter" onchange="renderPaymentManagement()" style="width:130px;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;background:#fff">
       <option value="待確認">待確認</option>
       <option value="未繳費">未繳費</option>
@@ -322,7 +326,7 @@ textarea{min-height:64px;resize:vertical}
       <option value="全部">全部</option>
     </select>
   </div>
-  <div id="paymentStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px"></div>
+  <div id="paymentStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
   <div id="paymentsBody"></div>
 </div>
 
@@ -392,6 +396,7 @@ textarea{min-height:64px;resize:vertical}
         <div id="f-net" style="margin-bottom:12px"></div>
         <div id="f-equip-diff" style="margin-bottom:12px"></div>
         <div id="f-deposit" style="margin-bottom:12px"></div>
+        <div id="f-invoice-tax-section" style="margin-bottom:12px"></div>
         <div id="f-add-form" style="display:none;background:#f7faf8;border-radius:12px;padding:10px 12px;margin-bottom:12px">
           <div style="font-size:13px;font-weight:700;margin-bottom:8px" id="f-add-title">新增</div>
           <input type="text" id="f-add-name" placeholder="品項名稱">
@@ -425,6 +430,7 @@ textarea{min-height:64px;resize:vertical}
     <div class="finance-card-footer">
       <button class="finance-secondary-btn" onclick="closeModal('financeModal')">關閉</button>
       <button class="finance-download-btn" id="financeDownloadBtn" onclick="downloadCurrentFinanceData()">下載完整資料</button>
+      <button class="finance-invoice-btn" onclick="downloadInvoiceList()">下載發票清單</button>
     </div>
   </div>
 </div>
@@ -535,6 +541,27 @@ textarea{min-height:64px;resize:vertical}
     </div>
     <label>基本配備說明</label><input type="text" id="sm_basicEquip" placeholder="例：有提供延長線">
 
+    <!-- 發票與稅額設定 -->
+    <div style="margin-top:14px;padding:13px;border:1.5px solid #d8efe3;border-radius:10px;background:#f7faf8">
+      <div style="font-size:14px;font-weight:900;color:var(--g);margin-bottom:8px">發票與稅額設定（後台對帳用）</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:0 0 10px;cursor:pointer">
+        <input type="checkbox" id="sm_invoiceEnabled" style="width:17px;height:17px;accent-color:var(--g)" checked>
+        啟用本場發票資訊與稅額試算
+      </label>
+      <div class="form-row">
+        <div><label>稅率（%）</label><input type="number" id="sm_invoiceRate" value="5" inputmode="decimal"></div>
+        <div><label>前台價格型態</label><input type="text" value="含稅價（後台拆分未稅／稅額）" disabled></div>
+      </div>
+      <div style="font-size:12px;font-weight:800;color:#555;margin-top:10px;margin-bottom:6px">列入發票試算項目（可複選）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer"><input type="checkbox" id="sm_tax_stall" style="width:16px;height:16px;accent-color:var(--g)" checked> 活動費／攤位費</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer"><input type="checkbox" id="sm_tax_equip" style="width:16px;height:16px;accent-color:var(--g)" checked> 設備租金</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer"><input type="checkbox" id="sm_tax_addon" style="width:16px;height:16px;accent-color:var(--g)" checked> 加購項目</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;cursor:pointer"><input type="checkbox" id="sm_tax_extra" style="width:16px;height:16px;accent-color:var(--g)"> 臨時收入</label>
+      </div>
+      <div style="font-size:12px;color:#854F0B;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px;margin-top:10px">押金／保證金固定不列入發票試算與損益。</div>
+    </div>
+
     <!-- 需要審核 -->
     <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px;border:1.5px solid #e0e0e0;border-radius:8px">
       <input type="checkbox" id="sm_review" style="width:16px;height:16px;accent-color:var(--g)" checked>
@@ -616,23 +643,7 @@ textarea{min-height:64px;resize:vertical}
     </div>
 
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
-      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">本場發票含稅項目（儲存在場次設定）</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
-        <label style="display:flex;align-items:center;gap:6px;margin:0;padding:8px 10px;border:1px solid #e8e8e8;border-radius:8px;cursor:pointer">
-          <input type="checkbox" id="sm_tax_stall" checked style="width:16px;height:16px;accent-color:var(--g)"> 攤位費
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;margin:0;padding:8px 10px;border:1px solid #e8e8e8;border-radius:8px;cursor:pointer">
-          <input type="checkbox" id="sm_tax_equip" style="width:16px;height:16px;accent-color:var(--g)"> 設備租金
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;margin:0;padding:8px 10px;border:1px solid #e8e8e8;border-radius:8px;cursor:pointer">
-          <input type="checkbox" id="sm_tax_extra" style="width:16px;height:16px;accent-color:var(--g)"> 臨時收入
-        </label>
-      </div>
-    </div>
-
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
       <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">指派管理員（可選）</div>
-      <div style="font-size:11px;color:var(--lt);margin-bottom:6px">超級管理員預設可管理全部場次；這裡可指定一般管理員可處理本場。</div>
       <div id="sm_assignStaff" style="font-size:13px;color:var(--md)"></div>
     </div>
 
@@ -733,6 +744,7 @@ textarea{min-height:64px;resize:vertical}
 let ST_finSesId="";
 let ST_finItems=[];
 let ST_finAddType="income";
+let ST_invoiceData=[];
 
 const API = 'https://script.google.com/macros/s/AKfycbz34vXdofbWxMBSKVkDxsvSjLwI_TPlFdX420bXDmxDbNGe5cXcG2RzeeoUsGySI8Ipjw/exec';
 
@@ -777,7 +789,7 @@ const MOD_PRESETS = {
   '通路寄賣': {brand:1,sell_item:1,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
 };
 
-let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],currentReg:null,sdData:[],inlineFinanceSesId:'',inlineFinanceCache:{},overviewFilter:'current',staffList:[]};
+let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],currentReg:null,sdData:[],inlineFinanceSesId:'',inlineFinanceCache:{}};
 
 function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
@@ -1072,6 +1084,7 @@ function renderOverviewCards(){
         <div style="padding:6px 8px">
           <div style="font-size:12px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${ev.title}</div>
           <div style="font-size:10px;color:var(--md)">${ev.region||''}</div>
+          <button onclick="event.stopPropagation();openEventModal('${ev.id}')" style="margin-top:5px;width:100%;border:1px solid #d8e7dd;background:#f7faf8;color:var(--g);border-radius:7px;padding:5px 4px;font-size:11px;font-weight:800;cursor:pointer">編輯活動圖</button>
         </div>
       </div>`).join('')
       :'<div style="color:#aaa;font-size:13px;padding:10px">無活動</div>';
@@ -1084,135 +1097,109 @@ function filterOverviewBySes(evId){
   renderOverviewCards();
 }
 
-
+function isArchivedSession(s){
+  const st=String(s.status||'');
+  return st==='封存'||st==='隱藏'||st==='已封存';
+}
+function getSessionStatusLabel(s){
+  if(isArchivedSession(s)) return '封存';
+  const st=String(s.status||'');
+  if(st==='關閉'||st==='已關閉') return '已關閉';
+  return '報名中';
+}
 function fmtOverviewDateText(s){
-  const days = ['日','一','二','三','四','五','六'];
+  const days=['日','一','二','三','四','五','六'];
   let dates=[];
-  if(Array.isArray(s?.dates)){
-    dates = s.dates.map(d=>d && (d.date||d)).filter(Boolean);
-  }
-  if(!dates.length && s?.date) dates = String(s.date).split(/[\/、,，\s]+/).filter(Boolean);
+  if(Array.isArray(s?.dates)) dates=s.dates.map(d=>d&&(d.date||d)).filter(Boolean);
+  if(!dates.length && s?.date) dates=String(s.date).split(/[\/、,，\s]+/).filter(Boolean);
   return dates.map(v=>{
-    const str=String(v).trim();
+    const str=String(v||'').trim();
     const m=str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if(m){
-      const d=new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
-      return `${Number(m[2])}/${Number(m[3])}(${days[d.getDay()]})`;
-    }
-    const m2=str.match(/^(\d{1,2})[\/\-](\d{1,2})/);
-    if(m2) return `${Number(m2[1])}/${Number(m2[2])}`;
+    if(m){const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));return `${Number(m[2])}/${Number(m[3])}(${days[d.getDay()]})`;}
+    const m2=str.match(/^(\d{1,2})[\/\-](\d{1,2})/); if(m2) return `${Number(m2[1])}/${Number(m2[2])}`;
     return str;
   }).join(' ');
 }
 function getSesPendingPaymentCount(sesId){
-  const regs = (ST.allRegs||ST.regs||[]).filter(r=>String(r.sessionId||r.sesId||'')===String(sesId));
-  return regs.filter(r=>typeof isPendingPayText==='function' ? isPendingPayText(r.payStatus||r.paymentStatus||'') : String(r.payStatus||r.paymentStatus||'').includes('待')).length;
+  const regs=(ST.allRegs||ST.regs||[]).filter(r=>String(r.sessionId||r.sesId||'')===String(sesId));
+  return regs.filter(r=>isPendingPayText(r.payStatus||r.paymentStatus||'')).length;
 }
-
-
-function setOverviewFilter(v){
-  ST.overviewFilter=v||'current';
-  renderOverviewCards();
-}
-function isArchivedSession(s){
-  const st=String(s?.status||'').trim();
-  return st==='封存'||st==='隱藏'||st==='已封存';
-}
+function setOverviewFilter(v){ST.ovFilter=v;renderOverviewSessions();}
 function renderOverviewStatusFilters(){
-  const el=$('overviewStatusFilters');
-  if(!el) return;
   const all=ST.sdData||[];
-  const active=all.filter(s=>!isArchivedSession(s)).length;
-  const archived=all.filter(isArchivedSession).length;
-  const cur=ST.overviewFilter||'current';
-  const btn=(key,label,count)=>`<button onclick="setOverviewFilter('${key}')" class="btn btn-sm" style="background:${cur===key?'var(--g)':'#fff'};color:${cur===key?'#fff':'var(--dk)'};border:1px solid ${cur===key?'var(--g)':'#ddd'};font-size:14px;padding:8px 12px">${label} <span style="opacity:.75">${count}</span></button>`;
-  el.innerHTML=btn('current','進行中',active)+btn('archived','封存',archived)+btn('all','全部',all.length)+`<span style="font-size:12px;color:var(--lt);margin-left:2px">封存只會從總覽收起，不會刪資料。</span>`;
-}
-function getSessionStatusLabel(s){
-  const st=String(s?.status||'報名中').trim();
-  if(isArchivedSession(s)) return '封存';
-  if(st==='關閉'||st==='已關閉'||st==='已關閉報名') return '已關閉';
-  return '報名中';
+  const cur=all.filter(s=>!isArchivedSession(s)).length;
+  const arc=all.filter(isArchivedSession).length;
+  const active=ST.ovFilter||'current';
+  const b=(id,txt,n)=>`<button class="ov-filter-btn ${active===id?'active':''}" onclick="setOverviewFilter('${id}')" style="border:1px solid #d4d4d8;background:#fff;border-radius:10px;padding:9px 13px;font-size:14px;font-weight:800;cursor:pointer">${txt} <span style="font-size:12px;opacity:.75">${n}</span></button>`;
+  return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 12px">${b('current','進行中',cur)}${b('archived','封存',arc)}${b('all','全部',all.length)}<span style="font-size:12px;color:#999">封存不刪資料，只從預設總覽收起。</span></div>`;
 }
 function renderOverviewSessions(){
   const el=$('overviewSessionList');
   if(!el) return;
-  renderOverviewStatusFilters();
   let sessions=ST.sdData||[];
-  const ovFilter=ST.overviewFilter||'current';
-  if(ovFilter==='current') sessions=sessions.filter(s=>!isArchivedSession(s));
-  else if(ovFilter==='archived') sessions=sessions.filter(isArchivedSession);
   if(ST.activeEventId) sessions=sessions.filter(s=>s.eventId===ST.activeEventId);
-  if(!sessions.length){
-    el.innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">無場次資料</div>';
-    return;
-  }
+  const filter=ST.ovFilter||'current';
+  if(filter==='current') sessions=sessions.filter(s=>!isArchivedSession(s));
+  if(filter==='archived') sessions=sessions.filter(isArchivedSession);
   const ev_map={};(ST.events||[]).forEach(e=>ev_map[e.id]=e);
-
-  el.innerHTML=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:940px">
-      <thead>
-        <tr style="background:#f5f5f5;border-bottom:1.5px solid #e0e0e0">
-          <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;width:44px"></th>
-          <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">地區</th>
-          <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">場次名稱</th>
-          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">活動日期</th>
-          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">報名</th>
-          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">待審核</th>
-          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">繳費確認</th>
-          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">已繳費</th>
-          <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">設備</th>
-          <th style="padding:8px 6px;text-align:right;font-weight:500;color:#666;white-space:nowrap">已收費用</th>
-          <th style="padding:8px 6px;text-align:right;font-weight:500;color:#666;white-space:nowrap">押金</th>
-          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">已報到</th>
-          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">操作</th>
-        </tr>
-      </thead>
-      <tbody>${sessions.map(s=>{
-        const ev=ev_map[s.eventId]||{};
-        const dateStr=fmtOverviewDateText(s);
-        // 設備需求總計（已錄取/已繳費的攤主實際要的桌椅）
-        let equipStr='-';
-        const need=s.equipNeed||{};
-        const needItems=Object.entries(need).filter(([k,v])=>v>0);
-        if(needItems.length){
-          equipStr=needItems.map(([k,v])=>`<div style="line-height:1.45;white-space:nowrap">${k}×${v}</div>`).join('');
-        }
-        const cover=s.cover||s.eventCover||ev.cover||ev.eventCover||'';
-        const pendingPayCount = Number(s.pendingPay||s.payPending||s.paymentPending||s.pendingPayment||0) || getSesPendingPaymentCount(s.id);
-        return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
-          <td style="padding:7px 6px">
-            ${thumbHtml(cover,36,6)}
-          </td>
-          <td style="padding:7px 6px;font-size:12px;color:#666;white-space:nowrap">${s.region||''}</td>
-          <td style="padding:7px 6px;max-width:180px">
-            <span onclick="openSesDetail('${s.id}')" style="font-size:14px;font-weight:700;cursor:pointer;color:#1D9E75;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${s.name}</span>
-            <div style="font-size:11px;color:${getSessionStatusLabel(s)==='報名中'?'#1D9E75':getSessionStatusLabel(s)==='封存'?'#888':'#BA7517'};margin-top:2px">${getSessionStatusLabel(s)}</div>
-          </td>
-          <td style="padding:7px 6px;text-align:center;font-size:12px;color:#555;white-space:nowrap">${dateStr}</td>
-          <td style="padding:7px 6px;text-align:center">
-            <span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:800;cursor:pointer;font-size:15px">${s.total||0}</span>
-          </td>
-          <td style="padding:7px 6px;text-align:center">
-            <span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:700;cursor:pointer;font-size:15px">${s.pending||0}</span>
-          </td>
-          <td style="padding:7px 6px;text-align:center"><span onclick="goPage('payments');setTimeout(()=>{const f=document.getElementById('paymentSesFilter'); if(f){f.value='${s.id}'; renderPaymentManagement();}},80)" style="font-size:15px;font-weight:800;color:#D97706;cursor:pointer;text-decoration:underline">${pendingPayCount}</span></td>
-          <td style="padding:7px 6px;text-align:center"><span onclick="goToSesCheckin('${s.id}')" style="font-size:15px;font-weight:700;color:#1D9E75;cursor:pointer;text-decoration:underline">${s.paid||0}</span></td>
-          <td style="padding:7px 6px;font-size:11px;color:#555;max-width:140px;overflow:visible;white-space:normal">${equipStr}</td>
-          <td style="padding:7px 6px;text-align:right;font-size:12px;font-weight:500;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
-          <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
-          <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
-          <td style="padding:7px 6px;text-align:center;white-space:nowrap">
-            <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">編輯</button>
-            <button onclick="downloadSesData('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">下載</button>
-            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" data-ev="${(ev.title||'').replace(/"/g,'')}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:700;margin:0 2px">對帳</button>
-            <button onclick="setSessionStatus('${s.id}','${getSessionStatusLabel(s)==='報名中'?'關閉':'報名中'}')" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">${getSessionStatusLabel(s)==='報名中'?'關閉':'開放'}</button>
-            <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'關閉':'封存'}')" style="background:#f4f4f5;border:1px solid #d4d4d8;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">${isArchivedSession(s)?'取消封存':'封存'}</button>
-          </td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>
-  </div>`;
+  if(!sessions.length){el.innerHTML=renderOverviewStatusFilters()+'<div style="color:#aaa;text-align:center;padding:20px;font-size:14px">無場次資料</div>';return;}
+  const rowHtml=sessions.map(s=>{
+    const ev=ev_map[s.eventId]||{}; const dateStr=fmtOverviewDateText(s);
+    let equipStr='-'; const need=s.equipNeed||{}; const needItems=Object.entries(need).filter(([k,v])=>Number(v)>0);
+    if(needItems.length) equipStr=needItems.map(([k,v])=>`<div style="line-height:1.45;white-space:nowrap">${k}×${v}</div>`).join('');
+    const cover=s.cover||s.eventCover||ev.cover||ev.eventCover||'';
+    const pendingPayCount=Number(s.pendingPay||s.payPending||s.paymentPending||s.pendingPayment||0)||getSesPendingPaymentCount(s.id);
+    const statusLabel=getSessionStatusLabel(s);
+    const safeName=String(s.name||'').replace(/'/g,''); const safeEv=String(ev.title||'').replace(/'/g,'');
+    return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff">
+      <td style="padding:8px 6px">${thumbHtml(cover,36,6)}</td>
+      <td style="padding:8px 6px;font-size:13px;color:#666;white-space:nowrap">${s.region||''}</td>
+      <td style="padding:8px 6px;max-width:210px"><span onclick="openSesDetail('${s.id}')" style="font-size:14px;font-weight:800;cursor:pointer;color:#1D9E75;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${s.name||''}</span><div style="font-size:11px;color:${statusLabel==='報名中'?'#1D9E75':statusLabel==='封存'?'#888':'#BA7517'}">${statusLabel}</div></td>
+      <td style="padding:8px 6px;text-align:center;font-size:13px;color:#555;white-space:nowrap">${dateStr}</td>
+      <td style="padding:8px 6px;text-align:center"><span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:900;cursor:pointer;font-size:17px">${s.total||0}</span></td>
+      <td style="padding:8px 6px;text-align:center"><span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:900;cursor:pointer;font-size:17px">${s.pending||0}</span></td>
+      <td style="padding:8px 6px;text-align:center"><span onclick="goPage('payments');setTimeout(()=>{const f=document.getElementById('paymentSesFilter'); if(f){f.value='${s.id}'; renderPaymentManagement();}},80)" style="font-size:17px;font-weight:900;color:#D97706;cursor:pointer;text-decoration:underline">${pendingPayCount}</span></td>
+      <td style="padding:8px 6px;text-align:center"><span onclick="goToSesCheckin('${s.id}')" style="font-size:17px;font-weight:900;color:#1D9E75;cursor:pointer;text-decoration:underline">${s.paid||0}</span></td>
+      <td style="padding:8px 6px;font-size:12px;color:#555;max-width:150px;white-space:normal">${equipStr}</td>
+      <td style="padding:8px 6px;text-align:right;font-size:13px;font-weight:800;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
+      <td style="padding:8px 6px;text-align:right;font-size:13px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
+      <td style="padding:8px 6px;text-align:center;font-size:15px;color:#185FA5;font-weight:800">${s.seated||0}</td>
+      <td style="padding:8px 6px;text-align:center;white-space:nowrap">
+        <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">編輯</button>
+        <button onclick="downloadSesData('${s.id}','${safeName}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">下載</button>
+        <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">對帳</button>
+        <button onclick="toggleSesStatus('${s.id}','${s.status||''}')" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${String(s.status)==='關閉'?'開啟':'關閉'}</button>
+        <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}')" style="background:#f4f4f5;border:1px solid #d4d4d8;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isArchivedSession(s)?'取消封存':'封存'}</button>
+      </td>
+    </tr>`;
+  }).join('');
+  const cardHtml=sessions.map(s=>{
+    const ev=ev_map[s.eventId]||{}; const dateStr=fmtOverviewDateText(s); const pendingPayCount=Number(s.pendingPay||0)||getSesPendingPaymentCount(s.id);
+    let equipText='目前沒有設備需求'; const need=s.equipNeed||{}; const needItems=Object.entries(need).filter(([k,v])=>Number(v)>0); if(needItems.length) equipText=needItems.map(([k,v])=>`${k} × ${v}`).join('、');
+    const safeName=String(s.name||'').replace(/'/g,''); const safeEv=String(ev.title||'').replace(/'/g,'');
+    return `<div class="ov-card">
+      <div class="ov-card-title">${s.name||''}</div>
+      <div class="ov-card-meta">${s.region||''}｜${dateStr}｜${getSessionStatusLabel(s)}</div>
+      <div class="ov-metric-grid">
+        <div class="ov-metric"><div class="label">報名</div><div class="num" onclick="goToSesRegs('${s.id}')">${s.total||0}</div></div>
+        <div class="ov-metric"><div class="label">待審核</div><div class="num" style="color:#BA7517" onclick="goToSesPending('${s.id}')">${s.pending||0}</div></div>
+        <div class="ov-metric"><div class="label">繳費確認</div><div class="num" style="color:#D97706" onclick="goPage('payments');setTimeout(()=>{const f=document.getElementById('paymentSesFilter'); if(f){f.value='${s.id}'; renderPaymentManagement();}},80)">${pendingPayCount}</div></div>
+        <div class="ov-metric"><div class="label">已繳費</div><div class="num" onclick="goToSesCheckin('${s.id}')">${s.paid||0}</div></div>
+        <div class="ov-metric"><div class="label">已收費用</div><div class="num" style="font-size:18px">NT$${(s.revenue||0).toLocaleString()}</div></div>
+        <div class="ov-metric"><div class="label">押金</div><div class="num" style="font-size:18px;color:#854F0B">NT$${(s.depositTotal||0).toLocaleString()}</div></div>
+        <div class="ov-metric"><div class="label">已報到</div><div class="num" style="color:#185FA5">${s.seated||0}</div></div>
+      </div>
+      <div class="ov-equips"><strong>設備：</strong>${equipText}</div>
+      <div class="ov-actions">
+        <button onclick="editSes('${s.id}')" class="btn btn-s">編輯</button>
+        <button onclick="downloadSesData('${s.id}','${safeName}')" class="btn btn-b">下載</button>
+        <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" class="btn btn-y">對帳</button>
+        <button onclick="toggleSesStatus('${s.id}','${s.status||''}')" class="btn btn-y">${String(s.status)==='關閉'?'開啟':'關閉'}</button>
+        <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}')" class="btn btn-s">${isArchivedSession(s)?'取消封存':'封存'}</button>
+      </div>
+    </div>`;
+  }).join('');
+  el.innerHTML=renderOverviewStatusFilters()+`<div class="overview-desktop-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:1120px"><thead><tr style="background:#f5f5f5;border-bottom:1.5px solid #e0e0e0"><th style="padding:9px 6px;text-align:left;width:44px"></th><th style="padding:9px 6px;text-align:left;white-space:nowrap">地區</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">場次名稱</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">活動日期</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">報名</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">待審核</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">繳費確認</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已繳費</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">設備</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">已收費用</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">押金</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已報到</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">操作</th></tr></thead><tbody>${rowHtml}</tbody></table></div><div class="overview-mobile-list">${cardHtml}</div>`;
 }
 
 function toggleMoreMenu(){
@@ -1237,7 +1224,7 @@ function goPage(name){
     overview: ()=>{ renderOverviewCards(); },
     regs: ()=>{ renderRegs(); },
     checkin: ()=>{ fillCheckinSesFilter(); },
-    payments: async ()=>{ await loadAllRegs(); fillPaymentSesFilter(); renderPaymentManagement(); },
+    payments: async ()=>{ await loadAllRegs(); renderPaymentManagement(); },
     settings: ()=>{ loadStaff(); loadAnnounce(); },
   };
   if(inits[name]) inits[name]();
@@ -1245,19 +1232,18 @@ function goPage(name){
 
 // ── 全資料載入 ──
 async function loadAllData(){
-  const [evts,sd,staff]=await Promise.all([
+  const [evts,sd]=await Promise.all([
     api({action:'getEventsAdmin',email:ST.email,token:ST.token}),
     api({action:'getSessionDashboard',email:ST.email,token:ST.token}),
-    api({action:'getStaff',email:ST.email,token:ST.token}),
   ]);
   ST.events=evts||[];
   ST.sdData=sd||[];
-  ST.staffList=staff||[];
   fillEventSelects();
   fillRegSessionFilter();
   renderOverviewCards();
   await loadAllRegs();
-  renderOverviewCards();
+  // 載入管理員清單供指派用
+  api({action:'getStaff'}).then(list=>{ ST.staffList=list||[]; });
 }
 
 function filterRegsBySes(sesId){
@@ -1430,8 +1416,14 @@ function toggleEvOpen(evId){
   renderEventsWithSessions();
 }
 
+function openSessionCreateModal(){
+  resetSesModal();
+  setInvoiceTaxChecks({enabled:true,rate:5,stall:true,equip:true,addon:true,extra:false});
+  openModal('sesModal');
+}
 function openSesModalForEvent(evId){
   resetSesModal();
+  setInvoiceTaxChecks({enabled:true,rate:5,stall:true,equip:true,addon:true,extra:false});
   $('sm_eventId').value=evId;
   openModal('sesModal');
 }
@@ -1514,19 +1506,6 @@ function toggleStallConfig(checked){
 function getEquipJson(){
   const obj={};EQUIP_LIST.forEach(eq=>{obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked,price:parseInt($('eq_price_'+eq.k)?.value)||0,incl:parseInt($('eq_incl_'+eq.k)?.value)||0};});return obj;
 }
-function getInvoiceTaxJson(){
-  return {
-    stall: !!$('sm_tax_stall')?.checked,
-    equip: !!$('sm_tax_equip')?.checked,
-    extra: !!$('sm_tax_extra')?.checked,
-  };
-}
-function fillInvoiceTax(tax){
-  const t=tax||{stall:true,equip:false,extra:false};
-  if($('sm_tax_stall')) $('sm_tax_stall').checked=!!t.stall;
-  if($('sm_tax_equip')) $('sm_tax_equip').checked=!!t.equip;
-  if($('sm_tax_extra')) $('sm_tax_extra').checked=!!t.extra;
-}
 
 function quickAddEvent(){
   const name=prompt('請輸入活動名稱：');
@@ -1584,8 +1563,6 @@ function resetSesModal(){
   $('addonsList').innerHTML='';
   addDateSlot(); // 預設一個日期欄
   updateModPresets();buildEquipDefs({});
-  fillInvoiceTax({stall:true,equip:false,extra:false});
-  fillAssignStaff([]);
 }
 
 function fillAssignStaff(selected){
@@ -1707,6 +1684,43 @@ function getAddons(){
   });
   return addons;
 }
+
+function getInvoiceTaxJson(){
+  return {
+    enabled: $('sm_invoiceEnabled') ? !!$('sm_invoiceEnabled').checked : true,
+    rate: Number($('sm_invoiceRate')?.value)||5,
+    stall: $('sm_tax_stall') ? !!$('sm_tax_stall').checked : true,
+    equip: $('sm_tax_equip') ? !!$('sm_tax_equip').checked : true,
+    addon: $('sm_tax_addon') ? !!$('sm_tax_addon').checked : true,
+    extra: $('sm_tax_extra') ? !!$('sm_tax_extra').checked : false
+  };
+}
+function setInvoiceTaxChecks(data){
+  let obj=data||{};
+  if(typeof obj==='string'){
+    try{obj=JSON.parse(obj||'{}');}catch(e){obj={};}
+  }
+  if($('sm_invoiceEnabled')) $('sm_invoiceEnabled').checked = obj.enabled!==false;
+  if($('sm_invoiceRate')) $('sm_invoiceRate').value = Number(obj.rate)||5;
+  if($('sm_tax_stall')) $('sm_tax_stall').checked = obj.stall!==false;
+  if($('sm_tax_equip')) $('sm_tax_equip').checked = obj.equip!==false;
+  if($('sm_tax_addon')) $('sm_tax_addon').checked = obj.addon!==false;
+  if($('sm_tax_extra')) $('sm_tax_extra').checked = !!obj.extra;
+}
+function invoiceTaxItemLabels(tax){
+  const arr=[];
+  if(tax.stall) arr.push('活動費／攤位費');
+  if(tax.equip) arr.push('設備租金');
+  if(tax.addon) arr.push('加購項目');
+  if(tax.extra) arr.push('臨時收入');
+  return arr;
+}
+function splitTaxIncluded(amount, rate){
+  amount=Number(amount)||0; rate=Number(rate)||5;
+  const sales=Math.round(amount/(1+rate/100));
+  return {total:amount, untaxed:sales, tax:amount-sales};
+}
+
 async function editSes(id){
   // 強制從 API 取完整資料確保地區/日期等新欄位有帶出
   const s=await api({action:'getSession',id,email:ST.email,token:ST.token});
@@ -1756,8 +1770,7 @@ async function editSes(id){
   (s.addons||[]).forEach(a=>addAddon(a));
   buildModGrid(s.modules||{});
   buildEquipDefs(s.equip||{});
-  fillInvoiceTax(s.invoiceTax||{stall:true,equip:false,extra:false});
-  fillAssignStaff(s.assignedStaff||[]);
+  setInvoiceTaxChecks(s.invoiceTax||s.invoiceTaxJson||s['發票含稅JSON']||{});
   $('sesModalTitle').textContent='編輯場次';
   // 載入攤位設定
   $('sm_stallNumbers').value='';
@@ -1817,10 +1830,10 @@ async function saveSession(){
     equip:getEquipJson(),
     customFields:getCustomFields(),
     addons:getAddons(),
-    invoiceTax:getInvoiceTaxJson(),
     stallList:getStallList(),
     stallFee:parseInt($('sm_stallFee').value)||0,
-    status:id?((ST.sdData||[]).find(x=>String(x.id)===String(id))?.status||'報名中'):'報名中',
+    invoiceTax:getInvoiceTaxJson(),
+    status:'報名中',
     assignedStaff:Array.from(document.querySelectorAll('#sm_assignStaff input:checked')).map(c=>c.dataset.staffemail),
   };
   const btn=getClickBtn();
@@ -1832,17 +1845,10 @@ async function saveSession(){
   });
 }
 
-async function setSessionStatus(id,status){
-  const msg = status==='封存' ? '確定封存此場次？封存後會從總覽收起，資料仍可在封存/全部找到。' : (status==='關閉'?'確定關閉報名表單？前台將不能報名。':'確定重新開放報名？');
-  if(!confirm(msg)) return;
-  const res=await apiPost({action:'toggleSessionStatus',sessionId:id,status});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast(status==='封存'?'✅ 已封存':status==='關閉'?'已關閉報名':'✅ 已開放報名');
-  await loadAllData();
-}
 async function toggleSes(id,status){
-  const next = (status==='報名中'||status==='開放中') ? '關閉' : '報名中';
-  return setSessionStatus(id,next);
+  const res=await apiPost({action:'toggleSession',id});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('狀態已更新');await loadAllData();
 }
 async function copySes(id){
   const res=await apiPost({action:'copySession',id});
@@ -2193,15 +2199,6 @@ function isPendingPayText(v){
   const s=String(v||'').trim();
   return s==='待確認' || s==='付款待確認' || s==='已回報' || s==='待核款';
 }
-
-function fillPaymentSesFilter(){
-  const sel=document.getElementById('paymentSesFilter');
-  if(!sel) return;
-  const current=sel.value;
-  sel.innerHTML='<option value="">全部場次</option>'+(ST.sdData||[]).map(s=>`<option value="${s.id}">${s.name||s.id}</option>`).join('');
-  if(current) sel.value=current;
-}
-
 function paymentStatusLabel(v){
   if(isPaidText(v)) return '已繳費';
   if(isPendingPayText(v)) return '待確認';
@@ -2760,59 +2757,46 @@ function shareLineFinance(){
 async function loadFinanceData(){
   const ses=(ST.sdData||[]).find(s=>s.id===ST_finSesId)||{};
   const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
-  const [_rr,_fr]=await Promise.all([api({action:'getRegsBySession',sessionId:ST_finSesId,email:ST.email,token:ST.token}),api({action:'getFinance',sessionId:ST_finSesId,email:ST.email,token:ST.token})]);
+  const [_rr,_fr]=await Promise.all([
+    api({action:'getRegsBySession',sessionId:ST_finSesId,email:ST.email,token:ST.token}),
+    api({action:'getFinance',sessionId:ST_finSesId,email:ST.email,token:ST.token})
+  ]);
   const regs=Array.isArray(_rr)?_rr:[];
   ST_finItems=Array.isArray(_fr)?_fr:[];
-  const paidRegs=(regs||[]).filter(r=>isPaidText(r.payStatus));
-  const stallTotal=paidRegs.reduce((s,r)=>s+(Number(r.amount)||0),0);
-  const equipSummary={};
-  paidRegs.forEach(r=>{
-    try{
-      Object.entries(JSON.parse(r.equip||'{}')).forEach(([name,qty])=>{
-        qty=Number(qty)||0;
-        if(qty>0) equipSummary[name]=(equipSummary[name]||0)+qty;
-      });
-    }catch(e){}
-  });
-  const equipTotal=0; // 目前報名資料只可靠回推總應收金額，設備明細另以數量列出，避免錯算單價
-  const taxStall=$('ftax-stall')?.checked||false;
-  const invoiceRegs=(regs||[]).filter(r=>r.taxId);
-  const taxBase=invoiceRegs.reduce((s,r)=>taxStall?s+(r.amount||0):s,0);
-  const taxAmt=Math.round(taxBase*0.05);
-  const depositTotal=paidRegs.reduce((s,r)=>s+(r.deposit||0),0);
-  const refundedTotal=(regs||[]).filter(r=>r.depositRefunded==='已退').reduce((s,r)=>s+(r.deposit||0),0);
+  const paidRegs=regs.filter(r=>isPaidText(r.payStatus));
+  const totalReceived=paidRegs.reduce((sum,r)=>sum+(Number(r.amount)||Number(r.totalAmount)||0),0);
+  const depositTotal=paidRegs.reduce((sum,r)=>sum+(Number(r.deposit)||0),0);
+  const refundedTotal=regs.filter(r=>r.depositRefunded==='已退').reduce((sum,r)=>sum+(Number(r.deposit)||0),0);
   const depositLeft=depositTotal-refundedTotal;
-  const manualIncome=ST_finItems.filter(i=>i['類型']==='income');
-  const manualExpense=ST_finItems.filter(i=>i['類型']==='expense');
-  const manualIncomeTotal=manualIncome.reduce((s,i)=>s+safeN(i['金額']),0);
-  const manualExpenseTotal=manualExpense.reduce((s,i)=>s+safeN(i['金額']),0);
-  const totalIncome=stallTotal+equipTotal+taxAmt+manualIncomeTotal;
+  const businessIncome=Math.max(0,totalReceived-depositTotal);
+  const equipSummary={};
+  paidRegs.forEach(r=>{try{Object.entries(JSON.parse(r.equip||'{}')).forEach(([name,qty])=>{qty=Number(qty)||0;if(qty>0)equipSummary[name]=(equipSummary[name]||0)+qty;});}catch(e){}});
+  const manualIncome=ST_finItems.filter(i=>(i['類型']||i.type)==='income');
+  const manualExpense=ST_finItems.filter(i=>(i['類型']||i.type)==='expense');
+  const manualIncomeTotal=manualIncome.reduce((s,i)=>s+safeN(i['金額']||i.amount),0);
+  const manualExpenseTotal=manualExpense.reduce((s,i)=>s+safeN(i['金額']||i.amount),0);
+  const totalIncome=businessIncome+manualIncomeTotal;
   const totalExpense=manualExpenseTotal;
   const netProfit=totalIncome-totalExpense;
+  const tax=ses.invoiceTax||{};
+  const taxCfg={enabled:tax.enabled!==false,rate:Number(tax.rate)||5,stall:tax.stall!==false,equip:tax.equip!==false,addon:tax.addon!==false,extra:!!tax.extra};
+  const taxableTotal=taxCfg.enabled ? businessIncome + (taxCfg.extra?manualIncomeTotal:0) : 0;
+  const taxSplit=splitTaxIncluded(taxableTotal,taxCfg.rate);
+  ST_invoiceData=paidRegs.map(r=>{
+    const amt=Math.max(0,(Number(r.amount)||Number(r.totalAmount)||0)-(Number(r.deposit)||0));
+    const sp=splitTaxIncluded(amt,taxCfg.rate);
+    return {id:r.id||r.regId||'',sessionName:ses.name||'',name:r.name||'',brand:r.brand||'',email:r.email||'',phone:r.phone||'',invoiceType:r.invoiceType||(r.taxId?'公司／機關':'個人'),carrier:r.invoiceCarrier||r.carrier||'',taxId:r.taxId||'',invoiceTitle:r.invoiceTitle||'',invoiceEmail:r.invoiceEmail||r.email||'',totalAmount:amt,amount:sp.untaxed,taxAmount:sp.tax,deposit:Number(r.deposit)||0,invoiceStatus:r.invoiceStatus||'待開立',note:r.adminNote||''};
+  });
   if($('f-income-section')) $('f-income-section').innerHTML=renderFinSection('收入',[
-    {name:'攤位費 / 已繳費總額',note:paidRegs.length+'筆已繳費（含設備、押金等前台應繳合計）',amt:stallTotal,auto:true},
+    {name:'前台已收總額',note:paidRegs.length+'筆已繳費（含押金）',amt:totalReceived,auto:true},
+    {name:'列入損益收入',note:'已收總額扣除押金後：活動費／設備／加購等',amt:businessIncome,auto:true},
     Object.keys(equipSummary).length?{name:'設備數量統計',note:Object.entries(equipSummary).map(([k,v])=>k+' x '+v).join('、'),amt:0,auto:true}:null,
-    taxAmt>0?{name:'發票稅金5%',note:invoiceRegs.length+'筆',amt:taxAmt,auto:true}:null,
-    ...manualIncome.map(i=>({name:i['品項'],amt:safeN(i['金額']),auto:false,id:i['ID']}))
+    ...manualIncome.map(i=>({name:i['品項']||i.name,amt:safeN(i['金額']||i.amount),auto:false,id:i['ID']||i.id}))
   ].filter(Boolean),totalIncome,'income');
-  if($('f-expense-section')) $('f-expense-section').innerHTML=renderFinSection('支出',[
-    ...manualExpense.map(i=>({name:i['品項'],amt:safeN(i['金額']),auto:false,id:i['ID']}))
-  ],totalExpense,'expense');
-  if($('f-net')) $('f-net').innerHTML=`<div style="border-radius:10px;padding:12px 14px;background:#E1F5EE;border:0.5px solid #9FE1CB">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:14px;font-weight:500;color:#085041">本場淨利</span>
-      <span style="font-size:20px;font-weight:500;color:#085041">NT$${netProfit.toLocaleString()}</span>
-    </div>
-    <div style="font-size:10px;color:#1D9E75;margin-top:3px">收入 ${totalIncome.toLocaleString()} － 支出 ${totalExpense.toLocaleString()} ＝ ${netProfit.toLocaleString()}</div>
-  </div>`;
-  if($('f-deposit')) $('f-deposit').innerHTML=`<div style="border-radius:10px;padding:12px 14px;background:#FAEEDA;border:0.5px solid #FAC775">
-    <div style="font-size:11px;font-weight:500;color:#633806;margin-bottom:7px">押金專區（不列入損益）</div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>收取押金</span><span>NT$${depositTotal.toLocaleString()}</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>已退還</span><span style="color:#1D9E75">－NT$${refundedTotal.toLocaleString()}</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;padding:7px 0 3px;border-top:0.5px solid #FAC775;margin-top:5px"><span>未退餘額</span><span style="color:#854F0B">NT$${depositLeft.toLocaleString()}</span></div>
-    ${depositLeft>0?`<div style="font-size:10px;color:#854F0B;margin-top:5px">未退餘額 = 違約扣款，可轉入收入</div>
-    <button onclick="transferDeposit(${depositLeft})" style="margin-top:6px;font-size:11px;background:#FAEEDA;color:#854F0B;border:0.5px solid #FAC775;border-radius:6px;padding:4px 10px;cursor:pointer">轉入收入 ＋NT$${depositLeft.toLocaleString()}</button>`:''}
-  </div>`;
+  if($('f-expense-section')) $('f-expense-section').innerHTML=renderFinSection('支出',manualExpense.map(i=>({name:i['品項']||i.name,amt:safeN(i['金額']||i.amount),auto:false,id:i['ID']||i.id})),totalExpense,'expense');
+  if($('f-net')) $('f-net').innerHTML=`<div style="border-radius:12px;padding:14px 16px;background:#E1F5EE;border:1px solid #9FE1CB"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;font-weight:800;color:#085041">本場損益</span><span style="font-size:24px;font-weight:900;color:#085041">NT$${netProfit.toLocaleString()}</span></div><div style="font-size:12px;color:#1D9E75;margin-top:4px">收入 ${totalIncome.toLocaleString()} － 支出 ${totalExpense.toLocaleString()} ＝ ${netProfit.toLocaleString()}</div></div>`;
+  if($('f-deposit')) $('f-deposit').innerHTML=`<div style="border-radius:12px;padding:13px 15px;background:#FAEEDA;border:1px solid #FAC775"><div style="font-size:12px;font-weight:800;color:#633806;margin-bottom:7px">押金專區（不列入損益）</div><div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>收取押金</span><span>NT$${depositTotal.toLocaleString()}</span></div><div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>已退還</span><span style="color:#1D9E75">－NT$${refundedTotal.toLocaleString()}</span></div><div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;padding:8px 0 3px;border-top:1px solid #FAC775;margin-top:5px"><span>未退餘額</span><span style="color:#854F0B">NT$${depositLeft.toLocaleString()}</span></div></div>`;
+  if($('f-invoice-tax-section')) $('f-invoice-tax-section').innerHTML=`<div style="border-radius:12px;padding:13px 15px;background:#F8F5FF;border:1px solid #DDD6FE"><div style="font-size:13px;font-weight:900;color:#5B21B6;margin-bottom:8px">本場發票試算</div><div style="font-size:12px;color:#555;margin-bottom:8px">稅率：${taxCfg.rate}%　列入項目：${invoiceTaxItemLabels(taxCfg).join('、')||'未設定'}　｜　不列入：押金／保證金</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"><div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#666">含稅銷售額</div><div style="font-size:18px;font-weight:900;color:#5B21B6">NT$${taxSplit.total.toLocaleString()}</div></div><div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#666">未稅銷售額</div><div style="font-size:18px;font-weight:900;color:#333">NT$${taxSplit.untaxed.toLocaleString()}</div></div><div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#666">營業稅額</div><div style="font-size:18px;font-weight:900;color:#BA7517">NT$${taxSplit.tax.toLocaleString()}</div></div></div><div style="font-size:12px;color:#666;margin-top:8px">發票資料：個人 ${ST_invoiceData.filter(i=>!i.taxId).length} 筆，公司／機關 ${ST_invoiceData.filter(i=>i.taxId).length} 筆。</div></div>`;
 }
 
 async function submitFinanceItem(){
@@ -2832,6 +2816,16 @@ async function submitFinanceItem(){
 
 function printFinance(){
   window.print();
+}
+
+
+async function setSessionStatus(sesId,status){
+  const msg=status==='封存'?'確定封存此場次？資料不會刪除，只會從預設總覽收起。':(status==='報名中'?'確定取消封存並重新放回進行中？':'確定變更場次狀態？');
+  if(!confirm(msg)) return;
+  const res=await apiPost({action:'toggleSessionStatus',sessionId:sesId,status});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast(status==='封存'?'✅ 已封存':'✅ 已更新');
+  await loadAllData();
 }
 
 async function toggleSesStatus(sesId, currentStatus){
@@ -3059,24 +3053,20 @@ function showFinAdd(type){
 }
 
 function downloadInvoiceList(){
-  // 下載發票清單 CSV
-  if(typeof ST_invoiceData==='undefined' || !ST_invoiceData || !ST_invoiceData.length){
-    toast('無發票資料可下載');return;
-  }
-  const hdrs=['品牌','統一編號','發票抬頭','發票Email','未稅金額','稅金5%','含稅總額','狀態'];
-  const rows=ST_invoiceData.map(i=>[
-    i.brand||'', i.taxId||'', i.invoiceTitle||'', i.invoiceEmail||'',
-    i.amount||0, i.taxAmount||0, i.totalAmount||0, i.invoiceStatus||'待開立'
-  ]);
-  const csv=[hdrs,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  if(!ST_finSesId){toast('沒有可下載的場次');return;}
+  if(!ST_invoiceData || !ST_invoiceData.length){toast('無發票資料可下載');return;}
+  const headers=['場次名稱','報名ID','姓名','品牌','Email','手機','發票類型','發票載具','統一編號','公司抬頭','收發票Email','發票含稅金額','未稅金額','營業稅額','押金金額','發票狀態','備註'];
+  const rows=ST_invoiceData.map(i=>[i.sessionName||'',i.id||'',i.name||'',i.brand||'',i.email||'',i.phone||'',i.invoiceType||'',i.carrier||'',i.taxId||'',i.invoiceTitle||'',i.invoiceEmail||'',i.totalAmount||0,i.amount||0,i.taxAmount||0,i.deposit||0,i.invoiceStatus||'待開立',i.note||'']);
+  const csv=[headers,...rows].map(r=>r.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='發票清單.csv';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const ses=(ST.sdData||[]).find(x=>x.id===ST_finSesId)||{};
+  a.href=url;a.download=(ses.name||'場次')+'_發票清單.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   toast('✅ 發票清單已下載');
 }
+
 </script>
 
 
