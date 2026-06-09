@@ -2649,12 +2649,23 @@ async function downloadSesData(sesId,sesName){
   const paidRegs=regs.filter(r=>isPaidText(r.payStatus));
   const pendingPay=regs.filter(r=>isPendingPayText(r.payStatus));
   const approvedRegs=regs.filter(r=>clean(r.status)==='已錄取' || isPaidText(r.payStatus));
-  const stallIncome=paidRegs.reduce((sum,r)=>sum+payAmount(r),0);
+  function equipChargeAmount(r){
+    return equipEntries(r).reduce((sum,[item,qty])=>{
+      const def=equipDef(item);
+      const included=def.incl*stallCount(r);
+      const chargeQty=Math.max(qty-included,0);
+      return sum+(chargeQty*def.price);
+    },0);
+  }
+  const totalReceived=paidRegs.reduce((sum,r)=>sum+payAmount(r),0);
   const depositTotal=paidRegs.reduce((sum,r)=>sum+depAmount(r),0);
   const refundedTotal=paidRegs.filter(r=>clean(r.depositRefunded).includes('已退')).reduce((sum,r)=>sum+depAmount(r),0);
+  const businessIncome=Math.max(0,totalReceived-depositTotal);
+  const equipmentIncome=paidRegs.reduce((sum,r)=>sum+equipChargeAmount(r),0);
+  const activityIncome=Math.max(0,businessIncome-equipmentIncome);
   const manualIncome=finItems.filter(i=>clean(i['類型']||i.type)==='income' || clean(i['類型']||i.type)==='收入').reduce((sum,i)=>sum+n(i['金額']||i.amount),0);
   const manualExpense=finItems.filter(i=>clean(i['類型']||i.type)==='expense' || clean(i['類型']||i.type)==='支出').reduce((sum,i)=>sum+n(i['金額']||i.amount),0);
-  const totalIncome=stallIncome+manualIncome;
+  const totalIncome=businessIncome+manualIncome;
   const totalExpense=manualExpense;
   const netProfit=totalIncome-totalExpense;
 
@@ -2695,10 +2706,13 @@ async function downloadSesData(sesId,sesName){
     ['已錄取/已繳費筆數',approvedRegs.length,'設備統計主要參考'],
     ['已繳費筆數',paidRegs.length,'列入已收費用'],
     ['待確認繳費',pendingPay.length,'付款狀態為待確認/待核款'],
-    ['已收報名費',stallIncome,'已繳費報名金額合計'],
+    ['前台已收總額',totalReceived,'活動費／設備／加購與押金合計'],
+    ['活動／攤位收入',activityIncome,'已收總額扣除押金與設備後'],
+    ['設備租金收入',equipmentIncome,'依設備設定扣除每攤內含後計算'],
+    ['列入損益收入',businessIncome,'前台已收總額扣除押金'],
     ['手動收入',manualIncome,'財報明細收入項目'],
     ['手動支出',manualExpense,'財報明細支出項目'],
-    ['收入合計',totalIncome,'已收報名費＋手動收入'],
+    ['收入合計',totalIncome,'列入損益收入＋手動收入'],
     ['支出合計',totalExpense,'手動支出'],
     ['試算淨額',netProfit,'收入合計－支出合計'],
     ['押金收取',depositTotal,'不列入損益'],
@@ -2765,13 +2779,41 @@ async function loadFinanceData(){
   const regs=Array.isArray(_rr)?_rr:[];
   ST_finItems=Array.isArray(_fr)?_fr:[];
   const paidRegs=regs.filter(r=>isPaidText(r.payStatus));
-  const totalReceived=paidRegs.reduce((sum,r)=>sum+(Number(r.amount)||Number(r.totalAmount)||0),0);
-  const depositTotal=paidRegs.reduce((sum,r)=>sum+(Number(r.deposit)||0),0);
-  const refundedTotal=regs.filter(r=>r.depositRefunded==='已退').reduce((sum,r)=>sum+(Number(r.deposit)||0),0);
+  const totalReceived=paidRegs.reduce((sum,r)=>sum+safeN(r.amount||r.totalAmount||r.payAmount),0);
+  function finStallCount(r){return safeN(r.stallCount)||1;}
+  function finRegDeposit(r){
+    const direct=safeN(r.deposit||r.depositAmount);
+    if(direct>0) return direct;
+    return safeN(ses.deposit)*finStallCount(r);
+  }
+  function finEquipEntries(r){
+    try{
+      const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
+      return Object.entries(obj).map(([name,qty])=>[String(name||'').trim(),safeN(qty)]).filter(([name,qty])=>name&&qty>0);
+    }catch(e){return [];}
+  }
+  function finEquipDef(name){
+    const defs=ses.equip||{};
+    const def=defs[name]||{};
+    const fallback=(typeof EQUIP_LIST!=='undefined'?(EQUIP_LIST||[]):[]).find(x=>x.k===name)||{};
+    return {price:safeN(def.price||fallback.price), incl:safeN(def.incl)};
+  }
+  function finEquipCharge(r){
+    return finEquipEntries(r).reduce((sum,[name,qty])=>{
+      const def=finEquipDef(name);
+      const included=def.incl*finStallCount(r);
+      const chargeQty=Math.max(qty-included,0);
+      return sum+(chargeQty*def.price);
+    },0);
+  }
+  const depositTotal=paidRegs.reduce((sum,r)=>sum+finRegDeposit(r),0);
+  const refundedTotal=paidRegs.filter(r=>String(r.depositRefunded||'').includes('已退')).reduce((sum,r)=>sum+finRegDeposit(r),0);
   const depositLeft=depositTotal-refundedTotal;
   const businessIncome=Math.max(0,totalReceived-depositTotal);
+  const equipmentIncome=paidRegs.reduce((sum,r)=>sum+finEquipCharge(r),0);
+  const activityIncome=Math.max(0,businessIncome-equipmentIncome);
   const equipSummary={};
-  paidRegs.forEach(r=>{try{Object.entries(JSON.parse(r.equip||'{}')).forEach(([name,qty])=>{qty=Number(qty)||0;if(qty>0)equipSummary[name]=(equipSummary[name]||0)+qty;});}catch(e){}});
+  paidRegs.forEach(r=>{finEquipEntries(r).forEach(([name,qty])=>{if(qty>0)equipSummary[name]=(equipSummary[name]||0)+qty;});});
   const manualIncome=ST_finItems.filter(i=>(i['類型']||i.type)==='income');
   const manualExpense=ST_finItems.filter(i=>(i['類型']||i.type)==='expense');
   const manualIncomeTotal=manualIncome.reduce((s,i)=>s+safeN(i['金額']||i.amount),0);
@@ -2784,13 +2826,18 @@ async function loadFinanceData(){
   const taxableTotal=taxCfg.enabled ? businessIncome + (taxCfg.extra?manualIncomeTotal:0) : 0;
   const taxSplit=splitTaxIncluded(taxableTotal,taxCfg.rate);
   ST_invoiceData=paidRegs.map(r=>{
-    const amt=Math.max(0,(Number(r.amount)||Number(r.totalAmount)||0)-(Number(r.deposit)||0));
+    const dep=finRegDeposit(r);
+    const amt=Math.max(0,safeN(r.amount||r.totalAmount||r.payAmount)-dep);
     const sp=splitTaxIncluded(amt,taxCfg.rate);
-    return {id:r.id||r.regId||'',sessionName:ses.name||'',name:r.name||'',brand:r.brand||'',email:r.email||'',phone:r.phone||'',invoiceType:r.invoiceType||(r.taxId?'公司／機關':'個人'),carrier:r.invoiceCarrier||r.carrier||'',taxId:r.taxId||'',invoiceTitle:r.invoiceTitle||'',invoiceEmail:r.invoiceEmail||r.email||'',totalAmount:amt,amount:sp.untaxed,taxAmount:sp.tax,deposit:Number(r.deposit)||0,invoiceStatus:r.invoiceStatus||'待開立',note:r.adminNote||''};
+    return {id:r.id||r.regId||'',sessionName:ses.name||'',name:r.name||'',brand:r.brand||'',email:r.email||'',phone:r.phone||'',invoiceType:r.invoiceType||(r.taxId?'公司／機關':'個人'),carrier:r.invoiceCarrier||r.carrier||'',taxId:r.taxId||'',invoiceTitle:r.invoiceTitle||'',invoiceEmail:r.invoiceEmail||r.email||'',totalAmount:amt,amount:sp.untaxed,taxAmount:sp.tax,deposit:dep,invoiceStatus:r.invoiceStatus||'待開立',note:r.adminNote||''};
   });
-  if($('f-income-section')) $('f-income-section').innerHTML=renderFinSection('收入',[
-    {name:'前台已收總額',note:paidRegs.length+'筆已繳費（含押金）',amt:totalReceived,auto:true},
-    {name:'列入損益收入',note:'已收總額扣除押金後：活動費／設備／加購等',amt:businessIncome,auto:true},
+  if($('f-income-section')) $('f-income-section').innerHTML=`
+    <div style="border-radius:12px;padding:12px 14px;background:#F7FBF8;border:1px solid #D7EBDD;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>前台已收總額</span><b>NT$${totalReceived.toLocaleString()}</b></div>
+      <div style="font-size:11px;color:#777;margin-top:3px">${paidRegs.length}筆已繳費，包含活動費／設備／加購與押金；押金不列入損益。</div>
+    </div>`+renderFinSection('收入',[
+    {name:'活動／攤位收入',note:'已收總額扣除押金與設備後',amt:activityIncome,auto:true},
+    equipmentIncome>0?{name:'設備租金收入',note:Object.entries(equipSummary).map(([k,v])=>k+' x '+v).join('、')||'設備加租',amt:equipmentIncome,auto:true}:null,
     Object.keys(equipSummary).length?{name:'設備數量統計',note:Object.entries(equipSummary).map(([k,v])=>k+' x '+v).join('、'),amt:0,auto:true}:null,
     ...manualIncome.map(i=>({name:i['品項']||i.name,amt:safeN(i['金額']||i.amount),auto:false,id:i['ID']||i.id}))
   ].filter(Boolean),totalIncome,'income');
