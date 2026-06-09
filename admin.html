@@ -704,6 +704,25 @@ let ST_finAddType="income";
 
 const API = 'https://script.google.com/macros/s/AKfycbz34vXdofbWxMBSKVkDxsvSjLwI_TPlFdX420bXDmxDbNGe5cXcG2RzeeoUsGySI8Ipjw/exec';
 
+
+function normalizeImageUrl(url){
+  let u=String(url||'').trim();
+  if(!u) return '';
+  const m1=u.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  const m2=u.match(/[?&]id=([^&]+)/);
+  if(m1) return 'https://drive.google.com/uc?export=view&id='+m1[1];
+  if(u.includes('drive.google.com/open')&&m2) return 'https://drive.google.com/uc?export=view&id='+m2[1];
+  return u;
+}
+function thumbHtml(url, size=36, radius=6){
+  const u=normalizeImageUrl(url);
+  const box=`width:${size}px;height:${size}px;border-radius:${radius}px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:${Math.max(16,Math.round(size*.5))}px;flex-shrink:0;overflow:hidden`;
+  if(!u) return `<span style="${box}">🎪</span>`;
+  return `<span style="${box};position:relative"><img src="${escAttr(u)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:cover;display:block"><span style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#f0f0f0">🎪</span></span>`;
+}
+function escAttr(v){return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function safeNum(v){const n=Number(v);return Number.isFinite(n)?n:0;}
+
 const EQUIP_LIST = [
   {k:'桌',icon:'🪵',price:350},{k:'椅子',icon:'🪑',price:20},
   {k:'帳篷',icon:'⛺',price:800},{k:'野餐墊',icon:'🧺',price:50},
@@ -1017,9 +1036,7 @@ function renderOverviewCards(){
         width:120px;flex-shrink:0;background:#fff;border-radius:12px;
         box-shadow:var(--sh);overflow:hidden;cursor:pointer;
         border:2px solid ${ST.activeEventId===ev.id?'var(--g)':'transparent'}">
-        ${ev.cover
-          ?`<img src="${ev.cover}" style="width:100%;height:80px;object-fit:cover">`
-          :`<div style="width:100%;height:80px;background:var(--gp);display:flex;align-items:center;justify-content:center;font-size:28px">🎪</div>`}
+        ${thumbHtml(ev.cover,120,0).replace('width:120px;height:120px','width:120px;height:80px')}
         <div style="padding:6px 8px">
           <div style="font-size:12px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${ev.title}</div>
           <div style="font-size:10px;color:var(--md)">${ev.region||''}</div>
@@ -1074,12 +1091,10 @@ function renderOverviewSessions(){
         if(needItems.length){
           equipStr=needItems.map(([k,v])=>`<div style="line-height:1.45;white-space:nowrap">${k}×${v}</div>`).join('');
         }
-        const cover=s.cover||ev.cover||'';
+        const cover=s.cover||s.eventCover||ev.cover||ev.eventCover||'';
         return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
           <td style="padding:7px 6px">
-            ${cover
-              ?`<span style="display:inline-block;width:36px;height:36px;position:relative"><img src="${cover}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:36px;height:36px;border-radius:6px;object-fit:cover;display:block"><span style="width:36px;height:36px;border-radius:6px;background:#f0f0f0;display:none;align-items:center;justify-content:center;font-size:18px">🎪</span></span>`
-              :`<div style="width:36px;height:36px;border-radius:6px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:18px">🎪</div>`}
+            ${thumbHtml(cover,36,6)}
           </td>
           <td style="padding:7px 6px;font-size:12px;color:#666;white-space:nowrap">${s.region||''}</td>
           <td style="padding:7px 6px;max-width:180px">
@@ -1197,9 +1212,7 @@ function renderOverview(){
   }
   $('overviewBody').innerHTML=list.map(s=>{
     const dot=s.status==='報名中'?'dot-open':s.status==='關閉'?'dot-closed':'dot-full';
-    const thumb=s.eventCover
-      ?`<img class="ses-thumb" src="${s.eventCover}" onerror="this.style.display='none'">`
-      :`<div class="ses-thumb-placeholder">🎪</div>`;
+    const thumb=thumbHtml(s.cover||s.eventCover,36,6);
     return `<tr>
       <td>${thumb}</td>
       <td>
@@ -2459,119 +2472,156 @@ function goToSesCheckin(sesId){
 }
 
 async function downloadSesData(sesId,sesName){
-  toast('準備下載...');
+  toast('準備下載最新財報資料...');
+
+  // 先重新抓最新總覽，避免使用舊快取造成金額、場次名稱或設備統計不正確
+  let freshDash=[];
+  try{
+    freshDash=await api({action:'getSessionDashboard', email:ST.email, token:ST.token});
+    if(Array.isArray(freshDash)) ST.sdData=freshDash;
+  }catch(e){ console.warn('最新場次總覽讀取失敗，改用目前畫面資料', e); }
+
   const ses=(ST.sdData||[]).find(x=>x.id===sesId)||{};
-  const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
+  let ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
+  if(!(ST.events||[]).length){
+    try{ const evs=await api({action:'getEventsAdmin', email:ST.email, token:ST.token}); if(Array.isArray(evs)){ST.events=evs; ev=(ST.events||[]).find(e=>e.id===ses.eventId)||ev;} }catch(e){}
+  }
+
   const finalSesName=sesName || ses.name || sesId || '場次';
   let regs=[];
   let finItems=[];
   try{
-    regs=await apiPost({action:'getRegsBySession', sessionId:sesId});
-  }catch(e){
-    console.error(e);
-    toast('下載失敗：報名資料讀取失敗');
-    return;
-  }
-  if(!regs||regs.error){toast('下載失敗：報名資料讀取失敗');return;}
+    regs=await apiPost({action:'getRegsBySession', sessionId:sesId, email:ST.email, token:ST.token});
+  }catch(e){ console.error(e); toast('下載失敗：報名資料讀取失敗'); return; }
+  if(!Array.isArray(regs)){ toast('下載失敗：報名資料讀取失敗'); return; }
   try{
-    finItems=await apiPost({action:'getFinance', sessionId:sesId});
+    finItems=await apiPost({action:'getFinance', sessionId:sesId, email:ST.email, token:ST.token});
     if(!Array.isArray(finItems)) finItems=[];
-  }catch(e){
-    console.warn('財報明細讀取失敗，仍下載報名與設備資料', e);
-    finItems=[];
-  }
+  }catch(e){ console.warn('財報明細讀取失敗，仍下載報名與設備資料', e); finItems=[]; }
 
+  function n(v){const x=Number(v);return Number.isFinite(x)?x:0;}
+  function clean(v){return String(v??'').trim();}
   function equipEntries(r){
     try{
       const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
-      return Object.entries(obj)
-        .map(([name,qty])=>[name,Number(qty)||0])
-        .filter(([name,qty])=>name&&qty>0);
+      return Object.entries(obj).map(([name,qty])=>[clean(name),n(qty)]).filter(([name,qty])=>name&&qty>0);
     }catch(e){return [];}
   }
-  function payAmount(r){return Number(r.amount)||Number(r.totalAmount)||Number(r.payAmount)||0;}
-  function depAmount(r){return Number(r.deposit)||Number(r.depositAmount)||0;}
-  const paidRegs=(regs||[]).filter(r=>isPaidStatus(r.payStatus)||isPaidText(r.payStatus));
-  const pendingPay=(regs||[]).filter(r=>isPendingPayStatus(r.payStatus));
-  const stallIncome=paidRegs.reduce((s,r)=>s+payAmount(r),0);
-  const depositTotal=paidRegs.reduce((s,r)=>s+depAmount(r),0);
-  const refundedTotal=(regs||[]).filter(r=>String(r.depositRefunded||'').includes('已退')).reduce((s,r)=>s+depAmount(r),0);
-  const depositLeft=depositTotal-refundedTotal;
-  const manualIncome=(finItems||[]).filter(i=>(i['類型']||i.type)==='income').reduce((s,i)=>s+(Number(i['金額']||i.amount)||0),0);
-  const manualExpense=(finItems||[]).filter(i=>(i['類型']||i.type)==='expense').reduce((s,i)=>s+(Number(i['金額']||i.amount)||0),0);
+  function equipDef(name){
+    const defs=ses.equip||{};
+    const def=defs[name]||{};
+    const fallback=(EQUIP_LIST||[]).find(x=>x.k===name)||{};
+    return {price:n(def.price||fallback.price), incl:n(def.incl)};
+  }
+  function stallCount(r){return n(r.stallCount)||1;}
+  function payAmount(r){return n(r.amount||r.totalAmount||r.payAmount);}
+  function depAmount(r){
+    const direct=n(r.deposit||r.depositAmount);
+    if(direct) return direct;
+    return n(ses.deposit)*stallCount(r);
+  }
+  function created(r){return clean(r.createdAt).slice(0,16);}
+  const paidRegs=regs.filter(r=>isPaidText(r.payStatus));
+  const pendingPay=regs.filter(r=>isPendingPayText(r.payStatus));
+  const approvedRegs=regs.filter(r=>clean(r.status)==='已錄取' || isPaidText(r.payStatus));
+  const stallIncome=paidRegs.reduce((sum,r)=>sum+payAmount(r),0);
+  const depositTotal=paidRegs.reduce((sum,r)=>sum+depAmount(r),0);
+  const refundedTotal=paidRegs.filter(r=>clean(r.depositRefunded).includes('已退')).reduce((sum,r)=>sum+depAmount(r),0);
+  const manualIncome=finItems.filter(i=>clean(i['類型']||i.type)==='income' || clean(i['類型']||i.type)==='收入').reduce((sum,i)=>sum+n(i['金額']||i.amount),0);
+  const manualExpense=finItems.filter(i=>clean(i['類型']||i.type)==='expense' || clean(i['類型']||i.type)==='支出').reduce((sum,i)=>sum+n(i['金額']||i.amount),0);
   const totalIncome=stallIncome+manualIncome;
   const totalExpense=manualExpense;
   const netProfit=totalIncome-totalExpense;
 
-  function splitEquipRegRows(r){
-    const entries=equipEntries(r);
-    const base=[finalSesName,r.id,r.name,r.brand,r.phone,r.email,r.stallCount||1,r.status,r.payStatus,payAmount(r),depAmount(r),r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',(r.createdAt||'').slice(0,16)];
-    if(!entries.length) return [[...base,'','']];
-    return entries.map(([item,qty])=>[...base,item,qty]);
+  function buildEquipRows(sourceRegs, label){
+    const rows=[];
+    sourceRegs.forEach(r=>{
+      equipEntries(r).forEach(([item,qty])=>{
+        const def=equipDef(item);
+        const included=def.incl*stallCount(r);
+        const chargeQty=Math.max(qty-included,0);
+        const subtotal=chargeQty*def.price;
+        rows.push([label,finalSesName,r.id,r.name,r.brand,r.phone,r.email,item,qty,def.incl,included,def.price,chargeQty,subtotal,r.status,r.payStatus,r.stallNo||'',created(r)]);
+      });
+    });
+    return rows;
   }
-  function parseEquipRows(r){
-    return equipEntries(r).map(([name,qty])=>[finalSesName,r.id,r.name,r.brand,r.phone,r.email,name,qty,r.status,r.payStatus,r.stallNo||'',(r.createdAt||'').slice(0,16)]);
+  function totalByItem(sourceRegs){
+    const totals={};
+    sourceRegs.forEach(r=>equipEntries(r).forEach(([item,qty])=>{totals[item]=(totals[item]||0)+qty;}));
+    return Object.entries(totals).map(([item,qty])=>[finalSesName,item,qty]);
   }
-  const equipTotal={};
-  (regs||[]).forEach(r=>equipEntries(r).forEach(([name,qty])=>{equipTotal[name]=(equipTotal[name]||0)+qty;}));
+  function equipSummaryText(r){return equipEntries(r).map(([item,qty])=>`${item}×${qty}`).join('；');}
 
-  const infoHdrs=['欄位','內容'];
+  const dateText=Array.isArray(ses.dates)&&ses.dates.length
+    ? ses.dates.map(d=>[d.date,d.startTime&&d.endTime?`${d.startTime}-${d.endTime}`:''].filter(Boolean).join(' ')).join(' / ')
+    : (ses.date||'');
+
   const infoRows=[
     ['場次名稱',finalSesName],
-    ['活動名稱',ev.title||''],
+    ['活動名稱',ev.title||ses.eventName||''],
     ['場地',ses.venue||ses.location||ev.location||''],
-    ['日期',ses.dates&&ses.dates.length?ses.dates.map(d=>d.date).join(' / '):(ses.date||'')],
+    ['活動日期',dateText],
+    ['場次ID',sesId],
     ['下載時間',new Date().toLocaleString('zh-TW')]
   ];
-  const summaryHdrs=['項目','金額/數量','備註'];
   const summaryRows=[
-    ['總報名筆數',(regs||[]).length,'該場次全部報名'],
-    ['已繳費筆數',paidRegs.length,'付款狀態為已繳費'],
-    ['待確認繳費',pendingPay.length,'付款狀態為待確認/審核中'],
-    ['已收費用',stallIncome,'已繳費報名金額合計'],
+    ['總報名筆數',regs.length,'該場次所有報名'],
+    ['已錄取/已繳費筆數',approvedRegs.length,'設備統計主要參考'],
+    ['已繳費筆數',paidRegs.length,'列入已收費用'],
+    ['待確認繳費',pendingPay.length,'付款狀態為待確認/待核款'],
+    ['已收報名費',stallIncome,'已繳費報名金額合計'],
     ['手動收入',manualIncome,'財報明細收入項目'],
     ['手動支出',manualExpense,'財報明細支出項目'],
-    ['收入合計',totalIncome,'已收費用＋手動收入'],
+    ['收入合計',totalIncome,'已收報名費＋手動收入'],
     ['支出合計',totalExpense,'手動支出'],
     ['試算淨額',netProfit,'收入合計－支出合計'],
     ['押金收取',depositTotal,'不列入損益'],
     ['押金已退',refundedTotal,'不列入損益'],
-    ['押金未退',depositLeft,'不列入損益']
+    ['押金未退',depositTotal-refundedTotal,'不列入損益']
   ];
-
-  const regHdrs=['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間','設備品項','設備數量'];
-  const regRows=(regs||[]).flatMap(splitEquipRegRows);
-  const equipHdrs=['場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','數量','審核狀態','付款狀態','攤位號碼','報名時間'];
-  const equipRows=(regs||[]).flatMap(parseEquipRows);
-  const equipTotalHdrs=['場次名稱','設備品項','總數量'];
-  const equipTotalRows=Object.entries(equipTotal).map(([name,qty])=>[finalSesName,name,qty]);
-  const finHdrs=['場次名稱','類型','品項','金額','自動手動','備註'];
-  const finRows=(finItems||[]).map(i=>[
-    finalSesName,
-    (i['類型']||i.type)==='income'?'收入':'支出',
-    i['品項']||i.name||'',
-    i['金額']||i.amount||0,
-    (i['自動']==='TRUE'||i.auto===true)?'自動':'手動',
-    i['備註']||i.note||''
+  const regRows=regs.map(r=>[
+    finalSesName,r.id,r.name,r.brand,r.phone,r.email,stallCount(r),r.status,r.payStatus,payAmount(r),depAmount(r),r.payMethod||'',r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',r.invoiceEmail||'',r.invoiceStatus||'',equipSummaryText(r),created(r),r.adminNote||''
   ]);
+  const equipAllRows=buildEquipRows(regs,'全部報名');
+  const equipApprovedRows=buildEquipRows(approvedRegs,'已錄取/已繳費');
+  const equipPaidRows=buildEquipRows(paidRegs,'已繳費');
+  const finRows=finItems.map(i=>[
+    finalSesName,
+    clean(i['類型']||i.type)==='income'?'收入':(clean(i['類型']||i.type)==='expense'?'支出':clean(i['類型']||i.type)),
+    i['品項']||i.name||'',
+    n(i['金額']||i.amount),
+    (i['自動']==='TRUE'||i.auto===true)?'自動':'手動',
+    i['備註']||i.note||'',
+    i['建立時間']||i.createdAt||''
+  ]);
+
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const csv='場次資訊\n'+toCSV(infoHdrs,infoRows)
-    +'\n\n財報摘要（該場次最新資料）\n'+toCSV(summaryHdrs,summaryRows)
-    +'\n\n報名明細（設備已拆成獨立列）\n'+toCSV(regHdrs,regRows)
-    +'\n\n設備明細（每個設備獨立一列，方便公式統計）\n'+toCSV(equipHdrs,equipRows)
-    +'\n\n設備總計\n'+toCSV(equipTotalHdrs,equipTotalRows)
-    +'\n\n財報明細（手動收入/支出）\n'+toCSV(finHdrs,finRows);
+  const csv='場次資訊\n'+toCSV(['欄位','內容'],infoRows)
+    +'\n\n財報摘要（該場次最新資料）\n'+toCSV(['項目','金額/數量','備註'],summaryRows)
+    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
+    +'\n\n設備明細（全部報名，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipAllRows)
+    +'\n\n設備明細（已錄取/已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipApprovedRows)
+    +'\n\n設備明細（已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipPaidRows)
+    +'\n\n設備總計（全部報名）\n'+toCSV(['場次名稱','設備品項','總數量'],totalByItem(regs))
+    +'\n\n設備總計（已錄取/已繳費）\n'+toCSV(['場次名稱','設備品項','總數量'],totalByItem(approvedRegs))
+    +'\n\n設備總計（已繳費）\n'+toCSV(['場次名稱','設備品項','總數量'],totalByItem(paidRegs))
+    +'\n\n財報明細（手動收入/支出）\n'+toCSV(['場次名稱','類型','品項','金額','自動/手動','備註','建立時間'],finRows);
+
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=finalSesName+'_最新財報完整資料.csv';
+  const safeName=finalSesName.replace(/[\\/:*?"<>|]/g,'_');
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=safeName+'_最新財報完整資料.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   toast('下載完成');
 }
 
 function downloadCurrentFinanceData(){
   if(!ST_finSesId){toast('沒有可下載的場次');return;}
-  const title=$('financeTitle')?.textContent||'';
-  return downloadSesData(ST_finSesId,title);
+  const ses=(ST.sdData||[]).find(x=>x.id===ST_finSesId)||{};
+  return downloadSesData(ST_finSesId,ses.name||$('financeTitle')?.textContent||'');
 }
 
 function shareLineFinance(){
@@ -2746,8 +2796,8 @@ async function toggleInlineFinance(sesId, sesName){
 }
 
 function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
-  const paidRegs=(regs||[]).filter(r=>isPaidStatus(r.payStatus));
-  const pendingPay=(regs||[]).filter(r=>isPendingPayStatus(r.payStatus));
+  const paidRegs=(regs||[]).filter(r=>isPaidText(r.payStatus));
+  const pendingPay=(regs||[]).filter(r=>isPendingPayText(r.payStatus));
   const incomeManual=(finItems||[]).filter(i=>(i['類型']||i.type)==='income').reduce((sum,i)=>sum+(Number(i['金額']||i.amount)||0),0);
   const expenseManual=(finItems||[]).filter(i=>(i['類型']||i.type)==='expense').reduce((sum,i)=>sum+(Number(i['金額']||i.amount)||0),0);
   const received=paidRegs.reduce((sum,r)=>sum+(Number(r.amount)||Number(r.totalAmount)||0),0);
