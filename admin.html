@@ -706,7 +706,7 @@ const MOD_PRESETS = {
   '通路寄賣': {brand:1,sell_item:1,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
 };
 
-let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],currentReg:null,sdData:[]};
+let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],currentReg:null,sdData:[],inlineFinanceSesId:'',inlineFinanceCache:{}};
 
 function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
@@ -732,6 +732,42 @@ async function apiPost(body){
 function closeModal(id){$(id).classList.remove('show');}
 function openModal(id){$(id).classList.add('show');}
 function esc(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+
+function getClickBtn(){
+  try{
+    if(typeof event!=='undefined' && event && event.currentTarget && event.currentTarget.tagName==='BUTTON') return event.currentTarget;
+  }catch(e){}
+  return null;
+}
+async function withBtnLock(btn, loadingText, task){
+  if(btn && btn.dataset.busy==='1'){
+    toast('處理中，請稍候…');
+    return;
+  }
+  const oldText=btn?btn.innerHTML:'';
+  if(btn){
+    btn.dataset.busy='1';
+    btn.disabled=true;
+    btn.style.opacity='.65';
+    btn.style.cursor='wait';
+    btn.innerHTML=loadingText||'處理中…';
+  }
+  try{
+    return await task();
+  }catch(e){
+    console.error(e);
+    toast('⚠️ 處理失敗，請稍後再試');
+  }finally{
+    if(btn){
+      btn.dataset.busy='0';
+      btn.disabled=false;
+      btn.style.opacity='';
+      btn.style.cursor='';
+      btn.innerHTML=oldText;
+    }
+  }
+}
+function money(n){return 'NT$'+(Number(n)||0).toLocaleString();}
 
 function toggleSb(){
   $('sidebar').classList.toggle('open');
@@ -1044,9 +1080,10 @@ function renderOverviewSessions(){
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
             <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">編輯</button>
             <button onclick="downloadSesData('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">下載</button>
-            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,'')" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">財報</button>
+            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" onclick="toggleInlineFinance(this.dataset.sid,this.dataset.sname)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">財報</button>
           </td>
-        </tr>`;
+        </tr>
+        ${ST.inlineFinanceSesId===s.id?`<tr style="background:#fff"><td colspan="12" style="padding:0 6px 12px 52px;border-bottom:1px solid #e8e8e8"><div style="border:1px solid #d8b4fe;background:#fbf7ff;border-radius:12px;padding:12px;margin-top:4px">${ST.inlineFinanceCache[s.id]||'<div style="padding:18px;text-align:center;color:#777">財報載入中…</div>'}</div></td></tr>`:''}`;
       }).join('')}</tbody>
     </table>
   </div>`;
@@ -1289,16 +1326,20 @@ function previewCover(url){
   else{$('coverPreview').style.display='none';}
 }
 async function saveEvent(){
-  const id=$('em_id').value;
-  const title=$('em_title').value.trim();
-  if(!title){toast('請填寫活動名稱');return;}
-  const res=await apiPost({action:id?'updateEvent':'createEvent',id,title,
-    location:$('em_location').value.trim(),desc:$('em_desc').value.trim(),
-    cover:$('em_cover').value.trim(),status:$('em_status').value});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 儲存成功');closeModal('eventModal');
-  await loadAllData();renderEventsWithSessions();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'儲存中…',async()=>{
+    const id=$('em_id').value;
+    const title=$('em_title').value.trim();
+    if(!title){toast('請填寫活動名稱');return;}
+    const res=await apiPost({action:id?'updateEvent':'createEvent',id,title,
+      location:$('em_location').value.trim(),desc:$('em_desc').value.trim(),
+      cover:$('em_cover').value.trim(),status:$('em_status').value});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 儲存成功');closeModal('eventModal');
+    await loadAllData();renderEventsWithSessions();
+  });
 }
+
 async function deleteEvent(id,name){
   if(!confirm('確定刪除活動「'+name+'」？'))return;
   const res=await apiPost({action:'deleteEvent',id});
@@ -1639,11 +1680,15 @@ async function saveSession(){
     status:'報名中',
     assignedStaff:Array.from(document.querySelectorAll('#sm_assignStaff input:checked')).map(c=>c.dataset.staffemail),
   };
-  const res=await apiPost(body);
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 場次已儲存');closeModal('sesModal');
-  await loadAllData();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'儲存中…',async()=>{
+    const res=await apiPost(body);
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 場次已儲存');closeModal('sesModal');
+    await loadAllData();
+  });
 }
+
 async function toggleSes(id,status){
   const res=await apiPost({action:'toggleSession',id});
   if(res.error){toast('❌ '+res.error);return;}
@@ -1831,30 +1876,44 @@ async function saveFastPass(){
 }
 async function approveReg(){await updateStatus(ST.currentReg?.id,'已錄取');closeModal('regModal');}
 async function rejectReg(){await updateStatus(ST.currentReg?.id,'不錄取');closeModal('regModal');}
-async function quickApprove(id){
-  if(!id)return;
-  const res=await apiPost({action:'approveReg',regId:id,approved:true});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已錄取，系統發送通知');
-  await loadAllRegs(); renderRegs();
+async function quickApprove(regId){
+  const btn=getClickBtn();
+  return withBtnLock(btn,'處理中…',async()=>{
+    const res=await apiPost({action:'approveReg',regId,approved:true});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已核准，通知已送出');
+    await loadAllRegs(); renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverview();
+  });
 }
+
+
 async function confirmPay(){
   if(!ST.currentReg)return;
-  const res=await apiPost({action:'confirmPayment',regId:ST.currentReg.id,method:'手動確認'});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已確認付款');closeModal('regModal');
-  await loadAllRegs();renderRegs();
-  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
-  ST.sdData=sd||[];renderOverview();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'確認中…',async()=>{
+    const res=await apiPost({action:'confirmPayment',regId:ST.currentReg.id,method:'手動確認'});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已確認付款');closeModal('regModal');
+    await loadAllRegs();renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverview();
+  });
 }
+
 async function quickPay(id){
-  const res=await apiPost({action:'confirmPayment',regId:id,method:'手動確認'});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已確認付款');
-  await loadAllRegs();renderRegs();
-  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
-  ST.sdData=sd||[];renderOverview();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'確認中…',async()=>{
+    const res=await apiPost({action:'confirmPayment',regId:id,method:'手動確認'});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已確認付款');
+    await loadAllRegs();renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverview();
+  });
 }
+
 async function checkinReg(){
   if(!ST.currentReg)return;
   const res=await apiPost({action:'checkin',regId:ST.currentReg.id});
@@ -1927,11 +1986,15 @@ async function quickApprove(regId){
   await loadAllRegs(); renderRegs();
 }
 async function quickReject(regId){
-  const res=await apiPost({action:'approveReg',regId,approved:false});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('已拒絕');
-  await loadAllRegs(); renderRegs();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'處理中…',async()=>{
+    const res=await apiPost({action:'approveReg',regId,approved:false});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('已拒絕，通知已送出');
+    await loadAllRegs(); renderRegs();
+  });
 }
+
 async function quickFastPass(regId,email){
   const res=await apiPost({action:'setFastPass',targetEmail:email,enable:true});
   if(res.error){toast('❌ '+res.error);return;}
@@ -1939,21 +2002,29 @@ async function quickFastPass(regId,email){
 }
 async function batchApprove(){
   const ids=getChecked();if(!ids.length){toast('請先勾選報名');return;}
-  const res=await apiPost({action:'batchUpdateStatus',regIds:ids,status:'已錄取'});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast(`✅ 已核准 ${ids.length} 筆`);await loadAllRegs();renderRegs();
-  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
-  ST.sdData=sd||[];renderOverview();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'批次處理中…',async()=>{
+    const res=await apiPost({action:'batchUpdateStatus',regIds:ids,status:'已錄取'});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast(`✅ 已核准 ${ids.length} 筆`);await loadAllRegs();renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverview();
+  });
 }
+
 async function batchReject(){
   const ids=getChecked();if(!ids.length){toast('請先勾選報名');return;}
   if(!confirm(`確定拒絕 ${ids.length} 筆？`))return;
-  const res=await apiPost({action:'batchUpdateStatus',regIds:ids,status:'不錄取'});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast(`✅ 已拒絕 ${ids.length} 筆`);await loadAllRegs();renderRegs();
-  const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
-  ST.sdData=sd||[];renderOverview();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'批次處理中…',async()=>{
+    const res=await apiPost({action:'batchUpdateStatus',regIds:ids,status:'不錄取'});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast(`✅ 已拒絕 ${ids.length} 筆`);await loadAllRegs();renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverview();
+  });
 }
+
 async function sendSingleNotify(){
   if(!ST.currentReg)return;
   const subj=prompt('通知標題：');if(!subj)return;
@@ -2079,12 +2150,16 @@ async function editAnn(id){
   $('ann_url').value=a.url||'';$('ann_urlText').value=a.urlText||'';openModal('annModal');
 }
 async function saveAnn(){
-  const title=$('ann_title').value.trim();if(!title){toast('請填寫標題');return;}
-  const res=await apiPost({action:'saveAnnouncement',id:$('ann_id').value,title,
-    content:$('ann_content').value.trim(),url:$('ann_url').value.trim(),urlText:$('ann_urlText').value.trim()});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已儲存');closeModal('annModal');loadAnnounce();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'儲存中…',async()=>{
+    const title=$('ann_title').value.trim();if(!title){toast('請填寫標題');return;}
+    const res=await apiPost({action:'saveAnnouncement',id:$('ann_id').value,title,
+      content:$('ann_content').value.trim(),url:$('ann_url').value.trim(),urlText:$('ann_urlText').value.trim()});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已儲存');closeModal('annModal');loadAnnounce();
+  });
 }
+
 async function deleteAnn(id){
   if(!confirm('確定刪除？'))return;
   const res=await apiPost({action:'deleteAnnouncement',id});
@@ -2166,25 +2241,29 @@ function initStaffModal(){
 }
 
 async function updatePerm(email, chk){
+  if(chk.dataset.busy==='1') return;
+  chk.dataset.busy='1';
   const enable=chk.checked;
   const allChks=document.querySelectorAll(`[data-email="${email}"]`);
   const perms={};
   allChks.forEach(c=>{perms[c.dataset.perm]=c.checked;});
-
-  // 先存本機顯示狀態，避免切頁回來又變空白，造成管理員看不到剛剛勾的權限
   setStaffPermCache(email,perms);
-
-  const res=await apiPost({action:'updateStaffPerms',targetEmail:email,perms});
-  if(res.error){
-    toast('❌ '+res.error);
-    chk.checked=!enable;
-    const rollback={};
-    allChks.forEach(c=>{rollback[c.dataset.perm]=c.checked;});
-    setStaffPermCache(email,rollback);
-    return;
+  try{
+    const res=await apiPost({action:'updateStaffPerms',targetEmail:email,perms});
+    if(res.error){
+      toast('❌ '+res.error);
+      chk.checked=!enable;
+      const rollback={};
+      allChks.forEach(c=>{rollback[c.dataset.perm]=c.checked;});
+      setStaffPermCache(email,rollback);
+      return;
+    }
+    toast('權限已更新');
+  }finally{
+    chk.dataset.busy='0';
   }
-  toast('✅ 權限已更新');
 }
+
 
 function openAddStaffModal(){
   // 填入權限格
@@ -2223,26 +2302,25 @@ function openStaffModal(){
 async function saveStaff(){
   const email=$('sf_email').value.trim();const name=$('sf_name').value.trim();
   if(!email||!name){toast('請填寫 Email 與姓名');return;}
-  // 收集勾選的權限
   const perms={};
-  document.querySelectorAll('#sf_perms_grid input[type=checkbox]').forEach(c=>{
-    perms[c.dataset.perm]=c.checked;
-  });
+  document.querySelectorAll('#sf_perms_grid input[type=checkbox]').forEach(c=>{perms[c.dataset.perm]=c.checked;});
   const role=$('sf_role').value;
-  // 防呆：非超管但完全沒勾權限
   const anyPerm=Object.values(perms).some(v=>v);
   if(role!=='superadmin' && !anyPerm){
-    if(!confirm('你還沒勾選任何權限，這位管理員將無法操作任何功能。\n確定要這樣新增嗎？（建議至少勾一項）')) return;
+    if(!confirm('你還沒勾選任何權限，這位管理員將無法操作任何功能。
+確定要這樣新增嗎？（建議至少勾一項）')) return;
   }
-  // 收集限定場次
   const limitSessions=[];
-  document.querySelectorAll('#sf_sessions_grid input:checked').forEach(c=>{
-    limitSessions.push(c.dataset.sesid);
+  document.querySelectorAll('#sf_sessions_grid input:checked').forEach(c=>{limitSessions.push(c.dataset.sesid);});
+  const btn=getClickBtn();
+  return withBtnLock(btn,'新增中…',async()=>{
+    const res=await apiPost({action:'addStaff',targetEmail:email,targetName:name,role,perms,limitSessions});
+    if(res.error){toast('❌ '+res.error);return;}
+    setStaffPermCache(email,perms);
+    toast('✅ 已新增');closeModal('staffModal');loadStaff();
   });
-  const res=await apiPost({action:'addStaff',targetEmail:email,targetName:name,role,perms,limitSessions});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已新增');closeModal('staffModal');loadStaff();
 }
+
 
 async function resendStaffInvite(email){
   if(!confirm('重新寄送後台邀請通知給 '+email+'？'))return;
@@ -2472,12 +2550,16 @@ async function submitFinanceItem(){
   const name=$('f-add-name')?.value.trim();
   const amt=Number($('f-add-amt')?.value)||0;
   if(!name||!amt){toast('請填寫品項和金額');return;}
-  const res=await apiPost({action:'saveFinanceItem',sessionId:ST_finSesId,type:ST_finAddType,name,amount:amt,auto:false});
-  if(res.error){toast('錯誤: '+res.error);return;}
-  if($('f-add-form')) $('f-add-form').style.display='none';
-  toast('已新增');
-  await loadFinanceData();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'新增中…',async()=>{
+    const res=await apiPost({action:'saveFinanceItem',sessionId:ST_finSesId,type:ST_finAddType,name,amount:amt,auto:false});
+    if(res.error){toast('錯誤: '+res.error);return;}
+    if($('f-add-form')) $('f-add-form').style.display='none';
+    toast('已新增');
+    await loadFinanceData();
+  });
 }
+
 
 function printFinance(){
   window.print();
@@ -2541,6 +2623,80 @@ function switchFTab(name, el){
   if(name==='sesregs') renderSesRegsList();
 }
 
+
+// ── 總覽頁內展開財報 ──
+async function toggleInlineFinance(sesId, sesName){
+  if(!sesId) return;
+  if(ST.inlineFinanceSesId===sesId){
+    ST.inlineFinanceSesId='';
+    renderOverviewSessions();
+    return;
+  }
+  ST.inlineFinanceSesId=sesId;
+  ST.inlineFinanceCache[sesId]='<div style="padding:18px;text-align:center;color:#777">財報載入中…</div>';
+  renderOverviewSessions();
+  try{
+    const [regs, finItems] = await Promise.all([
+      apiPost({action:'getRegsBySession', sessionId:sesId}),
+      apiPost({action:'getFinance', sessionId:sesId})
+    ]);
+    if((regs&&regs.error)||(finItems&&finItems.error)) throw new Error('finance api error');
+    ST.inlineFinanceCache[sesId]=buildInlineFinanceHtml(sesId, sesName, regs||[], finItems||[]);
+  }catch(e){
+    console.error(e);
+    ST.inlineFinanceCache[sesId]='<div style="padding:14px;border-radius:10px;background:#fdecea;color:#c0392b;font-size:13px">財報載入失敗，請確認後端部署與權限。原本資料下載功能不受影響。</div>';
+  }
+  renderOverviewSessions();
+}
+function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
+  const paidRegs=(regs||[]).filter(r=>isPaidStatus(r.payStatus));
+  const pendingPay=(regs||[]).filter(r=>isPendingPayStatus(r.payStatus));
+  const incomeManual=(finItems||[]).filter(i=>(i['類型']||i.type)==='income').reduce((sum,i)=>sum+(Number(i['金額']||i.amount)||0),0);
+  const expenseManual=(finItems||[]).filter(i=>(i['類型']||i.type)==='expense').reduce((sum,i)=>sum+(Number(i['金額']||i.amount)||0),0);
+  const received=paidRegs.reduce((sum,r)=>sum+(Number(r.amount)||Number(r.totalAmount)||0),0);
+  const deposit=paidRegs.reduce((sum,r)=>sum+(Number(r.deposit)||0),0);
+  const income=received+incomeManual;
+  const net=income-expenseManual;
+  const equip={};
+  (regs||[]).forEach(r=>{
+    try{
+      const obj=JSON.parse(r.equip||'{}')||{};
+      Object.entries(obj).forEach(([k,v])=>{
+        const qty=Number(v)||0;
+        if(qty>0) equip[k]=(equip[k]||0)+qty;
+      });
+    }catch(e){}
+  });
+  const equipHtml=Object.keys(equip).length
+    ? Object.entries(equip).map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee"><span>${k}</span><strong>${v}</strong></div>`).join('')
+    : '<div style="color:#999;font-size:13px;padding:8px 0">目前沒有設備需求</div>';
+  const finHtml=(finItems||[]).length
+    ? (finItems||[]).slice(0,10).map(i=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee"><span>${(i['類型']||i.type)==='income'?'收入':'支出'}｜${i['品項']||i.name||''}</span><strong>${money(i['金額']||i.amount)}</strong></div>`).join('')
+    : '<div style="color:#999;font-size:13px;padding:8px 0">尚無手動財報項目</div>';
+  return `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:#4b256d">${sesName||'場次財報'}</div>
+        <div style="font-size:12px;color:#666;margin-top:2px">總覽頁內展開，不跳頁。資料來源為目前報名、付款與財報紀錄。</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="downloadSesData('${sesId}','${String(sesName||'場次').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700">下載完整資料</button>
+        <button onclick="toggleInlineFinance('${sesId}','${String(sesName||'').replace(/'/g,'')}')" style="background:#fff;border:1px solid #d8b4fe;color:#6b21a8;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700">收合</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:8px;margin-bottom:10px">
+      <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">已繳費筆數</div><div style="font-size:18px;font-weight:800;color:#1D9E75">${paidRegs.length}</div></div>
+      <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">待確認繳費</div><div style="font-size:18px;font-weight:800;color:#BA7517">${pendingPay.length}</div></div>
+      <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">已收費用</div><div style="font-size:18px;font-weight:800;color:#1D9E75">${money(received)}</div></div>
+      <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">試算淨額</div><div style="font-size:18px;font-weight:800;color:${net>=0?'#1D9E75':'#c0392b'}">${money(net)}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:13px;font-weight:800;margin-bottom:4px;color:#333">設備統計</div>${equipHtml}</div>
+      <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:13px;font-weight:800;margin-bottom:4px;color:#333">財報明細</div>${finHtml}</div>
+    </div>
+    <div style="font-size:11px;color:#777;margin-top:8px">押金小計：${money(deposit)}。若需逐筆驗算，請使用「下載完整資料」，設備會拆成獨立列。</div>`;
+}
+
 // ── 財報 Modal ──
 
 async function openFinanceModal(sesId, sesName, evName){
@@ -2598,15 +2754,20 @@ function renderSesRegsList(){
 
 // ── 補上缺少的三個函數 ──
 async function confirmPayById(payId){
-  // 從付款管理列表確認付款（payId 其實是 regId）
   if(!confirm('確認此筆付款？'))return;
-  const res=await apiPost({action:'confirmPayment',regId:payId,method:'手動確認'});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已確認付款');
-  if(typeof loadAllRegs==='function'){ await loadAllRegs(); }
-  if(typeof renderPaymentManagement==='function') renderPaymentManagement();
-  if(typeof renderRegs==='function') renderRegs();
+  const btn=getClickBtn();
+  return withBtnLock(btn,'確認中…',async()=>{
+    const res=await apiPost({action:'confirmPayment',regId:payId,method:'手動確認'});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已確認付款');
+    if(typeof loadAllRegs==='function'){ await loadAllRegs(); }
+    if(typeof renderPaymentManagement==='function') renderPaymentManagement();
+    if(typeof renderRegs==='function') renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverview();
+  });
 }
+
 
 function showFinAdd(type){
   // 顯示財報新增表單，type = 'income' 或 'expense'
