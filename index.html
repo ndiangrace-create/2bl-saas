@@ -58,24 +58,27 @@ img{display:block;max-width:100%}
 
 /* ── 分類按鈕 ── */
 .cats-section{padding:20px 16px 4px}
-.cats-title{font-size:11px;font-weight:700;color:var(--lt);letter-spacing:.12em;text-align:center;margin-bottom:14px}
+.cats-title{font-size:15px;font-weight:700;color:var(--md);letter-spacing:.08em;text-align:center;margin-bottom:16px}
 .cats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.cat-btn{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent}
+.cat-btn{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:18px 6px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent}
 .cat-btn:active{transform:scale(.95)}
 .cat-btn.active{border-color:var(--g);background:var(--gp)}
-.cat-btn img{width:48px;height:48px;object-fit:contain}
+.cat-btn img{width:64px;height:64px;object-fit:contain}
 .cat-btn .cat-emoji{font-size:32px;line-height:1}
-.cat-name{font-size:11px;font-weight:700;color:var(--dk);text-align:center;line-height:1.3}
-.cat-sub{font-size:9px;color:var(--md);text-align:center;line-height:1.3}
+.cat-name{font-size:15px;font-weight:700;color:var(--dk);text-align:center;line-height:1.3}
+.cat-sub{font-size:12px;color:var(--md);text-align:center;line-height:1.3}
 
 /* ── 主題活動 ── */
 .events-section{padding:20px 16px 8px}
 .section-hd{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px}
 .section-title{font-size:20px;font-weight:900;color:var(--dk);letter-spacing:.05em}
 .section-deco{font-size:14px;color:var(--g)}
-.events-scroll{display:flex;gap:12px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.events-scroll{display:flex;gap:14px;overflow-x:auto;padding:4px 4px 14px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;cursor:grab}
+.events-scroll::-webkit-scrollbar{height:8px}
+.events-scroll::-webkit-scrollbar-thumb{background:#cdd;border-radius:4px}
+.events-scroll:active{cursor:grabbing}
 .events-scroll::-webkit-scrollbar{display:none}
-.event-card{flex-shrink:0;width:150px;background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden;cursor:pointer;transition:transform .15s}
+.event-card{flex-shrink:0;width:160px;scroll-snap-align:start;background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden;cursor:pointer;transition:transform .15s}
 .event-card:active{transform:scale(.97)}
 .event-cover{position:relative;width:100%;aspect-ratio:1/1}
 .event-cover img{width:100%;height:100%;object-fit:cover}
@@ -167,7 +170,7 @@ textarea{min-height:72px;resize:vertical}
 .badge-no{background:var(--rdp);color:var(--rd)}
 
 /* ── 底部固定三按鈕 ── */
-.bottom-fixed{position:fixed;bottom:0;left:0;right:0;width:100%;max-width:640px;margin:0 auto;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
+.bottom-fixed{position:fixed;bottom:0;left:0;right:0;width:100%;max-width:720px;margin:0 auto;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
 .bot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:12px 6px;border-radius:14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;transition:all .15s}
 .bot-btn:active{transform:scale(.96)}
 .bot-line{background:#06C755;color:#fff;box-shadow:0 3px 10px rgba(6,199,85,.3)}
@@ -187,11 +190,16 @@ textarea{min-height:72px;resize:vertical}
 .modal-actions{display:flex;gap:10px;margin-top:18px}
 
 /* ── 首頁容器 ── */
+
+@media(max-width:520px){
+  .cats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .cat-btn img{width:56px;height:56px}
+}
 </style>
 </head>
 <body>
 <!-- ══ 首頁 ══ -->
-<div id="pageHome" class="page active" style="max-width:640px;margin:0 auto">
+<div id="pageHome" class="page active" style="max-width:720px;margin:0 auto">
 
   <!-- Hero -->
   <div class="hero">
@@ -280,7 +288,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 場次頁 ══ -->
-<div id="pageSession" class="page" style="max-width:640px;margin:0 auto">
+<div id="pageSession" class="page" style="max-width:720px;margin:0 auto">
   <div class="back-bar" onclick="backToHome()">
     <span class="arrow">←</span>
     <span class="title" id="sessionEventName">場次列表</span>
@@ -289,7 +297,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 報名表頁 ══ -->
-<div id="pageForm" class="page" style="max-width:640px;margin:0 auto">
+<div id="pageForm" class="page" style="max-width:720px;margin:0 auto">
   <div class="back-bar" onclick="backToSessions()">
     <span class="arrow">←</span>
     <span class="title" id="formBackTitle">報名表</span>
@@ -312,7 +320,7 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <!-- ══ 會員頁 ══ -->
-<div id="pageMember" class="page" style="max-width:640px;margin:0 auto">
+<div id="pageMember" class="page" style="max-width:720px;margin:0 auto">
   <div class="back-bar" onclick="navTo('home')">
     <span class="arrow">←</span>
     <span class="title">會員專區</span>
@@ -360,6 +368,7 @@ textarea{min-height:72px;resize:vertical}
           <div><label style="font-size:12px;color:var(--md)">品牌介紹</label><textarea id="editBrandIntro" placeholder="簡短介紹" style="height:60px"></textarea></div>
           <div><label style="font-size:12px;color:var(--md)">LINE ID</label><input type="text" id="editLineId"></div>
         </div>
+        <input type="hidden" id="editCompany"><input type="hidden" id="editTaxId"><input type="hidden" id="editInvoiceEmail"><input type="hidden" id="editCollabDesc">
         <button class="btn-p" onclick="saveMemberEdit()" style="width:100%">更新資料</button>
         <div id="saveSuccessMsg" style="display:none;text-align:center;color:var(--g);font-weight:700;padding:8px;font-size:14px">✓ 更新完成！</div>
       </div>
@@ -465,15 +474,15 @@ function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  const r=await fetch(API+'?'+qs);return r.json();
+  try{ const r=await fetch(API+'?'+qs); if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'fail'};} return await r.json(); }
+  catch(e){ toast&&toast('⚠️ 網路連線失敗'); return {error:'fail'}; }
 }
 async function apiPost(body){
-  const r=await fetch(API,{
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify(body),
-  });
-  return r.json();
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+    if(!r.ok){ toast&&toast('⚠️ 連線失敗'); return {error:'fail'}; }
+    return await r.json();
+  }catch(e){ toast&&toast('⚠️ 網路錯誤'); return {error:'fail'}; }
 }
 function closeModal(id){$(id).classList.remove('show');}
 function openLine(){window.open(LINE_URL,'_blank');}
@@ -506,7 +515,6 @@ function closeInlineSessions(){
   ST.sessions=[];
 }
 function backToSessions(){
-  navTo('home');
   $('pageForm').style.display='none';
   // 判斷從哪裡來的
   if($('portalSessionArea').style.display!=='none'){
@@ -520,20 +528,14 @@ function backToSessions(){
 
 // ── 首頁載入 ──
 async function loadHome(){
-  try {
-    const [events, allSes] = await Promise.all([
-      api({action:'getEvents'}),
-      api({action:'getSessions'}),
-    ]);
-    ST.events = Array.isArray(events) ? events : [];
-    ST.allSessionsData = Array.isArray(allSes) ? allSes : [];
-    if (events && events.error) toast('載入活動失敗：' + events.error);
-    if (allSes && allSes.error) toast('載入場次失敗：' + allSes.error);
-  } catch(e) {
-    toast('無法連線後端，請確認 API 網址');
-    ST.events = [];
-    ST.allSessionsData = [];
-  }
+  const [events, sessions] = await Promise.all([
+    api({action:'getEvents'}),
+    api({action:'getSessionDashboard', email:'', token:''}).catch(()=>({error:'no auth'})),
+  ]);
+  ST.events = events||[];
+  // 場次總覽用公開 getSessions
+  const allSes = await api({action:'getSessions'});
+  ST.allSessionsData = allSes||[];
   renderEvents();
   renderAllSessions();
 }
@@ -562,18 +564,19 @@ async function filterCat(type, el){
   }
   portalList.innerHTML=list.map(s=>{
     const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>d.date).join('/'):(s.date||'');
-    return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;margin-bottom:12px;cursor:pointer" onclick="openSession('${s.id}')">
-      ${s.cover
-        ?`<img src="${s.cover}" style="width:100%;aspect-ratio:2/1;object-fit:cover">`
-        :`<div style="width:100%;aspect-ratio:2/1;background:linear-gradient(135deg,var(--gp),#fff);display:flex;align-items:center;justify-content:center;font-size:40px">🎪</div>`}
-      <div style="padding:12px 14px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+    const thumb = s.cover
+      ?`<img src="${s.cover}" style="width:72px;height:72px;border-radius:10px;object-fit:cover;flex-shrink:0">`
+      :`<div style="width:72px;height:72px;border-radius:10px;background:linear-gradient(135deg,var(--gp),#fff);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0">🎪</div>`;
+    return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center">
+      ${thumb}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
           ${s.region?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${s.region}</span>`:''}
           <span style="font-size:15px;font-weight:700">${s.name}</span>
         </div>
-        <div style="font-size:12px;color:var(--md);margin-bottom:10px">${dateStr||''}　${s.limit>0?'共'+s.limit+'攤':'不限攤'}　${s.fee>0?'NT$'+s.fee:'免費'}</div>
-        <button onclick="event.stopPropagation();openSession('${s.id}')" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer">立即報名</button>
+        <div style="font-size:12px;color:var(--md)">${dateStr||''}　${s.limit>0?'共'+s.limit+'攤':'不限攤'}　${s.fee>0?'NT$'+s.fee:'免費'}</div>
       </div>
+      <button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">報名</button>
     </div>`;
   }).join('');
 }
@@ -596,6 +599,7 @@ function renderEvents(){
         <div class="event-more">查看詳情 →</div>
       </div>
     </div>`).join('');
+  setTimeout(enableDragScroll, 100);
 }
 
 // ── 活動→場次 ──
@@ -626,21 +630,17 @@ async function openEvent(eventId){
 function renderSessionCard(s, onclick=true){
   const full=s.limit>0&&s.count>=s.limit;
   const closed=s.status==='關閉'||full;
-  const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>`${d.date} ${d.start||''}${d.end?'–'+d.end:''}`).join(' / '):(s.date||'');
-  const clickFn=(!closed&&onclick)?`openSession('${s.id}')`:'';
-  return `<div class="session-card ${closed?'closed':''}" ${clickFn?`onclick="${clickFn}"`:'style="cursor:default"'}>
-    <div class="session-card-inner">
-      <div class="session-name">${s.name}</div>
-      <div class="session-tags">
-        ${s.region?`<span class="tag">📍 ${s.region}</span>`:''}
-        <span class="tag">${s.type}</span>
-        ${dateStr?`<span class="tag">${dateStr}</span>`:''}
-        ${s.venue?`<span class="tag">${s.venue}</span>`:''}
-        ${closed?`<span class="tag red">${full?'名額已滿':'已關閉'}</span>`:''}
+  const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>`${d.date}`).join(' / '):(s.date||'');
+  return `<div style="background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.06);padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+        ${s.region?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">📍 ${s.region}</span>`:''}
+        <span style="font-size:15px;font-weight:700">${s.name}</span>
+        ${closed?`<span style="background:#fde8e8;color:#c0392b;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${full?'名額已滿':'已關閉'}</span>`:''}
       </div>
-      <div class="session-fee">${s.fee>0?'NT$ '+s.fee:'免費'}</div>
-      
+      <div style="font-size:12px;color:var(--md)">${dateStr?dateStr+'　':''}${s.venue?s.venue+'　':''}${s.fee>0?'NT$ '+s.fee:'免費'}</div>
     </div>
+    ${!closed?`<button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">報名</button>`:''}
   </div>`;
 }
 
@@ -716,8 +716,8 @@ async function openSession(sessionId){
   const titleEl=$('formBackTitle');
   if(titleEl) titleEl.textContent=s.name||'報名表';
   $('inlineSessionArea').style.display='none';
-  $('portalSessionArea').style.display='none';
-  navTo('form');
+  $('pageForm').style.display='block';
+  $('pageForm').scrollIntoView({behavior:'smooth',block:'start'});
   renderDynForm(s);
   updateFee();
 }
@@ -740,7 +740,7 @@ function renderDynForm(s){
   }
   html+=`<label>姓名 *</label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="真實姓名">`;
   html+=`<div class="err" id="e_name"></div>`;
-  html+=`<label>手機 *</label><input type="tel" id="f_phone" value="${esc(V.phone||'')}" placeholder="09xxxxxxxx" inputmode="tel">`;
+  html+=`<label>手機 *</label><input type="tel" id="f_phone" value="${esc(String(V.phone||''))}" placeholder="09xxxxxxxx" inputmode="tel">`;
   html+=`<div class="err" id="e_phone"></div>`;
   html+=`<label>Email *</label><input type="email" id="f_email" value="${esc(ST.memberEmail||V.email||'')}" placeholder="your@email.com" inputmode="email">`;
   html+=`<div class="err" id="e_email"></div>`;
@@ -764,16 +764,14 @@ function renderDynForm(s){
     }
   }
 
-  // 攤位加購數量
-  if(s.maxStalls>0){
-    const maxS=s.maxStalls||3;
-    html+=`<label style="font-size:16px;font-weight:700">租幾攤？（最多 ${maxS} 攤）</label>
-    <div class="stall-counter" style="margin-top:8px">
-      <button onclick="adjStall(-1)" style="font-size:28px;padding:14px 24px">－</button>
-      <div class="stall-num" id="stallNum" style="font-size:26px;min-width:60px">1</div>
-      <button onclick="adjStall(1)" style="font-size:28px;padding:14px 24px">＋</button>
+  // 攤位加購數量（永遠顯示，預設最多3攤）
+  const maxS = s.maxStalls>0 ? s.maxStalls : 3;
+  html+=`<label style="font-size:16px;font-weight:700;margin-top:14px;display:block">租幾攤？（最多 ${maxS} 攤）</label>
+    <div class="stall-counter" style="margin-top:8px;display:flex;align-items:center;gap:16px;justify-content:center">
+      <button type="button" onclick="adjStall(-1,${maxS})" style="font-size:28px;padding:10px 22px;border:1px solid #ccc;border-radius:10px;background:#f7f7f7;cursor:pointer">－</button>
+      <div class="stall-num" id="stallNum" style="font-size:26px;min-width:50px;text-align:center;font-weight:700">1</div>
+      <button type="button" onclick="adjStall(1,${maxS})" style="font-size:28px;padding:10px 22px;border:1px solid #ccc;border-radius:10px;background:#f7f7f7;cursor:pointer">＋</button>
     </div>`;
-  }
   html+=`</div></div>`;
 
   // 品牌資料（自動帶出會員資料）
@@ -802,12 +800,10 @@ function renderDynForm(s){
     html+=`<label>FB 粉絲專頁</label>`;
     html+=`<div style="display:flex;align-items:center;gap:8px">`;
     html+=`<input type="url" id="f_fb" value="${esc(V.fb||'')}" placeholder="https://facebook.com/..." style="flex:1">`;
-    if(V.fb) html+=`<a href="${esc(V.fb)}" target="_blank" style="background:#1877F2;color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;text-decoration:none;white-space:nowrap;flex-shrink:0">開啟 ↗</a>`;
     html+=`</div>`;
     html+=`<label>IG 帳號</label>`;
     html+=`<div style="display:flex;align-items:center;gap:8px">`;
     html+=`<input type="url" id="f_ig" value="${esc(V.ig||'')}" placeholder="https://instagram.com/..." style="flex:1">`;
-    if(V.ig) html+=`<a href="${esc(V.ig)}" target="_blank" style="background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;text-decoration:none;white-space:nowrap;flex-shrink:0">開啟 ↗</a>`;
     html+=`</div>`;
     html+=`</div></div>`;
   }
@@ -869,17 +865,21 @@ function renderDynForm(s){
     html+=`</div></div>`;
   }
 
-  // 設備加購
+  // 設備（總共需要幾張，內含免費，超過加購）
   const equipOpen=Object.entries(s.equip||{}).filter(([k,v])=>v&&v.open);
   if(equipOpen.length>0){
-    html+=`<div class="fcard"><div class="fcard-t">🪑 設備加購（選填）</div><div class="fcard-body">`;
+    const stallN=ST.stallCount||1;
+    html+=`<div class="fcard"><div class="fcard-t">🪑 設備需求</div><div class="fcard-body"><div style="font-size:12px;color:#888;margin-bottom:8px">請填「總共需要幾張」。每攤內含的數量免費，超過的部分才加購；少於內含或自備也可以調低。</div>`;
     equipOpen.forEach(([k,v])=>{
       const def=EQUIP_LIST_DEFS[k]||{icon:'📦'};
+      const incl=(v.incl||0)*stallN;
+      // 預設帶內含數量
+      if(ST.equipQty[k]===undefined) ST.equipQty[k]=incl;
       html+=`<div class="equip-row">
-        <div class="equip-info"><div class="equip-name">${def.icon} ${k}</div><div class="equip-price">NT$ ${v.price}/件</div></div>
+        <div class="equip-info"><div class="equip-name">${def.icon} ${k}</div><div class="equip-price">${incl>0?'內含 '+incl+' 件，':''}超過 NT$ ${v.price}/件</div></div>
         <div class="equip-ctrl">
           <button class="eq-btn" onclick="adjEquip('${k}',-1)">−</button>
-          <div class="eq-num" id="eq_num_${k}">0</div>
+          <div class="eq-num" id="eq_num_${k}">${ST.equipQty[k]}</div>
           <button class="eq-btn" onclick="adjEquip('${k}',1)">＋</button>
         </div>
       </div>`;
@@ -972,7 +972,7 @@ async function quickMemberLogin(){
 }
 function adjStall(delta){
   const s=ST.currentSession;
-  const max=s?.maxStalls||1;
+  const max=(s&&s.maxStalls>0)?s.maxStalls:3;
   const cur=ST.stallCount||1;
   const next=Math.min(max,Math.max(1,cur+delta));
   ST.stallCount=next;
@@ -1002,7 +1002,7 @@ function adjAddon(i,delta){
 }
 function adjEquip(k,delta){
   const cur=ST.equipQty[k]||0;
-  const next=Math.max(0,Math.min(10,cur+delta));
+  const next=Math.max(0,Math.min(50,cur+delta));
   ST.equipQty[k]=next;
   const el=document.getElementById('eq_num_'+k);
   if(el)el.textContent=next;
@@ -1012,7 +1012,7 @@ function adjEquip(k,delta){
 function updateFee(){
   const s=ST.currentSession; if(!s)return;
   const stalls=ST.stallCount||1;
-  const dep=(s.deposit||0)*stalls;
+  const dep=(s.deposit||0);  // 保證金固定，不乘攤數
   // 計算日期費用
   let fee=0;
   const dates=s.dates||[];
@@ -1030,7 +1030,12 @@ function updateFee(){
   }
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
-    if(v&&v.open&&ST.equipQty[k]) equipTotal+=(v.price||0)*ST.equipQty[k];
+    if(v&&v.open){
+      const incl=(v.incl||0)*stalls;
+      const want=ST.equipQty[k]||0;
+      const extra=Math.max(0, want-incl);  // 只算超過內含的部分
+      equipTotal+=(v.price||0)*extra;
+    }
   });
   let addonTotal=0;
   (s.addons||[]).forEach((a,i)=>{
@@ -1077,6 +1082,7 @@ async function submitReg(){
     remark:$('f_remark')?.value.trim()||'',
     stallNumber:ST.selectedStall||'',
     customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+    customFields:{},
   };
   try{
     const res=await apiPost(body);
@@ -1085,12 +1091,14 @@ async function submitReg(){
     ST.memberEmail=email;
     const updatedMember=await api({action:'getMember',email});
     if(updatedMember&&!updatedMember.error) ST.member=updatedMember;
-    $('pageForm').style.display='none';
+    $('pageForm').style.display='none'
+    if(res&&res.regId&&(s.fee||0)>0){
+      setTimeout(()=>showPayPage(res.regId, s.name||'', res.totalAmount||s.fee||0), 600);
+    };
     window.scrollTo(0,0);
-    const regId = res.regId || res.id;
-    const payAmount = res.totalAmount || res.total || 0;
-    if(regId && payAmount > 0 && res.status === '已錄取'){
-      setTimeout(()=>showPayPage(regId, s.name||'', payAmount), 600);
+    // 若有費用，跳到繳費
+    if(res.regId && (s.fee||0) > 0){
+      setTimeout(()=>showPayPage(res.regId, s.name, res.totalAmount||s.fee||0), 500);
     }
   }catch(e){toast('網路錯誤，請重試');}
   btn.disabled=false;btn.textContent='送出報名';
@@ -1156,9 +1164,8 @@ async function renderMyRegs(regs){
     try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
     const stalls=r.stallCount||1;
     const statusColor={待審核:'#b7860b',已錄取:'#2d6a4f',不錄取:'#c0392b'}[r.status]||'#888';
-    const paid = String(r.payStatus||'').replace(/\s/g,'').includes('已繳費');
-    const canPay=r.status==='已錄取'&&!paid&&r.amount>0;
-    const paidTag=paid
+    const canPay=r.status==='已錄取'&&r.payStatus!=='已繳費 ✓'&&r.amount>0;
+    const paidTag=r.payStatus==='已繳費 ✓'
       ?'<span style="background:#e8f7ee;color:#2d6a4f;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700">已繳費</span>'
       :r.payStatus==='待確認'
       ?'<span style="background:#fff8e1;color:#b7860b;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700">待確認</span>'
@@ -1176,8 +1183,26 @@ async function renderMyRegs(regs){
         ${paidTag}
         ${canPay?`<button onclick="showPayPage('${r.id}','${sesName}',${r.amount})" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">去繳費</button>`:''}
       </div>
+      ${r.status!=='不錄取'&&r.status!=='已取消'?`<div style="margin-top:8px;text-align:right">
+        <button onclick="cancelMyReg('${r.id}','${sesName}')" style="background:#fff;color:#c0392b;border:1px solid #e8b5b5;border-radius:8px;padding:5px 12px;font-size:11px;cursor:pointer">取消報名</button>
+      </div>`:''}
     </div>`;
   }).join('');
+}
+
+
+
+async function cancelMyReg(regId, sesName){
+  const rule = '【取消報名規範】\n\n' +
+    '1. 審核中或錄取後未繳費：可直接取消，名額釋出。\n' +
+    '2. 已繳費後取消：費用依本公司退費辦法處理，押金全額退還。\n' +
+    '3. 活動前 7 天內取消：恕不退還已繳費用。\n\n' +
+    '確定要取消「' + sesName + '」的報名嗎？';
+  if(!confirm(rule)) return;
+  const res = await apiPost({action:'cancelReg', regId, email: ST.member?.email||''});
+  if(res.error){ toast('❌ '+res.error); return; }
+  toast('✅ 已取消報名');
+  if(typeof loadMyRegs==='function') await loadMyRegs();
 }
 
 // ── 繳費流程 ──
@@ -1193,7 +1218,9 @@ function showPayPage(regId, sesName, amount){
     <div style="font-size:12px;color:#888;margin-top:4px">請於錄取後一週內完成繳費，逾期名額將釋出</div>`;
   ST_currentPayAmount = amount;
   $('payAmount').value = amount;
+  if($('payAmountLine')) $('payAmountLine').value = amount;
   $('payLastFive').value = '';
+  if($('payLastFiveLine')) $('payLastFiveLine').value = '';
   $('payModal').classList.add('show');
 }
 
@@ -1232,8 +1259,12 @@ async function goEcpay(){
 }
 
 async function submitPaymentForm(method){
-  const lastFive = $('payLastFive').value.trim();
-  const amount = $('payAmount').value;
+  const lastFive = method==='LINE Pay' && $('payLastFiveLine')
+    ? $('payLastFiveLine').value.trim()
+    : $('payLastFive').value.trim();
+  const amount = method==='LINE Pay' && $('payAmountLine')
+    ? $('payAmountLine').value
+    : $('payAmount').value;
 
   if(!lastFive){toast('請填寫末五碼');return;}
   if(!amount){toast('請填寫金額');return;}
@@ -1347,11 +1378,11 @@ async function saveMemberEdit(){
     fb:$('editFb').value.trim(),
     ig:$('editIg').value.trim(),
     photo:$('editPhoto').value.trim(),
-    company:$('editCompany').value.trim(),
-    taxId:$('editTaxId').value.trim(),
-    invoiceEmail:$('editInvoiceEmail').value.trim(),
+    company:$('editCompany')?.value.trim()||'',
+    taxId:$('editTaxId')?.value.trim()||'',
+    invoiceEmail:$('editInvoiceEmail')?.value.trim()||'',
     collabUrl:$('editCollabUrl').value.trim(),
-    collabDesc:$('editCollabDesc').value.trim()};
+    collabDesc:$('editCollabDesc')?.value.trim()||''};
   const res=await apiPost(body);
   if(res.error){toast('❌ '+res.error);return;}
   // 顯示成功訊息
@@ -1376,6 +1407,23 @@ function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 // ── 初始化 ──
 // v1780560027
 loadHome();
+
+// ── 電腦版滑鼠拖曳橫向滑動 ──
+function enableDragScroll(){
+  const el = document.querySelector('.events-scroll');
+  if(!el || el.__dragBound) return;
+  el.__dragBound = true;
+  let isDown=false, startX, scrollLeft;
+  el.addEventListener('mousedown', e=>{ isDown=true; startX=e.pageX-el.offsetLeft; scrollLeft=el.scrollLeft; });
+  el.addEventListener('mouseleave', ()=>{ isDown=false; });
+  el.addEventListener('mouseup', ()=>{ isDown=false; });
+  el.addEventListener('mousemove', e=>{
+    if(!isDown) return;
+    e.preventDefault();
+    const x=e.pageX-el.offsetLeft;
+    el.scrollLeft = scrollLeft - (x-startX)*1.5;
+  });
+}
 </script>
 </body>
 </html>

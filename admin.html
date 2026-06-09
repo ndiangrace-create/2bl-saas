@@ -38,7 +38,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);mi
 
 /* ── 手機版底部 Tab Bar ── */
 .admin-bottom-bar{display:block;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;z-index:200;padding:6px 0 calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.06)}
-.admin-tab-row{display:flex;justify-content:space-around;align-items:center;max-width:640px;margin:0 auto}
+.admin-tab-row{display:flex;justify-content:space-around;align-items:center;max-width:1100px;margin:0 auto}
 .admin-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--md);font-size:12px;font-family:inherit;transition:color .15s}
 .admin-tab.active{color:var(--g)}
 .admin-tab-icon{font-size:24px;line-height:1}
@@ -138,14 +138,14 @@ textarea{min-height:64px;resize:vertical}
 /* ── 捲軸表格包裝 ── */
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
-/* ── 手機 sidebar ── */
-
-  
+/* ── 手機版表單 ── */
+@media(max-width:640px){
   .form-row{grid-template-columns:1fr}
   .mod-grid{grid-template-columns:1fr}
   .ses-table,.reg-table{font-size:12px}
 }
-.main{padding:16px 16px 80px;max-width:800px;margin:0 auto;overflow-x:hidden}
+.modal-box{background:#fff;border-radius:16px;width:min(94vw,680px);padding:20px;box-shadow:0 8px 40px rgba(0,0,0,.18)}
+.main{padding:16px 20px 90px;max-width:1100px;margin:0 auto;overflow-x:auto}
 .tab-page{display:none}
 .tab-page.active{display:block}
 </style>
@@ -214,7 +214,11 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <div id="page-regs" class="tab-page">
-  <div class="page-title">報名審核</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <div class="page-title" id="regsTitle" style="margin:0;flex:1">報名審核</div>
+    <button id="regsBackBtn" class="btn btn-s btn-sm" style="display:none" onclick="ST._filterSesId=null;ST._showAllRegStatus=false;this.style.display='none';renderRegs()">返回全部</button>
+  </div>
+  <select id="regSesFilter" onchange="ST._filterSesId=null;renderRegs()" style="width:100%;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;margin-bottom:8px;background:#fff"><option value="">所有場次</option></select>
   <!-- 搜尋 -->
   <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email" oninput="ST._filterSesId=null;renderRegs()" style="margin-bottom:10px">
   <div id="regCount" style="font-size:12px;color:var(--md);margin-bottom:8px"></div>
@@ -242,6 +246,7 @@ textarea{min-height:64px;resize:vertical}
   <div id="checkinBody" style="display:none">
     <!-- 統計 -->
     <div id="checkinStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px"></div>
+  <div id="checkinEquipTotal"></div>
     <!-- 搜尋 -->
     <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/電話/Email/攤位" oninput="filterCheckinList()" style="margin-bottom:10px;font-size:14px;padding:10px">
     <!-- 篩選 -->
@@ -267,6 +272,9 @@ textarea{min-height:64px;resize:vertical}
   <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">📢 公告管理</div>
   <button class="btn btn-g btn-sm" onclick="openAnnModal()" style="margin-bottom:10px">＋ 新增公告</button>
   <div id="announceList" style="margin-bottom:24px"></div>
+
+  <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">💰 付款回報</div>
+  <div id="paymentsBody2" style="margin-bottom:24px"></div>
 </div>
 
 </div><!-- /main -->
@@ -367,7 +375,7 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：活動 ══ -->
-<div class="overlay" id="eventModal" onclick="if(event.target===this)closeModal('eventModal')">
+<div class="overlay" id="eventModal">
   <div class="modal">
     <div class="modal-title" id="evModalTitle">新增活動</div>
     <input type="hidden" id="em_id">
@@ -389,7 +397,7 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：場次 ══ -->
-<div class="overlay" id="sesModal" onclick="if(event.target===this)closeModal('sesModal')">
+<div class="overlay" id="sesModal">
   <div class="modal">
     <div class="modal-title" id="sesModalTitle">新增場次</div>
     <input type="hidden" id="sm_id">
@@ -444,15 +452,17 @@ textarea{min-height:64px;resize:vertical}
     <div class="form-row">
       <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"></div>
       <div>
-  <label>租攤設定</label>
+  <label>開放選位（付費選項）</label>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-    <input type="checkbox" id="sm_enableStalls" style="width:16px;height:16px;accent-color:var(--g)">
-    <span style="font-size:13px">開放選擇租攤數</span>
+    <input type="checkbox" id="sm_enableStalls" onchange="toggleStallConfig(this.checked)" style="width:18px;height:18px;accent-color:var(--g)">
+    <span style="font-size:13px">開放攤主自選攤位（付款後鎖定，未付款2日內釋出）</span>
   </div>
-  <div id="sm_stallsConfig" style="display:none;margin-top:6px">
-    <label style="font-size:12px;color:var(--md)">最多租幾攤</label>
-    <input type="number" id="sm_maxStalls" value="3" inputmode="numeric" placeholder="例：3">
+  <div id="sm_stallsConfig" style="display:none;margin-top:8px;padding:10px;background:#f7faf8;border-radius:8px">
+    <label style="font-size:12px;color:var(--md);display:block">攤位號碼清單（用逗號分隔，對應你的場地圖，例：A1,A2,A3）</label>
+    <input type="text" id="sm_stallNumbers" placeholder="A1,A2,A3,B1,B2" style="margin-top:4px">
+    <div id="stallPreview" style="margin-top:6px;font-size:12px;color:var(--md)"></div>
   </div>
+  <input type="hidden" id="sm_maxStalls" value="0">
 </div>
     </div>
     <div class="form-row">
@@ -547,6 +557,11 @@ textarea{min-height:64px;resize:vertical}
       <div id="stallConfigPreview" style="font-size:12px;color:var(--lt)">尚未設定攤位清單</div>
     </div>
 
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">指派管理員（可選）</div>
+      <div id="sm_assignStaff" style="font-size:13px;color:var(--md)"></div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('sesModal')" style="flex:1">取消</button>
       <button class="btn btn-g" onclick="saveSession()" style="flex:2">儲存場次</button>
@@ -584,7 +599,7 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：公告 ══ -->
-<div class="overlay" id="annModal" onclick="if(event.target===this)closeModal('annModal')">
+<div class="overlay" id="annModal">
   <div class="modal">
     <div class="modal-title">公告</div>
     <input type="hidden" id="ann_id">
@@ -615,7 +630,7 @@ textarea{min-height:64px;resize:vertical}
 </div>
 
 <!-- ══ Modal：新增管理員 ══ -->
-<div class="overlay" id="staffModal" onclick="if(event.target===this)closeModal('staffModal')">
+<div class="overlay" id="staffModal">
   <div class="modal">
     <div class="modal-title">新增管理員</div>
     <label>Email *</label><input type="email" id="sf_email" inputmode="email">
@@ -626,10 +641,18 @@ textarea{min-height:64px;resize:vertical}
       <option value="superadmin">超級管理員（全部權限）</option>
     </select>
     <div id="sf_perms_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
-      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:8px">開放權限</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sf_sessions_grid">
-      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:8px">開放權限</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="sf_perms_grid"></div>
     </div>
+    <div id="sf_sessions_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
+      <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:8px">限定場次（不勾=可管理全部場次）</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:6px;max-height:200px;overflow-y:auto" id="sf_sessions_grid"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn" style="flex:1;background:#eee;color:#333" onclick="closeModal('staffModal')">取消</button>
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveStaff()">儲存</button>
+    </div>
+  </div>
 </div><!-- end modal -->
 
 <script>
@@ -667,16 +690,26 @@ function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  const r=await fetch(API+'?'+qs);return r.json();
+  try{
+    const r=await fetch(API+'?'+qs);
+    if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')：請確認 Apps Script 已正確部署'); return {error:'連線失敗 '+r.status}; }
+    return await r.json();
+  }catch(e){ toast('⚠️ 無法連線後端，請確認部署網址'); return {error:'連線失敗'}; }
 }
 async function apiPost(body){
-  const r=await fetch(API,{method:'POST',body:JSON.stringify({...body,email:ST.email,token:ST.token})});
-  return r.json();
+  try{
+    const r=await fetch(API,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({...body,email:ST.email,token:ST.token})
+    });
+    if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
+    return await r.json();
+  }catch(e){ toast('⚠️ 無法連線後端'); return {error:'連線失敗'}; }
 }
 function closeModal(id){$(id).classList.remove('show');}
 function openModal(id){$(id).classList.add('show');}
 function esc(s){return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');}
-function isPaidStatus(s){return String(s||'').replace(/\s/g,'').replace('✓','').includes('已繳費');}
 
 function toggleSb(){
   $('sidebar').classList.toggle('open');
@@ -757,7 +790,7 @@ async function loadCheckinRegs(){
   if(!sesId){$('checkinBody').style.display='none';return;}
   $('checkinBody').style.display='block';
   $('checkinList').innerHTML='<div style="text-align:center;padding:20px;color:#aaa">載入中...</div>';
-  const regs=await apiPost({action:'getRegsBySession',sessionId:sesId});
+  const regs=await api({action:'getRegsBySession',sessionId:sesId,email:ST.email,token:ST.token});
   ST_checkinRegs=regs||[];
   updateCheckinStats();
   filterCheckinList();
@@ -782,6 +815,23 @@ function updateCheckinStats(){
       <div style="font-size:18px;font-weight:900;color:var(--rd)">NT$${depositTotal}</div>
       <div style="font-size:11px;color:var(--md)">應退押金</div>
     </div>`;
+  // 設備需求總計（這場要準備多少桌椅）
+  const equipTotal={};
+  ST_checkinRegs.forEach(r=>{
+    try{
+      const eq=JSON.parse(r.equip||'{}');
+      Object.entries(eq).forEach(([k,v])=>{ if(v>0) equipTotal[k]=(equipTotal[k]||0)+Number(v); });
+    }catch(e){}
+  });
+  const equipEl=$('checkinEquipTotal');
+  if(equipEl){
+    const items=Object.entries(equipTotal).filter(([k,v])=>v>0);
+    if(items.length){
+      equipEl.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;margin-top:10px"><div style="font-size:13px;font-weight:700;color:#9a3412;margin-bottom:6px">📦 本場設備需求總計（要準備/租借的數量）</div><div style="font-size:15px;font-weight:700;color:#7c2d12">'+items.map(([k,v])=>k+' '+v+' 件').join('　')+'</div></div>';
+    } else {
+      equipEl.innerHTML='';
+    }
+  }
 }
 
 function filterCheckinList(){
@@ -939,12 +989,13 @@ function renderOverviewSessions(){
       <tbody>${sessions.map(s=>{
         const ev=ev_map[s.eventId]||{};
         const dateStr=s.dates&&s.dates.length?s.dates.map(d=>d.date).join('/'):(s.date||'');
-        // 設備：顯示該場次開放的設備品項及數量
+        // 設備需求總計（已錄取/已繳費的攤主實際要的桌椅）
         let equipStr='-';
-        try{
-          const defs=JSON.parse(s.equipDefs||'[]');
-          if(defs.length) equipStr=defs.map(d=>d.name+(d.qty?'×'+d.qty:'')).join(' ');
-        }catch(e){}
+        const need=s.equipNeed||{};
+        const needItems=Object.entries(need).filter(([k,v])=>v>0);
+        if(needItems.length){
+          equipStr=needItems.map(([k,v])=>k+'×'+v).join(' ');
+        }
         const cover=s.cover||ev.cover||'';
         return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
           <td style="padding:7px 6px">
@@ -961,17 +1012,17 @@ function renderOverviewSessions(){
             <span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:500;cursor:pointer;font-size:13px">${s.total||0}</span>
           </td>
           <td style="padding:7px 6px;text-align:center">
-            <span onclick="goToSesRegs('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;font-size:13px">${s.pending||0}</span>
+            <span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;font-size:13px">${s.pending||0}</span>
           </td>
-          <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:500;color:#1D9E75">${s.paid||0}</td>
+          <td style="padding:7px 6px;text-align:center"><span onclick="goToSesCheckin('${s.id}')" style="font-size:13px;font-weight:500;color:#1D9E75;cursor:pointer;text-decoration:underline">${s.paid||0}</span></td>
           <td style="padding:7px 6px;font-size:11px;color:#555;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${equipStr}</td>
           <td style="padding:7px 6px;text-align:right;font-size:12px;font-weight:500;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
-            <button onclick="editSes('${s.id}')" title="編輯報名表設定" style="background:#f0f0f0;border:0.5px solid #e0e0e0;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">✏️</button>
-            <button onclick="downloadSesData('${s.id}','${s.name}')" title="下載全部資料" style="background:#E6F1FB;border:0.5px solid #b3d4f5;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">⬇️</button>
-            <button onclick="openFinanceModal('${s.id}','${s.name}','${ev.title||''}')" title="財報" style="background:#fdf4ff;border:0.5px solid #ddd5fe;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:13px;margin:0 2px">💰</button>
+            <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">編輯</button>
+            <button onclick="downloadSesData('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">下載</button>
+            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,'')" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">財報</button>
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -1015,6 +1066,7 @@ async function loadAllData(){
   ST.events=evts||[];
   ST.sdData=sd||[];
   fillEventSelects();
+  fillRegSessionFilter();
   renderOverviewCards();
   await loadAllRegs();
   // 載入管理員清單供指派用
@@ -1043,6 +1095,13 @@ function fillEventSelects(){
     const blank=id==='sm_eventId'?'<option value="">請選擇活動</option>':'<option value="">所有活動</option>';
     el.innerHTML=blank+opts;
   });
+}
+function fillRegSessionFilter(){
+  const sel=$('regSesFilter');
+  if(!sel) return;
+  const cur=sel.value||'';
+  sel.innerHTML='<option value="">所有場次</option>'+(ST.sdData||[]).map(s=>`<option value="${s.id}">${s.region?'['+s.region+'] ':''}${s.name}</option>`).join('');
+  if(cur) sel.value=cur;
 }
 
 // ── 場次總覽 ──
@@ -1234,12 +1293,18 @@ function buildModGrid(mods){
 }
 function buildEquipDefs(equipObj){
   $('equipDefs').innerHTML=EQUIP_LIST.map(eq=>`
-    <div class="equip-def">
-      <div class="equip-def-name">${eq.icon} ${eq.k}</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <input type="checkbox" id="eq_open_${eq.k}" ${equipObj[eq.k]?.open?'checked':''} style="width:16px;height:16px;accent-color:var(--g)">
-        <span style="font-size:11px;color:var(--lt)">開放</span>
-        <input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" class="equip-def-price" inputmode="numeric" placeholder="單價">
+    <div class="equip-def" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #f5f5f5">
+      <label style="display:flex;align-items:center;gap:4px;min-width:90px;cursor:pointer">
+        <input type="checkbox" id="eq_open_${eq.k}" ${equipObj[eq.k]?.open?'checked':''} style="width:18px;height:18px;accent-color:var(--g)">
+        <span style="font-size:14px;font-weight:600">${eq.icon} ${eq.k}</span>
+      </label>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:11px;color:var(--lt)">每攤內含</span>
+        <input type="number" id="eq_incl_${eq.k}" value="${equipObj[eq.k]?.incl||0}" inputmode="numeric" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:11px;color:var(--lt)">超過單價</span>
+        <input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" inputmode="numeric" placeholder="單價" style="width:60px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
       </div>
     </div>`).join('');
 }
@@ -1251,8 +1316,14 @@ function updateModPresets(){
 function getModulesJson(){
   const obj={};MOD_DEFS.forEach(d=>{obj[d.k]=!!$('mod_'+d.k)?.checked;});return obj;
 }
+
+function toggleStallConfig(checked){
+  const cfg=$('sm_stallsConfig');
+  if(cfg) cfg.style.display=checked?'block':'none';
+}
+
 function getEquipJson(){
-  const obj={};EQUIP_LIST.forEach(eq=>{obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked,price:parseInt($('eq_price_'+eq.k)?.value)||0};});return obj;
+  const obj={};EQUIP_LIST.forEach(eq=>{obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked,price:parseInt($('eq_price_'+eq.k)?.value)||0,incl:parseInt($('eq_incl_'+eq.k)?.value)||0};});return obj;
 }
 
 function quickAddEvent(){
@@ -1336,6 +1407,13 @@ function previewSesCover(url){
 // ── 多日期時段 ──
 let dateSlotIdx=0;
 function addDateSlot(date='',start='10:00',end='18:00',fee=0){
+  // 正規化日期格式為 YYYY-MM-DD（date input 只接受這格式）
+  if(date){
+    date=String(date).slice(0,10).replace(/\//g,'-');
+    // 處理可能的 ISO 格式或其他
+    const m=date.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) date=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  }
   const idx=dateSlotIdx++;
   const div=document.createElement('div');
   div.id='ds_'+idx;
@@ -1427,7 +1505,7 @@ function getAddons(){
 }
 async function editSes(id){
   // 強制從 API 取完整資料確保地區/日期等新欄位有帶出
-  const s=await apiPost({action:'getSession',id});
+  const s=await api({action:'getSession',id,email:ST.email,token:ST.token});
   if(!s||s.error){toast('❌ '+(s?.error||'找不到場次'));return;}
   resetSesModal();
   $('sm_id').value=s.id;
@@ -1439,10 +1517,10 @@ async function editSes(id){
   $('sm_fee').value=Math.max(0,Number(s.fee)||0);
   $('sm_deposit').value=Math.max(0,Number(s.deposit)||0);
   $('sm_limit').value=Math.max(0,Number(s.limit)||0);
-  const hasStalls=s.maxStalls>0;
-  $('sm_enableStalls').checked=hasStalls;
+  const hasStalls=(s.stallList&&s.stallList.length>0)||s.enableStalls;
+  $('sm_enableStalls').checked=!!hasStalls;
   $('sm_stallsConfig').style.display=hasStalls?'block':'none';
-  $('sm_maxStalls').value=s.maxStalls||3;
+  if($('sm_maxStalls')) $('sm_maxStalls').value=0;
   $('sm_organizer').value=s.organizer||'';
   $('sm_coorg').value=s.coorg||'';
   $('sm_basicEquip').value=s.basicEquip||'';
@@ -1578,8 +1656,8 @@ function onRegEventChange(){
   loadRegs();
 }
 async function loadRegs(){
-  const evId=$('regEventFilter').value;
-  const sesId=$('regSesFilter').value;
+  const evId=$('regEventFilter')?.value||'';
+  const sesId=$('regSesFilter')?.value||'';
   let list=ST.allRegs;
   if(sesId) list=list.filter(r=>r.sessionId===sesId);
   else if(evId) list=list.filter(r=>r.eventId===evId);
@@ -1939,13 +2017,13 @@ async function deleteAnn(id){
 const PERM_DEFS=[
   {k:'view_regs',label:'查看報名'},
   {k:'review',label:'審核報名'},
-  {k:'checkin',label:'現場報到'},
   {k:'pay',label:'確認付款'},
+  {k:'checkin',label:'現場報到'},
   {k:'sessions',label:'管理場次'},
   {k:'events',label:'管理活動'},
+  {k:'finance',label:'財報記帳'},
   {k:'notify',label:'發送通知'},
   {k:'announce',label:'管理公告'},
-  {k:'admin',label:'管理員帳號'},
 ];
 
 async function loadStaff(){
@@ -1954,14 +2032,14 @@ async function loadStaff(){
   if(!(list||[]).length){el.innerHTML='<div style="color:var(--lt)">無管理員</div>';return;}
   el.innerHTML=(list||[]).map(s=>{
     let perms={};
-    try{perms=JSON.parse(s.permsJson||s.role==='superadmin'?'{}':s.permsJson||'{}');}catch(e){}
+    try{perms=JSON.parse(s.permsJson||'{}');}catch(e){perms={};}
     const isSuperAdmin=s.role==='superadmin';
     const limitStr=s.limitSessions&&s.limitSessions.length?
       '<div style="font-size:11px;color:var(--yl);margin-top:4px">限定場次：'+s.limitSessions.length+'個</div>':'';
     const permHtml=isSuperAdmin
       ?'<div style="font-size:11px;color:var(--g);margin-top:4px">超級管理員（全部權限）</div>'
-      :PERM_DEFS.map(p=>`<label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;margin:2px 4px 2px 0;cursor:pointer">
-          <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${perms[p.k]||isSuperAdmin?'checked':''} style="width:12px;height:12px;accent-color:var(--g)" onchange="updatePerm('${s.email}',this)">
+      :PERM_DEFS.map(p=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:13px;margin:4px 10px 4px 0;cursor:pointer;padding:4px 8px;background:#f7f7f7;border-radius:6px">
+          <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${(perms[p.k]||isSuperAdmin)?'checked':''} style="width:18px;height:18px;accent-color:var(--g);cursor:pointer" onchange="updatePerm('${s.email}',this)">
           ${p.label}
         </label>`).join('')+limitStr;
     return `<div style="padding:12px 0;border-bottom:1px solid #f5f5f5">
@@ -1971,7 +2049,7 @@ async function loadStaff(){
           <div style="font-size:12px;color:var(--lt)">${s.email}</div>
           <div style="margin-top:6px">${permHtml}</div>
         </div>
-        ${!isSuperAdmin?`<button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button>`:''}
+        ${!isSuperAdmin?`<div style="display:flex;gap:6px"><button class="btn btn-b btn-xs" onclick="resendStaffInvite('${s.email}')">重寄通知</button><button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button></div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -2005,7 +2083,30 @@ async function updatePerm(email, chk){
   toast('✅ 權限已更新');
 }
 function openAddStaffModal(){
-  $('sf_email').value='';$('sf_name').value='';$('sf_role').value='staff';openModal('staffModal');
+  // 填入權限格
+  const pg=$('sf_perms_grid');
+  if(pg){
+    pg.innerHTML=PERM_DEFS.map(p=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 0">
+      <input type="checkbox" data-perm="${p.k}" style="width:16px;height:16px;accent-color:var(--g);cursor:pointer" checked> ${p.label}
+    </label>`).join('');
+  }
+  // 填入限定場次格（所有場次）
+  const sg=$('sf_sessions_grid');
+  if(sg){
+    const allSes=(ST.sdData||[]);
+    if(allSes.length){
+      sg.innerHTML=allSes.map(s=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:4px 0">
+        <input type="checkbox" data-sesid="${s.id}" style="width:16px;height:16px;accent-color:var(--g);cursor:pointer"> ${s.region?'['+s.region+'] ':''}${s.name}
+      </label>`).join('');
+    } else {
+      sg.innerHTML='<div style="font-size:12px;color:#aaa">尚無場次</div>';
+    }
+  }
+  $('sf_email').value='';
+  $('sf_name').value='';
+  $('sf_role').value='活動夥伴';
+  $('sf_perms_area').style.display='block';
+  openModal('staffModal');
 }
 function openStaffModal(){
   initStaffModal();
@@ -2024,6 +2125,11 @@ async function saveStaff(){
     perms[c.dataset.perm]=c.checked;
   });
   const role=$('sf_role').value;
+  // 防呆：非超管但完全沒勾權限
+  const anyPerm=Object.values(perms).some(v=>v);
+  if(role!=='superadmin' && !anyPerm){
+    if(!confirm('你還沒勾選任何權限，這位管理員將無法操作任何功能。\n確定要這樣新增嗎？（建議至少勾一項）')) return;
+  }
   // 收集限定場次
   const limitSessions=[];
   document.querySelectorAll('#sf_sessions_grid input:checked').forEach(c=>{
@@ -2033,6 +2139,14 @@ async function saveStaff(){
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已新增');closeModal('staffModal');loadStaff();
 }
+
+async function resendStaffInvite(email){
+  if(!confirm('重新寄送後台邀請通知給 '+email+'？'))return;
+  const res=await apiPost({action:'resendInvite',targetEmail:email});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('✅ 已重寄通知信');
+}
+
 async function removeStaff(email,name){
   if(!confirm('確定移除「'+name+'」？'))return;
   const res=await apiPost({action:'removeStaff',targetEmail:email});
@@ -2112,13 +2226,36 @@ function openSesDetail(sesId){
   openFinanceModal(sesId, s.name||sesId, ev.title||'');
 }
 
+// 報名數 → 該場次全部報名（不分狀態）
 function goToSesRegs(sesId){
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=true;  // 顯示全部狀態
   goPage('regs');
   const sel=$('regSesFilter');
   if(sel) sel.value=sesId;
-  ST._showAllRegStatus=false;
-  if(!['regs'].includes(name)) ST._filterSesId=null;
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=true;
   renderRegs();
+}
+
+// 待審核數 → 該場次只看待審核
+function goToSesPending(sesId){
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=false;  // 只看待審核
+  goPage('regs');
+  const sel=$('regSesFilter');
+  if(sel) sel.value=sesId;
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=false;
+  renderRegs();
+}
+
+// 已繳費數 → 該場次出席報到名單（現場核對，含設備）
+function goToSesCheckin(sesId){
+  goPage('checkin');
+  const sel=$('checkinSesFilter');
+  if(sel) sel.value=sesId;
+  if(typeof loadCheckinRegs==='function') loadCheckinRegs();
 }
 
 async function downloadSesData(sesId,sesName){
@@ -2154,10 +2291,10 @@ function shareLineFinance(){
 async function loadFinanceData(){
   const ses=(ST.sdData||[]).find(s=>s.id===ST_finSesId)||{};
   const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
-  const [_rr,_fr]=await Promise.all([apiPost({action:'getRegsBySession',sessionId:ST_finSesId}),apiPost({action:'getFinance',sessionId:ST_finSesId})]);
+  const [_rr,_fr]=await Promise.all([api({action:'getRegsBySession',sessionId:ST_finSesId,email:ST.email,token:ST.token}),api({action:'getFinance',sessionId:ST_finSesId,email:ST.email,token:ST.token})]);
   const regs=Array.isArray(_rr)?_rr:[];
   ST_finItems=Array.isArray(_fr)?_fr:[];
-  const paidRegs=(regs||[]).filter(r=>isPaidStatus(r.payStatus));
+  const paidRegs=(regs||[]).filter(r=>r.payStatus==='已繳費 ✓');
   const stallTotal=paidRegs.reduce((s,r)=>s+(r.amount||0),0);
   let equipTotal=0;
   paidRegs.forEach(r=>{try{Object.values(JSON.parse(r.equip||'{}')).forEach(v=>equipTotal+=Number(v)||0);}catch(e){}});
@@ -2234,7 +2371,7 @@ async function closeAnn(id){
 }
 
 async function loadInvoiceList(){
-  const list=await apiPost({action:'getInvoiceList', sessionId:ST_finSesId});
+  const list=await api({action:'getInvoiceList',sessionId:ST_finSesId,email:ST.email,token:ST.token});
   const el=$('invoiceListBody');
   const cnt=$('inv-count');
   if(!list||list.error||!list.length){
@@ -2317,6 +2454,51 @@ function renderSesRegsList(){
       ${r.taxId?`<div style="font-size:11px;color:#854F0B">發票：${r.invoiceTitle}（${r.taxId}）</div>`:''}
     </div>`;
   }).join('');
+}
+
+
+// ── 補上缺少的三個函數 ──
+async function confirmPayById(payId){
+  // 從付款管理列表確認付款（payId 其實是 regId）
+  if(!confirm('確認此筆付款？'))return;
+  const res=await apiPost({action:'confirmPayment',regId:payId,method:'手動確認'});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('✅ 已確認付款');
+  if(typeof loadPayments==='function') await loadPayments();
+  if(typeof loadAllRegs==='function'){ await loadAllRegs(); }
+}
+
+function showFinAdd(type){
+  // 顯示財報新增表單，type = 'income' 或 'expense'
+  ST_finAddType = type;
+  const form = $('f-add-form');
+  const title = $('f-add-title');
+  if(title) title.textContent = (type==='income'?'新增收入':'新增支出');
+  if(form) form.style.display = 'block';
+  const nameEl = $('f-add-name');
+  if(nameEl){ nameEl.value=''; nameEl.focus(); }
+  const amtEl = $('f-add-amt');
+  if(amtEl) amtEl.value='';
+}
+
+function downloadInvoiceList(){
+  // 下載發票清單 CSV
+  if(typeof ST_invoiceData==='undefined' || !ST_invoiceData || !ST_invoiceData.length){
+    toast('無發票資料可下載');return;
+  }
+  const hdrs=['品牌','統一編號','發票抬頭','發票Email','未稅金額','稅金5%','含稅總額','狀態'];
+  const rows=ST_invoiceData.map(i=>[
+    i.brand||'', i.taxId||'', i.invoiceTitle||'', i.invoiceEmail||'',
+    i.amount||0, i.taxAmount||0, i.totalAmount||0, i.invoiceStatus||'待開立'
+  ]);
+  const csv=[hdrs,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='發票清單.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✅ 發票清單已下載');
 }
 </script>
 
