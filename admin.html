@@ -148,6 +148,27 @@ textarea{min-height:64px;resize:vertical}
 .main{padding:16px 20px 90px;max-width:1100px;margin:0 auto;overflow-x:auto}
 .tab-page{display:none}
 .tab-page.active{display:block}
+
+/* 財報大卡片：手機友善 */
+#financeModal.modal-overlay{align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.45)}
+.finance-card{background:#fff;border-radius:18px;width:min(96vw,760px);height:min(90vh,820px);display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.25);overflow:hidden}
+.finance-card-head{position:sticky;top:0;background:#fff;z-index:2;padding:14px 16px 10px;border-bottom:1px solid #eeeeee;display:flex;align-items:flex-start;gap:10px}
+.finance-card-title{flex:1;min-width:0}
+.finance-card-close{width:36px;height:36px;border:none;border-radius:50%;background:#f3f3f3;color:#333;font-size:24px;line-height:1;cursor:pointer;flex-shrink:0}
+.finance-card-close:active{transform:scale(.94);background:#e8e8e8}
+.finance-card-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 96px}
+.finance-card-footer{position:sticky;bottom:0;background:#fff;border-top:1px solid #eeeeee;padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:3}
+.finance-download-btn{flex:1;border:none;border-radius:12px;background:#1D9E75;color:#fff;font-size:16px;font-weight:800;padding:13px 12px;cursor:pointer;font-family:inherit}
+.finance-download-btn:active{transform:scale(.98);opacity:.9}
+.finance-secondary-btn{border:1px solid #dddddd;border-radius:12px;background:#fff;color:#333;font-size:14px;font-weight:700;padding:13px 12px;cursor:pointer;font-family:inherit}
+@media(max-width:640px){
+  #financeModal.modal-overlay{padding:8px;align-items:center}
+  .finance-card{width:calc(100vw - 16px);height:calc(100vh - 24px);height:calc(100dvh - 24px);border-radius:18px}
+  .finance-card-head{padding:13px 14px 9px}
+  .finance-card-body{padding:10px 12px 92px}
+  .finance-card-footer{padding:9px 12px calc(9px + env(safe-area-inset-bottom))}
+}
+
 </style>
 </head>
 <body>
@@ -324,43 +345,39 @@ textarea{min-height:64px;resize:vertical}
   </div>
 </div>
 
-<!-- ══ Modal：場次財報 ══ -->
-<div class="modal-overlay" id="financeModal" style="display:none" onclick="if(event.target===this)closeModal('financeModal')">
-  <div class="modal-box" style="max-height:88vh;overflow-y:auto;padding:0">
-    <div style="padding:14px 16px;border-bottom:0.5px solid var(--color-border-tertiary);position:sticky;top:0;background:var(--color-background-primary);z-index:1">
-      <div style="font-size:15px;font-weight:500" id="financeTitle">場次財報</div>
-      <div style="font-size:11px;color:var(--color-text-secondary)" id="financeSub"></div>
-      <div style="display:flex;gap:0;margin-top:10px;border-bottom:0.5px solid var(--color-border-tertiary)">
-        <div class="ftab active" id="ftab-report" onclick="switchFTab('report',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid #1D9E75;color:#1D9E75;margin-bottom:-1px;font-weight:500">財報</div>
-        <div class="ftab" id="ftab-sesregs" onclick="switchFTab('sesregs',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px">報名名單</div>
-        <div class="ftab" id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:6px 14px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px">發票清單</div>
+<!-- ══ Modal：場次財報（大卡片） ══ -->
+<div class="modal-overlay" id="financeModal" onclick="if(event.target===this)closeModal('financeModal')">
+  <div class="finance-card" role="dialog" aria-modal="true" aria-labelledby="financeTitle">
+    <div class="finance-card-head">
+      <div class="finance-card-title">
+        <div style="font-size:17px;font-weight:800;line-height:1.35" id="financeTitle">場次財報</div>
+        <div style="font-size:12px;color:#666;margin-top:2px" id="financeSub"></div>
+        <div style="display:flex;gap:0;margin-top:10px;border-bottom:0.5px solid #eee;overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <div class="ftab active" id="ftab-report" onclick="switchFTab('report',this)" style="padding:7px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid #1D9E75;color:#1D9E75;margin-bottom:-1px;font-weight:700;white-space:nowrap">財報</div>
+          <div class="ftab" id="ftab-sesregs" onclick="switchFTab('sesregs',this)" style="padding:7px 14px;font-size:13px;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap">報名名單</div>
+          <div class="ftab" id="ftab-invoice" onclick="switchFTab('invoice',this)" style="padding:7px 14px;font-size:13px;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap">發票清單</div>
+        </div>
       </div>
+      <button class="finance-card-close" onclick="closeModal('financeModal')" aria-label="關閉">×</button>
     </div>
-    <div style="padding:14px 16px">
-      <!-- 財報 -->
+
+    <div class="finance-card-body">
       <div id="fpage-report">
-        <!-- 發票含稅設定 -->
-        <div style="background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:12px">
-          <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">本場發票含稅項目</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px">
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-stall" checked> 攤位費</label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-equip"> 設備租金</label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="ftax-extra"> 臨時收入</label>
+        <div style="background:#f7faf8;border-radius:12px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:#666;margin-bottom:6px">本場發票含稅項目</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin:0"><input type="checkbox" id="ftax-stall" checked> 攤位費</label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin:0"><input type="checkbox" id="ftax-equip"> 設備租金</label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin:0"><input type="checkbox" id="ftax-extra"> 臨時收入</label>
           </div>
         </div>
-        <!-- 收入 -->
         <div id="f-income-section" style="margin-bottom:12px"></div>
-        <!-- 支出 -->
         <div id="f-expense-section" style="margin-bottom:12px"></div>
-        <!-- 淨利 -->
         <div id="f-net" style="margin-bottom:12px"></div>
-        <!-- 設備差價 -->
         <div id="f-equip-diff" style="margin-bottom:12px"></div>
-        <!-- 押金 -->
         <div id="f-deposit" style="margin-bottom:12px"></div>
-        <!-- 新增表單 -->
-        <div id="f-add-form" style="display:none;background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:12px">
-          <div style="font-size:12px;font-weight:500;margin-bottom:8px" id="f-add-title">新增</div>
+        <div id="f-add-form" style="display:none;background:#f7faf8;border-radius:12px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px" id="f-add-title">新增</div>
           <input type="text" id="f-add-name" placeholder="品項名稱">
           <input type="number" id="f-add-amt" placeholder="金額 NT$" inputmode="numeric" style="margin-top:6px">
           <div style="display:flex;gap:6px;margin-top:8px">
@@ -368,27 +385,30 @@ textarea{min-height:64px;resize:vertical}
             <button class="btn btn-g" onclick="submitFinanceItem()" style="flex:2">確認新增</button>
           </div>
         </div>
-        <!-- 按鈕 -->
         <div style="display:flex;gap:8px;margin-top:4px">
-          <button onclick="printFinance()" style="flex:1;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:10px;font-size:13px;cursor:pointer">🖨️ 列印/匯出</button>
-          <button onclick="shareLineFinance()" style="flex:1;padding:10px;background:#E1F5EE;color:#1D9E75;border:0.5px solid #9FE1CB;border-radius:10px;font-size:13px;cursor:pointer">💚 分享 LINE</button>
+          <button onclick="printFinance()" style="flex:1;padding:10px;background:#f7f7f7;border:1px solid #ddd;border-radius:10px;font-size:13px;cursor:pointer">🖨️ 列印/匯出</button>
+          <button onclick="shareLineFinance()" style="flex:1;padding:10px;background:#E1F5EE;color:#1D9E75;border:1px solid #9FE1CB;border-radius:10px;font-size:13px;cursor:pointer">💚 分享 LINE</button>
         </div>
       </div>
-      <!-- 發票清單 -->
       <div id="fpage-sesregs" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px">
           <div style="font-size:12px;color:#666" id="sesregs-count"></div>
-          <input type="text" id="sesregs-search" placeholder="搜尋品牌/姓名" oninput="renderSesRegsList()" style="font-size:12px;padding:6px 10px;border:0.5px solid #e0e0e0;border-radius:8px;width:160px">
+          <input type="text" id="sesregs-search" placeholder="搜尋品牌/姓名" oninput="renderSesRegsList()" style="font-size:13px;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;width:160px;max-width:50%">
         </div>
         <div id="sesRegsList"></div>
       </div>
       <div id="fpage-invoice" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-size:12px;color:var(--color-text-secondary)" id="inv-count"></div>
-          <button onclick="downloadInvoiceList()" style="font-size:11px;background:none;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:4px 8px;cursor:pointer">⬇️ 下載清單</button>
+          <div style="font-size:12px;color:#666" id="inv-count"></div>
+          <button onclick="downloadInvoiceList()" style="font-size:12px;background:none;border:1px solid #ddd;border-radius:6px;padding:5px 8px;cursor:pointer">⬇️ 下載清單</button>
         </div>
         <div id="invoiceListBody"></div>
       </div>
+    </div>
+
+    <div class="finance-card-footer">
+      <button class="finance-secondary-btn" onclick="closeModal('financeModal')">關閉</button>
+      <button class="finance-download-btn" id="financeDownloadBtn" onclick="downloadCurrentFinanceData()">下載完整資料</button>
     </div>
   </div>
 </div>
@@ -1058,7 +1078,7 @@ function renderOverviewSessions(){
         return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
           <td style="padding:7px 6px">
             ${cover
-              ?`<img src="${cover}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;display:block">`
+              ?`<span style="display:inline-block;width:36px;height:36px;position:relative"><img src="${cover}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:36px;height:36px;border-radius:6px;object-fit:cover;display:block"><span style="width:36px;height:36px;border-radius:6px;background:#f0f0f0;display:none;align-items:center;justify-content:center;font-size:18px">🎪</span></span>`
               :`<div style="width:36px;height:36px;border-radius:6px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:18px">🎪</div>`}
           </td>
           <td style="padding:7px 6px;font-size:12px;color:#666;white-space:nowrap">${s.region||''}</td>
@@ -1080,10 +1100,9 @@ function renderOverviewSessions(){
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
             <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">編輯</button>
             <button onclick="downloadSesData('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">下載</button>
-            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" onclick="toggleInlineFinance(this.dataset.sid,this.dataset.sname)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">財報</button>
+            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" data-ev="${(ev.title||'').replace(/"/g,'')}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">財報</button>
           </td>
-        </tr>
-        ${ST.inlineFinanceSesId===s.id?`<tr style="background:#fff"><td colspan="12" style="padding:0 6px 12px 52px;border-bottom:1px solid #e8e8e8"><div style="border:1px solid #d8b4fe;background:#fbf7ff;border-radius:12px;padding:12px;margin-top:4px">${ST.inlineFinanceCache[s.id]||'<div style="padding:18px;text-align:center;color:#777">財報載入中…</div>'}</div></td></tr>`:''}`;
+        </tr>`;
       }).join('')}</tbody>
     </table>
   </div>`;
@@ -2441,6 +2460,9 @@ function goToSesCheckin(sesId){
 
 async function downloadSesData(sesId,sesName){
   toast('準備下載...');
+  const ses=(ST.sdData||[]).find(x=>x.id===sesId)||{};
+  const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
+  const finalSesName=sesName || ses.name || sesId || '場次';
   let regs=[];
   let finItems=[];
   try{
@@ -2461,43 +2483,96 @@ async function downloadSesData(sesId,sesName){
 
   function equipEntries(r){
     try{
-      const obj=JSON.parse(r.equip||'{}')||{};
+      const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
       return Object.entries(obj)
         .map(([name,qty])=>[name,Number(qty)||0])
-        .filter(([name,qty])=>qty>0);
+        .filter(([name,qty])=>name&&qty>0);
     }catch(e){return [];}
   }
+  function payAmount(r){return Number(r.amount)||Number(r.totalAmount)||Number(r.payAmount)||0;}
+  function depAmount(r){return Number(r.deposit)||Number(r.depositAmount)||0;}
+  const paidRegs=(regs||[]).filter(r=>isPaidStatus(r.payStatus)||isPaidText(r.payStatus));
+  const pendingPay=(regs||[]).filter(r=>isPendingPayStatus(r.payStatus));
+  const stallIncome=paidRegs.reduce((s,r)=>s+payAmount(r),0);
+  const depositTotal=paidRegs.reduce((s,r)=>s+depAmount(r),0);
+  const refundedTotal=(regs||[]).filter(r=>String(r.depositRefunded||'').includes('已退')).reduce((s,r)=>s+depAmount(r),0);
+  const depositLeft=depositTotal-refundedTotal;
+  const manualIncome=(finItems||[]).filter(i=>(i['類型']||i.type)==='income').reduce((s,i)=>s+(Number(i['金額']||i.amount)||0),0);
+  const manualExpense=(finItems||[]).filter(i=>(i['類型']||i.type)==='expense').reduce((s,i)=>s+(Number(i['金額']||i.amount)||0),0);
+  const totalIncome=stallIncome+manualIncome;
+  const totalExpense=manualExpense;
+  const netProfit=totalIncome-totalExpense;
+
   function splitEquipRegRows(r){
     const entries=equipEntries(r);
-    const base=[r.id,r.name,r.brand,r.phone,r.email,r.stallCount||1,r.status,r.payStatus,r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',(r.createdAt||'').slice(0,16)];
+    const base=[finalSesName,r.id,r.name,r.brand,r.phone,r.email,r.stallCount||1,r.status,r.payStatus,payAmount(r),depAmount(r),r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',(r.createdAt||'').slice(0,16)];
     if(!entries.length) return [[...base,'','']];
     return entries.map(([item,qty])=>[...base,item,qty]);
   }
   function parseEquipRows(r){
-    return equipEntries(r).map(([name,qty])=>[r.id,r.name,r.brand,r.phone,r.email,name,qty,r.status,r.payStatus,r.stallNo||'',(r.createdAt||'').slice(0,16)]);
+    return equipEntries(r).map(([name,qty])=>[finalSesName,r.id,r.name,r.brand,r.phone,r.email,name,qty,r.status,r.payStatus,r.stallNo||'',(r.createdAt||'').slice(0,16)]);
   }
   const equipTotal={};
   (regs||[]).forEach(r=>equipEntries(r).forEach(([name,qty])=>{equipTotal[name]=(equipTotal[name]||0)+qty;}));
 
-  const regHdrs=['報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間','設備品項','設備數量'];
+  const infoHdrs=['欄位','內容'];
+  const infoRows=[
+    ['場次名稱',finalSesName],
+    ['活動名稱',ev.title||''],
+    ['場地',ses.venue||ses.location||ev.location||''],
+    ['日期',ses.dates&&ses.dates.length?ses.dates.map(d=>d.date).join(' / '):(ses.date||'')],
+    ['下載時間',new Date().toLocaleString('zh-TW')]
+  ];
+  const summaryHdrs=['項目','金額/數量','備註'];
+  const summaryRows=[
+    ['總報名筆數',(regs||[]).length,'該場次全部報名'],
+    ['已繳費筆數',paidRegs.length,'付款狀態為已繳費'],
+    ['待確認繳費',pendingPay.length,'付款狀態為待確認/審核中'],
+    ['已收費用',stallIncome,'已繳費報名金額合計'],
+    ['手動收入',manualIncome,'財報明細收入項目'],
+    ['手動支出',manualExpense,'財報明細支出項目'],
+    ['收入合計',totalIncome,'已收費用＋手動收入'],
+    ['支出合計',totalExpense,'手動支出'],
+    ['試算淨額',netProfit,'收入合計－支出合計'],
+    ['押金收取',depositTotal,'不列入損益'],
+    ['押金已退',refundedTotal,'不列入損益'],
+    ['押金未退',depositLeft,'不列入損益']
+  ];
+
+  const regHdrs=['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','報名時間','設備品項','設備數量'];
   const regRows=(regs||[]).flatMap(splitEquipRegRows);
-
-  const equipHdrs=['報名ID','姓名','品牌','手機','Email','設備品項','數量','審核狀態','付款狀態','攤位號碼','報名時間'];
+  const equipHdrs=['場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','數量','審核狀態','付款狀態','攤位號碼','報名時間'];
   const equipRows=(regs||[]).flatMap(parseEquipRows);
-  const equipTotalHdrs=['設備品項','總數量'];
-  const equipTotalRows=Object.entries(equipTotal);
-
-  const finHdrs=['類型','品項','金額','自動手動'];
-  const finRows=(finItems||[]).map(i=>[i['類型']==='income'?'收入':'支出',i['品項']||i.name||'',i['金額']||i.amount||0,i['自動']==='TRUE'?'自動':'手動']);
+  const equipTotalHdrs=['場次名稱','設備品項','總數量'];
+  const equipTotalRows=Object.entries(equipTotal).map(([name,qty])=>[finalSesName,name,qty]);
+  const finHdrs=['場次名稱','類型','品項','金額','自動手動','備註'];
+  const finRows=(finItems||[]).map(i=>[
+    finalSesName,
+    (i['類型']||i.type)==='income'?'收入':'支出',
+    i['品項']||i.name||'',
+    i['金額']||i.amount||0,
+    (i['自動']==='TRUE'||i.auto===true)?'自動':'手動',
+    i['備註']||i.note||''
+  ]);
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const csv='場次：'+sesName+'\n報名資料（設備已拆成獨立列）\n'+toCSV(regHdrs,regRows)+'\n\n設備明細（每個設備獨立一列，方便公式統計）\n'+toCSV(equipHdrs,equipRows)+'\n\n設備總計\n'+toCSV(equipTotalHdrs,equipTotalRows)+'\n\n財報明細\n'+toCSV(finHdrs,finRows);
+  const csv='場次資訊\n'+toCSV(infoHdrs,infoRows)
+    +'\n\n財報摘要（該場次最新資料）\n'+toCSV(summaryHdrs,summaryRows)
+    +'\n\n報名明細（設備已拆成獨立列）\n'+toCSV(regHdrs,regRows)
+    +'\n\n設備明細（每個設備獨立一列，方便公式統計）\n'+toCSV(equipHdrs,equipRows)
+    +'\n\n設備總計\n'+toCSV(equipTotalHdrs,equipTotalRows)
+    +'\n\n財報明細（手動收入/支出）\n'+toCSV(finHdrs,finRows);
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=sesName+'_完整資料.csv';
+  const a=document.createElement('a');a.href=url;a.download=finalSesName+'_最新財報完整資料.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('下載完成（設備已拆列）');
+  toast('下載完成');
 }
 
+function downloadCurrentFinanceData(){
+  if(!ST_finSesId){toast('沒有可下載的場次');return;}
+  const title=$('financeTitle')?.textContent||'';
+  return downloadSesData(ST_finSesId,title);
+}
 
 function shareLineFinance(){
   const title=$('financeTitle')?.textContent||'場次';
@@ -2726,7 +2801,9 @@ async function openFinanceModal(sesId, sesName, evName){
   const title=$('financeTitle');
   const sub=$('financeSub');
   if(title) title.textContent=sesName||'場次財報';
-  if(sub) sub.textContent=evName||'';
+  if(sub) sub.textContent=evName||'該場次最新財報資料';
+  const dl=$('financeDownloadBtn');
+  if(dl) dl.textContent='下載完整資料';
   openModal('financeModal');
   if($('f-income-section')) $('f-income-section').innerHTML='<div style="padding:18px;text-align:center;color:#999">財報載入中…</div>';
   if($('f-expense-section')) $('f-expense-section').innerHTML='';
