@@ -363,14 +363,6 @@ textarea{min-height:64px;resize:vertical}
 
     <div class="finance-card-body">
       <div id="fpage-report">
-        <div style="background:#f7faf8;border-radius:12px;padding:10px 12px;margin-bottom:12px">
-          <div style="font-size:12px;font-weight:700;color:#666;margin-bottom:6px">本場發票含稅項目</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px">
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin:0"><input type="checkbox" id="ftax-stall" checked> 攤位費</label>
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin:0"><input type="checkbox" id="ftax-equip"> 設備租金</label>
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin:0"><input type="checkbox" id="ftax-extra"> 臨時收入</label>
-          </div>
-        </div>
         <div id="f-income-section" style="margin-bottom:12px"></div>
         <div id="f-expense-section" style="margin-bottom:12px"></div>
         <div id="f-net" style="margin-bottom:12px"></div>
@@ -517,7 +509,18 @@ textarea{min-height:64px;resize:vertical}
     <div id="sesCoverPreview" style="display:none;margin-top:6px">
       <img id="sesCoverImg" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #e0e0e0">
     </div>
-    <label>基本配備說明</label><input type="text" id="sm_basicEquip" placeholder="例：有提供延長線">
+    <label>基本配備說明</label><input type="text" id="sm_basicEquip" placeholder="例：附 1 桌 1 椅、請自備燈具">
+
+    <!-- 發票含稅設定 -->
+    <div style="margin-top:12px;padding:11px;border:1.5px solid #d0e8d8;border-radius:10px;background:#f7faf8">
+      <div style="font-size:13px;font-weight:800;color:var(--g);margin-bottom:4px">本場發票含稅項目</div>
+      <div style="font-size:11px;color:var(--md);margin-bottom:8px;line-height:1.5">這裡是場次設定，會帶到財報與對帳；不要在財報視窗臨時勾。</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+        <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer"><input type="checkbox" id="sm_tax_stall" style="width:16px;height:16px;accent-color:var(--g)"> 攤位費</label>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer"><input type="checkbox" id="sm_tax_equip" style="width:16px;height:16px;accent-color:var(--g)"> 設備租金</label>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer"><input type="checkbox" id="sm_tax_extra" style="width:16px;height:16px;accent-color:var(--g)"> 臨時收入</label>
+      </div>
+    </div>
 
     <!-- 需要審核 -->
     <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px;border:1.5px solid #e0e0e0;border-radius:8px">
@@ -585,9 +588,10 @@ textarea{min-height:64px;resize:vertical}
       </div>
     </div>
 
-    <!-- 設備加購 -->
+    <!-- 設備設定 -->
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
-      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">設備加購</div>
+      <div style="font-size:13px;font-weight:800;color:var(--g);margin-bottom:4px">設備設定（會影響設備統計與收費）</div>
+      <div style="font-size:11px;color:var(--md);line-height:1.6;margin-bottom:8px">如果每攤基本附 1 桌 1 椅，請在「每攤內含」填 1。攤商填的需求會先扣掉內含數，超過的數量才會計入設備收入；總覽與下載資料會分開顯示總需求、內含數、加租數。</div>
       <div id="equipDefs"></div>
     </div>
 
@@ -705,23 +709,151 @@ let ST_finAddType="income";
 const API = 'https://script.google.com/macros/s/AKfycbz34vXdofbWxMBSKVkDxsvSjLwI_TPlFdX420bXDmxDbNGe5cXcG2RzeeoUsGySI8Ipjw/exec';
 
 
+function imageUrlCandidates(url){
+  const raw=String(url||'').trim();
+  if(!raw) return [];
+  const list=[];
+  const add=u=>{ if(u && !list.includes(u)) list.push(u); };
+  add(raw); // 第一順位永遠使用後台原本填的圖片網址，不擅自改掉
+
+  let m=raw.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  let m2=raw.match(/[?&]id=([^&]+)/);
+  const gid=m?m[1]:(m2?m2[1]:'');
+  if(gid){
+    add('https://drive.google.com/thumbnail?id='+gid+'&sz=w1000');
+    add('https://drive.google.com/uc?export=view&id='+gid);
+    add('https://lh3.googleusercontent.com/d/'+gid);
+  }
+
+  // GitHub blob 頁面轉 raw 備援，但 raw.githubusercontent 原始網址不會被動到
+  const gh=raw.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/);
+  if(gh) add('https://raw.githubusercontent.com/'+gh[1]+'/'+gh[2]+'/'+gh[3]+'/'+gh[4]);
+  if(raw.includes('github.com') && !raw.includes('raw.githubusercontent.com') && !raw.includes('?raw=1')) add(raw+(raw.includes('?')?'&':'?')+'raw=1');
+  return list;
+}
 function normalizeImageUrl(url){
-  let u=String(url||'').trim();
-  if(!u) return '';
-  const m1=u.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-  const m2=u.match(/[?&]id=([^&]+)/);
-  if(m1) return 'https://drive.google.com/uc?export=view&id='+m1[1];
-  if(u.includes('drive.google.com/open')&&m2) return 'https://drive.google.com/uc?export=view&id='+m2[1];
-  return u;
+  const arr=imageUrlCandidates(url);
+  return arr[0]||'';
+}
+function pickImageUrl(...items){
+  for(const item of items){
+    if(!item) continue;
+    if(typeof item==='string' && item.trim()) return item.trim();
+    if(typeof item==='object'){
+      try{ if(item.id){ const cached=localStorage.getItem('tbl_ses_cover_'+item.id); if(cached && String(cached).trim()) return String(cached).trim(); } }catch(e){}
+      const keys=['cover','eventCover','imageUrl','image','img','photo','thumb','thumbnail','coverUrl','mainImage','mainVisual','圖片連結','場次圖片連結','主視覺圖連結','活動圖片','圖片網址'];
+      for(const k of keys){
+        const v=item[k];
+        if(v!==undefined && String(v||'').trim()) return String(v).trim();
+      }
+    }
+  }
+  return '';
+}
+function mergeSessionKeepFilled(primary, fallback){
+  const out=Object.assign({}, fallback||{});
+  const src=primary||{};
+  Object.keys(src).forEach(k=>{
+    const v=src[k];
+    if(v===undefined || v===null) return;
+    if(typeof v==='string' && v.trim()==='' && out[k]!==undefined && out[k]!==null && String(out[k]).trim()!=='') return;
+    if(Array.isArray(v) && !v.length && Array.isArray(out[k]) && out[k].length) return;
+    if(typeof v==='object' && !Array.isArray(v) && Object.keys(v).length===0 && out[k] && typeof out[k]==='object' && Object.keys(out[k]).length) return;
+    out[k]=v;
+  });
+  return out;
+}
+function sessionRegs(sesId){
+  return (ST.allRegs||[]).filter(r=>r.sessionId===sesId || r['場次ID']===sesId);
+}
+function overviewPendingPayCount(s){
+  const regs=sessionRegs(s.id);
+  if(regs.length) return regs.filter(r=>isPendingPayText(r.payStatus||r['付款狀態'])).length;
+  return Number(s.pendingPay||s.pendingPayCount||s.payPending||s.paymentPending||s.payConfirm||0)||0;
+}
+function readEquipObj(v){
+  if(!v) return {};
+  if(typeof v==='object') return v;
+  try{return JSON.parse(String(v||'{}'));}catch(e){return {};}
+}
+function overviewEquipText(s){
+  const regs=sessionRegs(s.id).filter(r=>isPaidText(r.payStatus||r['付款狀態']) || String(r.status||r['審核狀態']||'').includes('已錄取'));
+  const defs=readEquipObj(s.equip);
+  const total={};
+  const stallsByItem={};
+  if(regs.length){
+    regs.forEach(r=>{
+      const eq=readEquipObj(r.equip||r['設備JSON']);
+      const stall=Number(r.stallCount||r['攤位數']||1)||1;
+      Object.entries(eq).forEach(([k,v])=>{
+        const qty=Number(v)||0;
+        if(qty>0){ total[k]=(total[k]||0)+qty; stallsByItem[k]=(stallsByItem[k]||0)+stall; }
+      });
+    });
+  }else{
+    Object.assign(total, s.equipNeed||{});
+  }
+  const items=Object.entries(total).filter(([k,v])=>Number(v)>0);
+  if(!items.length) return '-';
+  return items.map(([k,v])=>{
+    const d=defs[k]||{};
+    const included=(Number(d.incl)||0)*(stallsByItem[k]||0);
+    const extra=Math.max(0,Number(v)-included);
+    const sub=included>0?`<div style="font-size:10px;color:#888;line-height:1.25">總需${v}｜內含${included}｜加租${extra}</div>`:`<div style="font-size:10px;color:#888;line-height:1.25">總需${v}</div>`;
+    return `<div style="line-height:1.35;white-space:nowrap;margin-bottom:2px"><b>${k}×${extra}</b>${sub}</div>`;
+  }).join('');
 }
 function thumbHtml(url, size=36, radius=6){
-  const u=normalizeImageUrl(url);
+  const arr=imageUrlCandidates(url);
   const box=`width:${size}px;height:${size}px;border-radius:${radius}px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:${Math.max(16,Math.round(size*.5))}px;flex-shrink:0;overflow:hidden`;
-  if(!u) return `<span style="${box}">🎪</span>`;
-  return `<span style="${box};position:relative"><img src="${escAttr(u)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:cover;display:block"><span style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#f0f0f0">🎪</span></span>`;
+  if(!arr.length) return `<span style="${box}">🎪</span>`;
+  const data=escAttr(JSON.stringify(arr));
+  return `<span style="${box};position:relative"><img src="${escAttr(arr[0])}" data-img-candidates="${data}" data-img-i="0" loading="lazy" referrerpolicy="no-referrer" onerror="imgFallback(this)" style="width:100%;height:100%;object-fit:cover;display:block"><span style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#f0f0f0">🎪</span></span>`;
+}
+function imgFallback(img){
+  try{
+    const arr=JSON.parse(img.getAttribute('data-img-candidates')||'[]');
+    let i=Number(img.getAttribute('data-img-i')||0)+1;
+    while(i<arr.length && arr[i]===img.src) i++;
+    if(i<arr.length){
+      img.setAttribute('data-img-i',String(i));
+      img.src=arr[i];
+      return;
+    }
+  }catch(e){}
+  img.style.display='none';
+  if(img.nextElementSibling) img.nextElementSibling.style.display='flex';
 }
 function escAttr(v){return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function safeNum(v){const n=Number(v);return Number.isFinite(n)?n:0;}
+
+function overviewDateText(s){
+  const raw=[];
+  if(Array.isArray(s.dates) && s.dates.length){
+    s.dates.forEach(d=>{ if(d && (d.date||d['日期'])) raw.push(d.date||d['日期']); });
+  }else if(s.date){
+    String(s.date).split(/[\/、,，\s]+/).forEach(x=>{ if(x) raw.push(x); });
+  }
+  const week=['日','一','二','三','四','五','六'];
+  const out=[];
+  raw.forEach(v=>{
+    const str=String(v||'').trim();
+    if(!str) return;
+    let y,m,d;
+    const m1=str.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    const m2=str.match(/^(\d{1,2})[-\/](\d{1,2})/);
+    if(m1){ y=+m1[1]; m=+m1[2]; d=+m1[3]; }
+    else if(m2){ y=new Date().getFullYear(); m=+m2[1]; d=+m2[2]; }
+    if(m&&d){
+      const dt=new Date(y,m-1,d);
+      out.push(`${m}/${d}(${week[dt.getDay()]})`);
+    }else{
+      out.push(str);
+    }
+  });
+  return out.length ? out.join(' ') : '-';
+}
+
 
 const EQUIP_LIST = [
   {k:'桌',icon:'🪵',price:350},{k:'椅子',icon:'🪑',price:20},
@@ -1031,17 +1163,20 @@ function renderOverviewCards(){
   const row=$('eventCardRow');
   const events=ST.events||[];
   if(row){
-    row.innerHTML=events.length?events.map(ev=>`
+    row.innerHTML=events.length?events.map(ev=>{
+      const firstSes=(ST.sdData||[]).find(s=>s.eventId===ev.id && pickImageUrl(s));
+      const cardCover=pickImageUrl(ev,firstSes);
+      return `
       <div onclick="filterOverviewBySes('${ev.id}')" style="
         width:120px;flex-shrink:0;background:#fff;border-radius:12px;
         box-shadow:var(--sh);overflow:hidden;cursor:pointer;
         border:2px solid ${ST.activeEventId===ev.id?'var(--g)':'transparent'}">
-        ${thumbHtml(ev.cover,120,0).replace('width:120px;height:120px','width:120px;height:80px')}
+        ${thumbHtml(cardCover,120,0).replace('width:120px;height:120px','width:120px;height:80px')}
         <div style="padding:6px 8px">
           <div style="font-size:12px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${ev.title}</div>
           <div style="font-size:10px;color:var(--md)">${ev.region||''}</div>
         </div>
-      </div>`).join('')
+      </div>`}).join('')
       :'<div style="color:#aaa;font-size:13px;padding:10px">無活動</div>';
   }
   renderOverviewSessions();
@@ -1064,7 +1199,7 @@ function renderOverviewSessions(){
   const ev_map={};(ST.events||[]).forEach(e=>ev_map[e.id]=e);
 
   el.innerHTML=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:860px">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:960px">
       <thead>
         <tr style="background:#f5f5f5;border-bottom:1.5px solid #e0e0e0">
           <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;width:44px"></th>
@@ -1073,6 +1208,7 @@ function renderOverviewSessions(){
           <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">活動日期</th>
           <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">報名</th>
           <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">待審核</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">繳費確認</th>
           <th style="padding:8px 6px;text-align:center;font-weight:500;color:#666;white-space:nowrap">已繳費</th>
           <th style="padding:8px 6px;text-align:left;font-weight:500;color:#666;white-space:nowrap">設備</th>
           <th style="padding:8px 6px;text-align:right;font-weight:500;color:#666;white-space:nowrap">已收費用</th>
@@ -1083,15 +1219,11 @@ function renderOverviewSessions(){
       </thead>
       <tbody>${sessions.map(s=>{
         const ev=ev_map[s.eventId]||{};
-        const dateStr=s.dates&&s.dates.length?s.dates.map(d=>d.date).join('/'):(s.date||'');
-        // 設備需求總計（已錄取/已繳費的攤主實際要的桌椅）
-        let equipStr='-';
-        const need=s.equipNeed||{};
-        const needItems=Object.entries(need).filter(([k,v])=>v>0);
-        if(needItems.length){
-          equipStr=needItems.map(([k,v])=>`<div style="line-height:1.45;white-space:nowrap">${k}×${v}</div>`).join('');
-        }
-        const cover=s.cover||s.eventCover||ev.cover||ev.eventCover||'';
+        const dateStr=overviewDateText(s);
+        // 設備統計：總需求 / 基本內含 / 加租，避免把免費內含也算成加租。
+        const equipStr=overviewEquipText(s);
+        const cover=pickImageUrl(s,ev);
+        const payConfirm=overviewPendingPayCount(s);
         return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='#fff'">
           <td style="padding:7px 6px">
             ${thumbHtml(cover,36,6)}
@@ -1102,20 +1234,23 @@ function renderOverviewSessions(){
           </td>
           <td style="padding:7px 6px;text-align:center;font-size:12px;color:#555;white-space:nowrap">${dateStr}</td>
           <td style="padding:7px 6px;text-align:center">
-            <span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:500;cursor:pointer;font-size:13px">${s.total||0}</span>
+            <span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:500;cursor:pointer;font-size:18px">${s.total||0}</span>
           </td>
           <td style="padding:7px 6px;text-align:center">
-            <span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;font-size:13px">${s.pending||0}</span>
+            <span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:500;cursor:pointer;font-size:18px">${s.pending||0}</span>
           </td>
-          <td style="padding:7px 6px;text-align:center"><span onclick="goToSesCheckin('${s.id}')" style="font-size:13px;font-weight:500;color:#1D9E75;cursor:pointer;text-decoration:underline">${s.paid||0}</span></td>
+          <td style="padding:7px 6px;text-align:center">
+            <span onclick="goPage('payments')" title="查看全部繳費管理，可依場次標題辨識" style="color:#BA7517;font-weight:700;cursor:pointer;font-size:18px;text-decoration:underline">${payConfirm}</span>
+          </td>
+          <td style="padding:7px 6px;text-align:center"><span onclick="goToSesCheckin('${s.id}')" style="font-size:16px;font-weight:700;color:#1D9E75;cursor:pointer;text-decoration:underline;font-size:18px">${s.paid||0}</span></td>
           <td style="padding:7px 6px;font-size:11px;color:#555;max-width:140px;overflow:visible;white-space:normal">${equipStr}</td>
           <td style="padding:7px 6px;text-align:right;font-size:12px;font-weight:500;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
           <td style="padding:7px 6px;text-align:right;font-size:12px;white-space:nowrap">NT$${(s.depositTotal||0).toLocaleString()}</td>
-          <td style="padding:7px 6px;text-align:center;font-size:13px;color:#185FA5;font-weight:500">${s.seated||0}</td>
+          <td style="padding:7px 6px;text-align:center;font-size:18px;color:#185FA5;font-weight:700">${s.seated||0}</td>
           <td style="padding:7px 6px;text-align:center;white-space:nowrap">
             <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">編輯</button>
             <button onclick="downloadSesData('${s.id}','${(s.name||'').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">下載</button>
-            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" data-ev="${(ev.title||'').replace(/"/g,'')}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">財報</button>
+            <button data-sid="${s.id}" data-sname="${(s.name||'').replace(/"/g,'')}" data-ev="${(ev.title||'').replace(/"/g,'')}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;margin:0 2px">對帳</button>
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -1212,7 +1347,7 @@ function renderOverview(){
   }
   $('overviewBody').innerHTML=list.map(s=>{
     const dot=s.status==='報名中'?'dot-open':s.status==='關閉'?'dot-closed':'dot-full';
-    const thumb=thumbHtml(s.cover||s.eventCover,36,6);
+    const thumb=thumbHtml(pickImageUrl(s),36,6);
     return `<tr>
       <td>${thumb}</td>
       <td>
@@ -1270,9 +1405,7 @@ function renderEventsWithSessions(){
     const isOpen=ST.evOpen&&ST.evOpen[e.id]!==false;
     return `<div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;border-bottom:${isOpen&&sessions.length?'1px solid #f0f0f0':'none'}" onclick="toggleEvOpen('${e.id}')">
-        ${e.cover
-          ?`<img src="${e.cover}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
-          :`<div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#d8f3dc,#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎪</div>`}
+        ${thumbHtml(pickImageUrl(e, ...(sessions||[])),40,8)}
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:14px">${e.title}</div>
           <div style="font-size:11px;color:var(--lt)">${[e.location,e.status].filter(Boolean).join('　')}　${sessions.length} 個場次</div>
@@ -1388,21 +1521,29 @@ function buildModGrid(mods){
     </label>`).join('');
 }
 function buildEquipDefs(equipObj){
-  $('equipDefs').innerHTML=EQUIP_LIST.map(eq=>`
-    <div class="equip-def" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #f5f5f5">
-      <label style="display:flex;align-items:center;gap:4px;min-width:90px;cursor:pointer">
-        <input type="checkbox" id="eq_open_${eq.k}" ${equipObj[eq.k]?.open?'checked':''} style="width:18px;height:18px;accent-color:var(--g)">
-        <span style="font-size:14px;font-weight:600">${eq.icon} ${eq.k}</span>
+  $('equipDefs').innerHTML=EQUIP_LIST.map(eq=>{
+    const cfg=equipObj[eq.k]||{};
+    const open=!!cfg.open;
+    const incl=Number(cfg.incl)||0;
+    const price=(cfg.price!==undefined && cfg.price!==null && cfg.price!=='')?Number(cfg.price):eq.price;
+    return `
+    <div class="equip-def" style="display:grid;grid-template-columns:1fr;gap:7px;padding:10px 0;border-bottom:1px solid #f0f0f0">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer">
+        <input type="checkbox" id="eq_open_${eq.k}" ${open?'checked':''} style="width:18px;height:18px;accent-color:var(--g)">
+        <span style="font-size:15px;font-weight:800;color:#333">${eq.icon} ${eq.k}</span>
+        <span style="font-size:11px;color:#888">開放攤商填需求</span>
       </label>
-      <div style="display:flex;align-items:center;gap:4px">
-        <span style="font-size:11px;color:var(--lt)">每攤內含</span>
-        <input type="number" id="eq_incl_${eq.k}" value="${equipObj[eq.k]?.incl||0}" inputmode="numeric" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label style="margin:0;font-size:12px;color:var(--md)">每攤基本內含
+          <input type="number" id="eq_incl_${eq.k}" value="${incl}" inputmode="numeric" placeholder="0" style="margin-top:4px;width:100%;padding:8px;border:1px solid #d0e8d8;border-radius:8px;font-size:14px;text-align:center">
+        </label>
+        <label style="margin:0;font-size:12px;color:var(--md)">超過後單價
+          <input type="number" id="eq_price_${eq.k}" value="${price}" inputmode="numeric" placeholder="單價" style="margin-top:4px;width:100%;padding:8px;border:1px solid #d0e8d8;border-radius:8px;font-size:14px;text-align:center">
+        </label>
       </div>
-      <div style="display:flex;align-items:center;gap:4px">
-        <span style="font-size:11px;color:var(--lt)">超過單價</span>
-        <input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" inputmode="numeric" placeholder="單價" style="width:60px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
-      </div>
-    </div>`).join('');
+      <div style="font-size:11px;color:#777;line-height:1.45">例：基本附 1 ${eq.k} 就填 1；攤商填 2，系統只計 1 個加租費。</div>
+    </div>`;
+  }).join('');
 }
 function updateModPresets(){
   const type=$('sm_type').value;
@@ -1420,6 +1561,29 @@ function toggleStallConfig(checked){
 
 function getEquipJson(){
   const obj={};EQUIP_LIST.forEach(eq=>{obj[eq.k]={open:!!$('eq_open_'+eq.k)?.checked,price:parseInt($('eq_price_'+eq.k)?.value)||0,incl:parseInt($('eq_incl_'+eq.k)?.value)||0};});return obj;
+}
+function getInvoiceTaxJson(){
+  return {
+    stall: !!$('sm_tax_stall')?.checked,
+    equip: !!$('sm_tax_equip')?.checked,
+    extra: !!$('sm_tax_extra')?.checked
+  };
+}
+function setInvoiceTaxChecks(obj){
+  let cfg=obj||{};
+  if(typeof cfg==='string'){try{cfg=JSON.parse(cfg||'{}');}catch(e){cfg={};}}
+  if($('sm_tax_stall')) $('sm_tax_stall').checked = cfg.stall!==false;
+  if($('sm_tax_equip')) $('sm_tax_equip').checked = !!cfg.equip;
+  if($('sm_tax_extra')) $('sm_tax_extra').checked = !!cfg.extra;
+}
+function removeFinanceTaxConfig(){
+  // 舊版若仍殘留「本場發票含稅項目」區塊，進財報時直接移除，發票設定只放在新增/編輯場次。
+  document.querySelectorAll('div,label').forEach(el=>{
+    if(el && el.textContent && el.textContent.includes('本場發票含稅項目')){
+      const box=el.closest('[style*=\"background\"], .card, div');
+      if(box) box.remove();
+    }
+  });
 }
 
 function quickAddEvent(){
@@ -1477,6 +1641,7 @@ function resetSesModal(){
   $('customFieldsList').innerHTML='';
   $('addonsList').innerHTML='';
   addDateSlot(); // 預設一個日期欄
+  setInvoiceTaxChecks({stall:true,equip:false,extra:false});
   updateModPresets();buildEquipDefs({});
 }
 
@@ -1600,9 +1765,18 @@ function getAddons(){
   return addons;
 }
 async function editSes(id){
-  // 強制從 API 取完整資料確保地區/日期等新欄位有帶出
-  const s=await api({action:'getSession',id,email:ST.email,token:ST.token});
-  if(!s||s.error){toast('❌ '+(s?.error||'找不到場次'));return;}
+  // 強制從 API 取完整資料，並與總覽快取合併，避免圖片/欄位沒有帶出時被空白覆蓋。
+  let s=await api({action:'getSession',id,email:ST.email,token:ST.token});
+  const dash=(ST.sdData||[]).find(x=>x.id===id)||{};
+  if(!s||s.error){
+    if(!dash.id){toast('❌ '+(s?.error||'找不到場次'));return;}
+    s=dash;
+  }else{
+    s=mergeSessionKeepFilled(s,dash);
+  }
+  ST._editingSesId=id;
+  ST._editingSesOriginal=Object.assign({},s);
+  ST._editingSesOriginalCover=pickImageUrl(s,dash);
   resetSesModal();
   $('sm_id').value=s.id;
   $('sm_eventId').value=s.eventId||'';
@@ -1620,9 +1794,13 @@ async function editSes(id){
   $('sm_organizer').value=s.organizer||'';
   $('sm_coorg').value=s.coorg||'';
   $('sm_basicEquip').value=s.basicEquip||'';
+  setInvoiceTaxChecks(s.invoiceTax||s.invoiceTaxJson||s['發票含稅JSON']||{stall:true,equip:false,extra:false});
   $('sm_desc').value=s.desc||'';
-  $('sm_cover').value=s.cover||'';
-  if(s.cover){$('sesCoverImg').src=s.cover;$('sesCoverPreview').style.display='block';}
+  const sesCover=pickImageUrl(s)||ST._editingSesOriginalCover||'';
+  try{ if(sesCover && s.id) localStorage.setItem('tbl_ses_cover_'+s.id,sesCover); }catch(e){}
+  $('sm_cover').value=sesCover;
+  if(sesCover){$('sesCoverImg').src=sesCover;$('sesCoverPreview').style.display='block';}
+  else{$('sesCoverPreview').style.display='none';}
   // 攤位清單
   $('stallItemsList').innerHTML='';stallItemIdx=0;
   (s.stallList||[]).forEach(name=>addStallItem(name));
@@ -1699,8 +1877,9 @@ async function saveSession(){
     organizer:$('sm_organizer').value.trim(),
     coorg:$('sm_coorg').value.trim(),
     basicEquip:$('sm_basicEquip').value.trim(),
+    invoiceTax:getInvoiceTaxJson(),
     desc:$('sm_desc').value.trim(),
-    cover:$('sm_cover').value.trim(),
+    cover:$('sm_cover').value.trim() || (id && ST._editingSesOriginalCover ? ST._editingSesOriginalCover : ''),
     needReview:$('sm_review').checked,
     portals:(()=>{const ids=['portal_market','portal_activity','portal_dept','portal_collab'];return ids.filter(pid=>{const el=document.getElementById(pid);return el&&el.checked;}).map(pid=>{const el=document.getElementById(pid);return el?el.value:'';}).filter(Boolean);})(),
     modules:getModulesJson(),
@@ -1716,7 +1895,9 @@ async function saveSession(){
   return withBtnLock(btn,'儲存中…',async()=>{
     const res=await apiPost(body);
     if(res.error){toast('❌ '+res.error);return;}
+    try{ const c=body.cover||''; if(c && body.id) localStorage.setItem('tbl_ses_cover_'+body.id,c); }catch(e){}
     toast('✅ 場次已儲存');closeModal('sesModal');
+    ST._editingSesId='';ST._editingSesOriginal=null;ST._editingSesOriginalCover='';
     await loadAllData();
   });
 }
@@ -2369,6 +2550,78 @@ async function removeStaff(email,name){
 
 function safeN(v){return Number(v)||0;}
 
+function financeStallCount(r){return safeN(r.stallCount)||1;}
+function financePayAmount(r){return safeN(r.amount ?? r.totalAmount ?? r.payAmount ?? r['繳費金額'] ?? 0);}
+function financeDepositAmount(r,ses={}){
+  const direct=safeN(r.deposit ?? r.depositAmount ?? r['保證金'] ?? 0);
+  if(direct>0) return direct;
+  const sesDep=safeN(ses.deposit ?? ses['保證金'] ?? 0);
+  return sesDep>0 ? sesDep*financeStallCount(r) : 0;
+}
+function financeEquipEntries(r){
+  try{
+    const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
+    return Object.entries(obj||{}).map(([name,qty])=>[String(name||'').trim(),safeN(qty)]).filter(([name,qty])=>name&&qty>0);
+  }catch(e){return [];}
+}
+function financeEquipDef(name,ses={}){
+  const defs=ses.equip||{};
+  const def=defs[name]||{};
+  const fallback=(EQUIP_LIST||[]).find(x=>x.k===name)||{};
+  return {price:safeN(def.price||fallback.price), incl:safeN(def.incl)};
+}
+function financeEquipCharge(r,ses={}){
+  return financeEquipEntries(r).reduce((sum,[name,qty])=>{
+    const def=financeEquipDef(name,ses);
+    const included=def.incl*financeStallCount(r);
+    const chargeQty=Math.max(0,qty-included);
+    return sum+(chargeQty*def.price);
+  },0);
+}
+function financeBaseFeeAmount(r,ses={}){
+  return Math.max(0, financePayAmount(r)-financeDepositAmount(r,ses)-financeEquipCharge(r,ses));
+}
+function financeRegIncomeAmount(r,ses={}){
+  return Math.max(0, financeBaseFeeAmount(r,ses)+financeEquipCharge(r,ses));
+}
+function financeEquipSummary(regs){
+  const total={};
+  (regs||[]).forEach(r=>{
+    try{
+      const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
+      Object.entries(obj||{}).forEach(([k,v])=>{
+        const qty=safeN(v);
+        if(k && qty>0) total[k]=(total[k]||0)+qty;
+      });
+    }catch(e){}
+  });
+  return total;
+}
+function financeSummaryText(data){
+  const moneyText=n=>'NT$'+safeN(n).toLocaleString();
+  const equip=data.equipSummary&&Object.keys(data.equipSummary).length
+    ? Object.entries(data.equipSummary).map(([k,v])=>`${k}×${v}`).join('、')
+    : '無';
+  return [
+    `【兔彼樂場次對帳】${data.sesName||'場次'}`,
+    data.evName?`活動：${data.evName}`:'',
+    `總報名：${safeN(data.regCount)} 筆`,
+    `已繳費：${safeN(data.paidCount)} 筆`,
+    `待確認繳費：${safeN(data.pendingPayCount)} 筆`,
+    `前台已收總額：${moneyText(data.frontPaidTotal)}`,
+    `報名收入：${moneyText(data.baseFeeTotal)}`,
+    `設備收入：${moneyText(data.equipFeeTotal)}`,
+    `其中押金：${moneyText(data.depositTotal)}（不列入損益）`,
+    `列入損益收入：${moneyText(data.totalIncome)}`,
+    `支出合計：${moneyText(data.totalExpense)}`,
+    `本場損益：${moneyText(data.netProfit)}`,
+    `押金未退餘額：${moneyText(data.depositLeft)}`,
+    `設備統計：${equip}`,
+    '',
+    '詳細名單與明細請由有權限的管理員登入後台查看。'
+  ].filter(Boolean).join('\n');
+}
+
 function renderFinSection(title,items,total,type){
   const isIncome=type==='income';
   const color=isIncome?'#1D9E75':'#A32D2D';
@@ -2524,8 +2777,11 @@ async function downloadSesData(sesId,sesName){
   const paidRegs=regs.filter(r=>isPaidText(r.payStatus));
   const pendingPay=regs.filter(r=>isPendingPayText(r.payStatus));
   const approvedRegs=regs.filter(r=>clean(r.status)==='已錄取' || isPaidText(r.payStatus));
-  const stallIncome=paidRegs.reduce((sum,r)=>sum+payAmount(r),0);
+  const frontPaidTotal=paidRegs.reduce((sum,r)=>sum+payAmount(r),0);
   const depositTotal=paidRegs.reduce((sum,r)=>sum+depAmount(r),0);
+  const equipFeeTotal=paidRegs.reduce((sum,r)=>sum+financeEquipCharge(r,ses),0);
+  const baseFeeTotal=paidRegs.reduce((sum,r)=>sum+Math.max(0,payAmount(r)-depAmount(r)-financeEquipCharge(r,ses)),0);
+  const stallIncome=baseFeeTotal+equipFeeTotal;
   const refundedTotal=paidRegs.filter(r=>clean(r.depositRefunded).includes('已退')).reduce((sum,r)=>sum+depAmount(r),0);
   const manualIncome=finItems.filter(i=>clean(i['類型']||i.type)==='income' || clean(i['類型']||i.type)==='收入').reduce((sum,i)=>sum+n(i['金額']||i.amount),0);
   const manualExpense=finItems.filter(i=>clean(i['類型']||i.type)==='expense' || clean(i['類型']||i.type)==='支出').reduce((sum,i)=>sum+n(i['金額']||i.amount),0);
@@ -2570,13 +2826,16 @@ async function downloadSesData(sesId,sesName){
     ['已錄取/已繳費筆數',approvedRegs.length,'設備統計主要參考'],
     ['已繳費筆數',paidRegs.length,'列入已收費用'],
     ['待確認繳費',pendingPay.length,'付款狀態為待確認/待核款'],
-    ['已收報名費',stallIncome,'已繳費報名金額合計'],
+    ['前台已收總額',frontPaidTotal,'含報名費、設備、押金等前台已收合計'],
+    ['報名收入',baseFeeTotal,'前台已收總額扣除押金與設備收入'],
+    ['設備收入',equipFeeTotal,'已繳費報名的設備加購/超額設備費'],
+    ['押金收取',depositTotal,'押金獨立列示，不列入損益'],
+    ['列入損益收入',stallIncome,'報名收入＋設備收入，不含押金'],
     ['手動收入',manualIncome,'財報明細收入項目'],
     ['手動支出',manualExpense,'財報明細支出項目'],
     ['收入合計',totalIncome,'已收報名費＋手動收入'],
     ['支出合計',totalExpense,'手動支出'],
     ['試算淨額',netProfit,'收入合計－支出合計'],
-    ['押金收取',depositTotal,'不列入損益'],
     ['押金已退',refundedTotal,'不列入損益'],
     ['押金未退',depositTotal-refundedTotal,'不列入損益']
   ];
@@ -2625,66 +2884,74 @@ function downloadCurrentFinanceData(){
 }
 
 function shareLineFinance(){
-  const title=$('financeTitle')?.textContent||'場次';
-  const net=$('f-net')?.textContent?.match(/NT\$[\d,]+/)?.[0]||'';
-  const text='【兔彼樂財報】'+title+'\n本場淨利：'+net+'\n詳細請洽主辦。';
+  const data=window.ST_finSummary||{};
+  const text=data.sesName?financeSummaryText(data):('【兔彼樂財報】'+($('financeTitle')?.textContent||'場次')+'\n請登入後台查看最新財報資料。');
   window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
 }
+
 async function loadFinanceData(){
   const ses=(ST.sdData||[]).find(s=>s.id===ST_finSesId)||{};
   const ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
-  const [_rr,_fr]=await Promise.all([api({action:'getRegsBySession',sessionId:ST_finSesId,email:ST.email,token:ST.token}),api({action:'getFinance',sessionId:ST_finSesId,email:ST.email,token:ST.token})]);
+  const [_rr,_fr]=await Promise.all([
+    api({action:'getRegsBySession',sessionId:ST_finSesId,email:ST.email,token:ST.token}),
+    api({action:'getFinance',sessionId:ST_finSesId,email:ST.email,token:ST.token})
+  ]);
   const regs=Array.isArray(_rr)?_rr:[];
   ST_finItems=Array.isArray(_fr)?_fr:[];
   const paidRegs=(regs||[]).filter(r=>isPaidText(r.payStatus));
-  const stallTotal=paidRegs.reduce((s,r)=>s+(Number(r.amount)||0),0);
-  const equipSummary={};
-  paidRegs.forEach(r=>{
-    try{
-      Object.entries(JSON.parse(r.equip||'{}')).forEach(([name,qty])=>{
-        qty=Number(qty)||0;
-        if(qty>0) equipSummary[name]=(equipSummary[name]||0)+qty;
-      });
-    }catch(e){}
-  });
-  const equipTotal=0; // 目前報名資料只可靠回推總應收金額，設備明細另以數量列出，避免錯算單價
-  const taxStall=$('ftax-stall')?.checked||false;
-  const invoiceRegs=(regs||[]).filter(r=>r.taxId);
-  const taxBase=invoiceRegs.reduce((s,r)=>taxStall?s+(r.amount||0):s,0);
-  const taxAmt=Math.round(taxBase*0.05);
-  const depositTotal=paidRegs.reduce((s,r)=>s+(r.deposit||0),0);
-  const refundedTotal=(regs||[]).filter(r=>r.depositRefunded==='已退').reduce((s,r)=>s+(r.deposit||0),0);
-  const depositLeft=depositTotal-refundedTotal;
-  const manualIncome=ST_finItems.filter(i=>i['類型']==='income');
-  const manualExpense=ST_finItems.filter(i=>i['類型']==='expense');
-  const manualIncomeTotal=manualIncome.reduce((s,i)=>s+safeN(i['金額']),0);
-  const manualExpenseTotal=manualExpense.reduce((s,i)=>s+safeN(i['金額']),0);
-  const totalIncome=stallTotal+equipTotal+taxAmt+manualIncomeTotal;
+  const pendingPay=(regs||[]).filter(r=>isPendingPayText(r.payStatus));
+  const frontPaidTotal=paidRegs.reduce((s,r)=>s+financePayAmount(r),0);
+  const depositTotal=paidRegs.reduce((s,r)=>s+financeDepositAmount(r,ses),0);
+  const refundedTotal=paidRegs.filter(r=>String(r.depositRefunded||'').includes('已退')).reduce((s,r)=>s+financeDepositAmount(r,ses),0);
+  const depositLeft=Math.max(0,depositTotal-refundedTotal);
+  const equipFeeTotal=paidRegs.reduce((s,r)=>s+financeEquipCharge(r,ses),0);
+  const baseFeeTotal=paidRegs.reduce((s,r)=>s+financeBaseFeeAmount(r,ses),0);
+  const regIncomeTotal=baseFeeTotal+equipFeeTotal;
+  const equipSummary=financeEquipSummary(paidRegs);
+
+  const manualIncome=ST_finItems.filter(i=>String(i['類型']||i.type||'').trim()==='income' || String(i['類型']||i.type||'').trim()==='收入');
+  const manualExpense=ST_finItems.filter(i=>String(i['類型']||i.type||'').trim()==='expense' || String(i['類型']||i.type||'').trim()==='支出');
+  const manualIncomeTotal=manualIncome.reduce((s,i)=>s+safeN(i['金額']||i.amount),0);
+  const manualExpenseTotal=manualExpense.reduce((s,i)=>s+safeN(i['金額']||i.amount),0);
+  const totalIncome=regIncomeTotal+manualIncomeTotal;
   const totalExpense=manualExpenseTotal;
   const netProfit=totalIncome-totalExpense;
-  if($('f-income-section')) $('f-income-section').innerHTML=renderFinSection('收入',[
-    {name:'攤位費 / 已繳費總額',note:paidRegs.length+'筆已繳費（含設備、押金等前台應繳合計）',amt:stallTotal,auto:true},
-    Object.keys(equipSummary).length?{name:'設備數量統計',note:Object.entries(equipSummary).map(([k,v])=>k+' x '+v).join('、'),amt:0,auto:true}:null,
-    taxAmt>0?{name:'發票稅金5%',note:invoiceRegs.length+'筆',amt:taxAmt,auto:true}:null,
-    ...manualIncome.map(i=>({name:i['品項'],amt:safeN(i['金額']),auto:false,id:i['ID']}))
+  window.ST_finSummary={
+    sesName:ses.name||$('financeTitle')?.textContent||'', evName:ev.title||$('financeSub')?.textContent||'',
+    regCount:regs.length, paidCount:paidRegs.length, pendingPayCount:pendingPay.length,
+    frontPaidTotal, depositTotal, refundedTotal, depositLeft, baseFeeTotal, equipFeeTotal, regIncomeTotal,
+    manualIncomeTotal, manualExpenseTotal, totalIncome, totalExpense, netProfit, equipSummary
+  };
+
+  const equipNote=Object.keys(equipSummary).length?Object.entries(equipSummary).map(([k,v])=>k+' × '+v).join('、'):'無設備需求';
+  const financeTopCards=`<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px">
+    <div style="background:#F4FBF8;border:1px solid #CDEFE4;border-radius:12px;padding:10px"><div style="font-size:11px;color:#0F6E56">前台已收總額</div><div style="font-size:20px;font-weight:900;color:#0F6E56">NT$${frontPaidTotal.toLocaleString()}</div><div style="font-size:10px;color:#666">含押金與報名收入</div></div>
+    <div style="background:#FFF7E8;border:1px solid #F5D095;border-radius:12px;padding:10px"><div style="font-size:11px;color:#854F0B">押金收取</div><div style="font-size:20px;font-weight:900;color:#854F0B">NT$${depositTotal.toLocaleString()}</div><div style="font-size:10px;color:#666">不列入損益</div></div>
+    <div style="background:#F7FAFF;border:1px solid #CFE0F5;border-radius:12px;padding:10px"><div style="font-size:11px;color:#185FA5">列入損益收入</div><div style="font-size:20px;font-weight:900;color:#185FA5">NT$${totalIncome.toLocaleString()}</div><div style="font-size:10px;color:#666">報名 ${baseFeeTotal.toLocaleString()}＋設備 ${equipFeeTotal.toLocaleString()}</div></div>
+    <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:12px;padding:10px"><div style="font-size:11px;color:#555">本場損益</div><div style="font-size:20px;font-weight:900;color:${netProfit>=0?'#0F6E56':'#A32D2D'}">NT$${netProfit.toLocaleString()}</div><div style="font-size:10px;color:#666">收入－支出</div></div>
+  </div>`;
+  if($('f-income-section')) $('f-income-section').innerHTML=financeTopCards+renderFinSection('收入（列入損益）',[
+    {name:'報名收入',note:paidRegs.length+'筆已繳費；前台已收總額扣除押金與設備費',amt:baseFeeTotal,auto:true},
+    {name:'設備收入',note:equipNote,amt:equipFeeTotal,auto:true},
+    ...manualIncome.map(i=>({name:i['品項']||i.name||'手動收入',amt:safeN(i['金額']||i.amount),auto:false,id:i['ID']||i.id,note:i['備註']||i.note||''}))
   ].filter(Boolean),totalIncome,'income');
   if($('f-expense-section')) $('f-expense-section').innerHTML=renderFinSection('支出',[
-    ...manualExpense.map(i=>({name:i['品項'],amt:safeN(i['金額']),auto:false,id:i['ID']}))
+    ...manualExpense.map(i=>({name:i['品項']||i.name||'手動支出',amt:safeN(i['金額']||i.amount),auto:false,id:i['ID']||i.id,note:i['備註']||i.note||''}))
   ],totalExpense,'expense');
-  if($('f-net')) $('f-net').innerHTML=`<div style="border-radius:10px;padding:12px 14px;background:#E1F5EE;border:0.5px solid #9FE1CB">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:14px;font-weight:500;color:#085041">本場淨利</span>
-      <span style="font-size:20px;font-weight:500;color:#085041">NT$${netProfit.toLocaleString()}</span>
+  if($('f-net')) $('f-net').innerHTML=`<div style="border-radius:12px;padding:12px 14px;background:#E1F5EE;border:1px solid #9FE1CB">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <span style="font-size:15px;font-weight:800;color:#085041">本場損益</span>
+      <span style="font-size:24px;font-weight:900;color:#085041">NT$${netProfit.toLocaleString()}</span>
     </div>
-    <div style="font-size:10px;color:#1D9E75;margin-top:3px">收入 ${totalIncome.toLocaleString()} － 支出 ${totalExpense.toLocaleString()} ＝ ${netProfit.toLocaleString()}</div>
+    <div style="font-size:12px;color:#1D9E75;margin-top:5px;line-height:1.55">列入損益收入 ${totalIncome.toLocaleString()} － 支出 ${totalExpense.toLocaleString()} ＝ ${netProfit.toLocaleString()}<br>前台已收總額 ${frontPaidTotal.toLocaleString()}＝報名 ${baseFeeTotal.toLocaleString()}＋設備 ${equipFeeTotal.toLocaleString()}＋押金 ${depositTotal.toLocaleString()}；押金另列，不算淨利。</div>
   </div>`;
-  if($('f-deposit')) $('f-deposit').innerHTML=`<div style="border-radius:10px;padding:12px 14px;background:#FAEEDA;border:0.5px solid #FAC775">
-    <div style="font-size:11px;font-weight:500;color:#633806;margin-bottom:7px">押金專區（不列入損益）</div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>收取押金</span><span>NT$${depositTotal.toLocaleString()}</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>已退還</span><span style="color:#1D9E75">－NT$${refundedTotal.toLocaleString()}</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;padding:7px 0 3px;border-top:0.5px solid #FAC775;margin-top:5px"><span>未退餘額</span><span style="color:#854F0B">NT$${depositLeft.toLocaleString()}</span></div>
-    ${depositLeft>0?`<div style="font-size:10px;color:#854F0B;margin-top:5px">未退餘額 = 違約扣款，可轉入收入</div>
-    <button onclick="transferDeposit(${depositLeft})" style="margin-top:6px;font-size:11px;background:#FAEEDA;color:#854F0B;border:0.5px solid #FAC775;border-radius:6px;padding:4px 10px;cursor:pointer">轉入收入 ＋NT$${depositLeft.toLocaleString()}</button>`:''}
+  if($('f-deposit')) $('f-deposit').innerHTML=`<div style="border-radius:12px;padding:12px 14px;background:#FAEEDA;border:1px solid #FAC775">
+    <div style="font-size:12px;font-weight:800;color:#633806;margin-bottom:8px">押金專區（不列入損益）</div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>收取押金</span><span>NT$${depositTotal.toLocaleString()}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>已退還</span><span style="color:#1D9E75">－NT$${refundedTotal.toLocaleString()}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;padding:8px 0 3px;border-top:1px solid #FAC775;margin-top:6px"><span>未退餘額</span><span style="color:#854F0B">NT$${depositLeft.toLocaleString()}</span></div>
+    ${depositLeft>0?`<div style="font-size:11px;color:#854F0B;margin-top:6px">未退餘額不是收入；若確定違約扣款，才可轉入收入。</div>
+    <button onclick="transferDeposit(${depositLeft})" style="margin-top:7px;font-size:12px;background:#FAEEDA;color:#854F0B;border:1px solid #FAC775;border-radius:7px;padding:5px 10px;cursor:pointer">轉入收入 ＋NT$${depositLeft.toLocaleString()}</button>`:''}
   </div>`;
 }
 
@@ -2800,9 +3067,12 @@ function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
   const pendingPay=(regs||[]).filter(r=>isPendingPayText(r.payStatus));
   const incomeManual=(finItems||[]).filter(i=>(i['類型']||i.type)==='income').reduce((sum,i)=>sum+(Number(i['金額']||i.amount)||0),0);
   const expenseManual=(finItems||[]).filter(i=>(i['類型']||i.type)==='expense').reduce((sum,i)=>sum+(Number(i['金額']||i.amount)||0),0);
-  const received=paidRegs.reduce((sum,r)=>sum+(Number(r.amount)||Number(r.totalAmount)||0),0);
-  const deposit=paidRegs.reduce((sum,r)=>sum+(Number(r.deposit)||0),0);
-  const income=received+incomeManual;
+  const received=paidRegs.reduce((sum,r)=>sum+financePayAmount(r),0);
+  const sesObj=(ST.sdData||[]).find(s=>s.id===sesId)||{};
+  const deposit=paidRegs.reduce((sum,r)=>sum+financeDepositAmount(r,sesObj),0);
+  const equipFee=paidRegs.reduce((sum,r)=>sum+financeEquipCharge(r,sesObj),0);
+  const baseFee=paidRegs.reduce((sum,r)=>sum+financeBaseFeeAmount(r,sesObj),0);
+  const income=baseFee+equipFee+incomeManual;
   const net=income-expenseManual;
   const equip={};
   (regs||[]).forEach(r=>{
@@ -2834,14 +3104,14 @@ function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
     <div style="display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:8px;margin-bottom:10px">
       <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">已繳費筆數</div><div style="font-size:18px;font-weight:800;color:#1D9E75">${paidRegs.length}</div></div>
       <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">待確認繳費</div><div style="font-size:18px;font-weight:800;color:#BA7517">${pendingPay.length}</div></div>
-      <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">已收費用</div><div style="font-size:18px;font-weight:800;color:#1D9E75">${money(received)}</div></div>
+      <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">前台已收總額</div><div style="font-size:18px;font-weight:800;color:#1D9E75">${money(received)}</div><div style="font-size:10px;color:#777">報名 ${money(baseFee)}＋設備 ${money(equipFee)}＋押金 ${money(deposit)}</div></div>
       <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#777">試算淨額</div><div style="font-size:18px;font-weight:800;color:${net>=0?'#1D9E75':'#c0392b'}">${money(net)}</div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:13px;font-weight:800;margin-bottom:4px;color:#333">設備統計</div>${equipHtml}</div>
       <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:13px;font-weight:800;margin-bottom:4px;color:#333">財報明細</div>${finHtml}</div>
     </div>
-    <div style="font-size:11px;color:#777;margin-top:8px">押金小計：${money(deposit)}。若需逐筆驗算，請使用「下載完整資料」，設備會拆成獨立列。</div>`;
+    <div style="font-size:11px;color:#777;margin-top:8px">前台已收總額 ${money(received)}＝報名 ${money(baseFee)}＋設備 ${money(equipFee)}＋押金 ${money(deposit)}。若需逐筆驗算，請使用「下載完整資料」。</div>`;
 }
 
 // ── 財報 Modal ──
@@ -2855,6 +3125,7 @@ async function openFinanceModal(sesId, sesName, evName){
   const dl=$('financeDownloadBtn');
   if(dl) dl.textContent='下載完整資料';
   openModal('financeModal');
+  removeFinanceTaxConfig();
   if($('f-income-section')) $('f-income-section').innerHTML='<div style="padding:18px;text-align:center;color:#999">財報載入中…</div>';
   if($('f-expense-section')) $('f-expense-section').innerHTML='';
   if($('f-net')) $('f-net').innerHTML='';
