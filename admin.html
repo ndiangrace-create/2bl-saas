@@ -528,6 +528,7 @@ textarea{min-height:64px;resize:vertical}
         <button class="btn btn-g btn-xs" onclick="addDateSlot()" type="button">＋ 新增日期</button>
       </div>
       <div id="dateSlots"></div>
+      <div style="font-size:11px;color:var(--lt);margin-top:4px">每個日期可分別設定費用；單日報名按各日費用累加，全選才套用多日優惠總價。攤位數上限請見下方「名額上限」欄位說明。</div>
     </div>
 
     <!-- 費用 -->
@@ -537,7 +538,7 @@ textarea{min-height:64px;resize:vertical}
     </div>
     <div style="font-size:11px;color:var(--lt);margin-top:2px">例：7/18 NT$1000 + 7/19 NT$800，多日優惠填 NT$1700（全選才適用此優惠價）</div>
     <div class="form-row">
-      <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"></div>
+      <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"><div style="font-size:11px;color:var(--lt);margin-top:3px">市集場次填 0（不限），系統依攤位數自動控管；活動／體驗類填實際開放人數，滿額後前台自動關閉報名。</div></div>
       <div>
   <label>開放選位（付費選項）</label>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
@@ -762,37 +763,6 @@ textarea{min-height:64px;resize:vertical}
     </div>
   </div>
 </div><!-- end modal -->
-
-<!-- ══ 場次報名名單 Modal ══ -->
-<div class="overlay" id="sesRegModal" onclick="if(event.target===this)closeModal('sesRegModal')" style="z-index:1200">
-  <div class="modal" style="max-width:860px;width:96%;max-height:92vh;display:flex;flex-direction:column;padding:0;border-radius:16px 16px 0 0">
-    <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid #e8f0e8;flex-shrink:0">
-      <div>
-        <div id="sesRegModalTitle" style="font-size:17px;font-weight:900;color:var(--dk)"></div>
-        <div id="sesRegModalSub" style="font-size:12px;color:var(--md);margin-top:2px"></div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="sesRegDownload()" class="btn btn-b btn-sm" style="font-size:13px;padding:8px 14px">⬇ 下載名單</button>
-        <button onclick="closeModal('sesRegModal')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--md);line-height:1;padding:0 4px">✕</button>
-      </div>
-    </div>
-    <!-- 搜尋列 -->
-    <div style="padding:10px 20px;border-bottom:1px solid #f0f0f0;flex-shrink:0;display:flex;gap:8px;align-items:center">
-      <input id="sesRegSearch" type="text" oninput="renderSesRegList()" placeholder="搜尋姓名、品牌、Email、手機…" style="flex:1;padding:8px 12px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:14px;font-family:inherit">
-      <select id="sesRegStatusFilter" onchange="renderSesRegList()" style="padding:8px 10px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px;font-family:inherit">
-        <option value="">全部狀態</option>
-        <option value="待審核">待審核</option>
-        <option value="已錄取">已錄取</option>
-        <option value="備取">備取</option>
-        <option value="不錄取">不錄取</option>
-        <option value="已取消">已取消</option>
-      </select>
-    </div>
-    <!-- 名單內容 -->
-    <div id="sesRegListBody" style="flex:1;overflow-y:auto;padding:12px 16px 20px"></div>
-  </div>
-</div>
 
 <script>
 let ST_finSesId="";
@@ -2578,93 +2548,11 @@ async function toggleInvoiceStatus(regId,current){
   await loadInvoiceList();
 }
 
-async function openSesDetail(sesId){
+function openSesDetail(sesId){
+  // 點場次名稱 → 開財報Modal（含完整報名名單）
   const s=(ST.sdData||[]).find(x=>x.id===sesId)||{};
   const ev=(ST.events||[]).find(e=>e.id===s.eventId)||{};
-  const titleEl=$('sesRegModalTitle');
-  const subEl=$('sesRegModalSub');
-  const bodyEl=$('sesRegListBody');
-  const searchEl=$('sesRegSearch');
-  const filterEl=$('sesRegStatusFilter');
-  if(titleEl) titleEl.textContent=s.name||sesId;
-  if(subEl) subEl.textContent=(ev.title||'')+(s.region?' ｜ '+s.region:'');
-  if(searchEl) searchEl.value='';
-  if(filterEl) filterEl.value='';
-  if(bodyEl) bodyEl.innerHTML='<div style="padding:28px;text-align:center;color:#aaa">名單載入中…</div>';
-  openModal('sesRegModal');
-  ST._sesRegSesId=sesId;
-  ST._sesRegSesName=s.name||sesId;
-  ST._sesRegRegs=null;
-  try{
-    const regs=await apiPost({action:'getRegsBySession',sessionId:sesId});
-    ST._sesRegRegs=Array.isArray(regs)?regs:[];
-    renderSesRegList();
-  }catch(e){
-    if(bodyEl) bodyEl.innerHTML='<div style="padding:28px;text-align:center;color:var(--rd)">載入失敗，請重試</div>';
-  }
-}
-
-function renderSesRegList(){
-  const el=$('sesRegListBody');
-  if(!el) return;
-  const regs=ST._sesRegRegs||[];
-  const kw=($('sesRegSearch')?.value||'').toLowerCase().trim();
-  const sf=$('sesRegStatusFilter')?.value||'';
-  const list=regs.filter(r=>{
-    const matchKw=!kw||[r.name,r.brand,r.email,r.phone,r.id].some(v=>(v||'').toLowerCase().includes(kw));
-    const matchSt=!sf||(r.status||'待審核')===sf;
-    return matchKw&&matchSt;
-  });
-  const subEl=$('sesRegModalSub');
-  if(subEl){
-    const ev=(ST.events||[]).find(e=>e.id===((ST.sdData||[]).find(x=>x.id===ST._sesRegSesId)||{}).eventId)||{};
-    subEl.textContent=(ev.title||'')+((ST.sdData||[]).find(x=>x.id===ST._sesRegSesId)?.region?' ｜ '+((ST.sdData||[]).find(x=>x.id===ST._sesRegSesId)?.region):'')+'　共 '+regs.length+' 筆，顯示 '+list.length+' 筆';
-  }
-  if(!list.length){
-    el.innerHTML='<div style="padding:32px;text-align:center;color:#bbb;font-size:14px">無符合的報名資料</div>';
-    return;
-  }
-  const statusColor={
-    '待審核':'#7c5ccc','已錄取':'#1D9E75','備取':'#D97706',
-    '不錄取':'#E53E3E','已取消':'#aaa'
-  };
-  el.innerHTML=list.map((r,i)=>{
-    const st=r.status||'待審核';
-    const stColor=statusColor[st]||'#555';
-    const paid=r.payStatus||'未繳費';
-    const paidOk=paid.includes('已繳費')||paid.includes('已確認');
-    let equipStr='';
-    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'×'+v).join('　');}catch(e){}
-    return `<div style="background:#fff;border:1px solid #e8f0e8;border-radius:12px;padding:13px 15px;margin-bottom:8px">
-      <div style="display:flex;align-items:flex-start;gap:10px">
-        <div style="font-size:13px;font-weight:700;color:#aaa;min-width:24px;padding-top:2px">${i+1}</div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
-            <span style="font-size:15px;font-weight:800;color:var(--dk)">${r.brand||r.name||'-'}</span>
-            ${r.brand&&r.name?`<span style="font-size:12px;color:#888">${r.name}</span>`:''}
-            <span style="font-size:11px;font-weight:700;background:${stColor}18;color:${stColor};padding:2px 8px;border-radius:20px">${st}</span>
-            <span style="font-size:11px;font-weight:700;background:${paidOk?'#e6f9f0':'#fff3cd'};color:${paidOk?'#1D9E75':'#856404'};padding:2px 8px;border-radius:20px">${paid}</span>
-          </div>
-          <div style="font-size:12px;color:#666;line-height:1.9">
-            <span>📱 ${r.phone||'-'}</span>　<span>✉ ${r.email||'-'}</span>
-            ${r.stallCount>1?`　<span>攤位數：${r.stallCount}</span>`:''}
-            ${r.amount>0?`　<span>繳費：NT$${(r.amount||0).toLocaleString()}</span>`:''}
-            ${equipStr?`<br>🪑 ${equipStr}`:''}
-            ${r.adminNote?`<br>📝 備註：${r.adminNote}`:''}
-          </div>
-          <div style="font-size:11px;color:#bbb;margin-top:3px">報名：${(r.createdAt||'').slice(0,16)}　ID：${r.id||''}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function sesRegDownload(){
-  const sesId=ST._sesRegSesId;
-  const sesName=ST._sesRegSesName||sesId;
-  if(!sesId) return;
-  toast('準備下載…');
-  await downloadSesData(sesId, sesName);
+  openFinanceModal(sesId, s.name||sesId, ev.title||'');
 }
 
 // 報名數 → 該場次全部報名（不分狀態）
