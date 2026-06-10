@@ -528,7 +528,6 @@ textarea{min-height:64px;resize:vertical}
         <button class="btn btn-g btn-xs" onclick="addDateSlot()" type="button">＋ 新增日期</button>
       </div>
       <div id="dateSlots"></div>
-      <div style="font-size:11px;color:var(--lt);margin-top:4px">每個日期可分別設定費用；單日報名按各日費用累加，全選才套用多日優惠總價。攤位數上限請見下方「名額上限」欄位說明。</div>
     </div>
 
     <!-- 費用 -->
@@ -538,7 +537,7 @@ textarea{min-height:64px;resize:vertical}
     </div>
     <div style="font-size:11px;color:var(--lt);margin-top:2px">例：7/18 NT$1000 + 7/19 NT$800，多日優惠填 NT$1700（全選才適用此優惠價）</div>
     <div class="form-row">
-      <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"><div style="font-size:11px;color:var(--lt);margin-top:3px">市集場次填 0（不限），系統依攤位數自動控管；活動／體驗類填實際開放人數，滿額後前台自動關閉報名。</div></div>
+      <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"></div>
       <div>
   <label>開放選位（付費選項）</label>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
@@ -1430,6 +1429,15 @@ function toggleEvOpen(evId){
 function openSessionCreateModal(){
   resetSesModal();
   setInvoiceTaxChecks({enabled:true,rate:5,stall:true,equip:true,addon:true,extra:false});
+  // 若 staffList 尚未載入，先即時拉取
+  if(!(ST.staffList&&ST.staffList.length)){
+    api({action:'getStaff',email:ST.email,token:ST.token}).then(list=>{
+      ST.staffList=list||[];
+      fillAssignStaff([]);
+    });
+  } else {
+    fillAssignStaff([]);
+  }
   openModal('sesModal');
 }
 function openSesModalForEvent(evId){
@@ -1796,6 +1804,16 @@ async function editSes(id){
       $('stallPreview').innerHTML='<div style="color:var(--lt);font-size:12px">尚未設定攤位</div>';
     }
   });
+  // 指派管理員
+  const assigned=s.assignedStaff||[];
+  if(!(ST.staffList&&ST.staffList.length)){
+    api({action:'getStaff',email:ST.email,token:ST.token}).then(list=>{
+      ST.staffList=list||[];
+      fillAssignStaff(assigned);
+    });
+  } else {
+    fillAssignStaff(assigned);
+  }
   openModal('sesModal');
 }
 async function saveStallNumbers(){
