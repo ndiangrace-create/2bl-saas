@@ -1461,7 +1461,7 @@ async function saveMemberEdit(){
     invoiceCarrier:$('editInvoiceCarrier')?.value.trim()||'',
     invoiceEmail:$('editInvoiceEmail')?.value.trim()||'',
     collabUrl:$('editCollabUrl').value.trim(),
-    collabDesc:$('editCollabDesc').value.trim()};
+    collabDesc:$('editCollabDesc')?.value.trim()||''};
   const res=await apiPost(body);
   if(res.error){toast('❌ '+res.error);return;}
   // 顯示成功訊息

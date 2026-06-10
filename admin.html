@@ -1164,7 +1164,7 @@ function renderOverviewSessions(){
       <td style="padding:8px 6px;text-align:center;font-size:13px;color:#555;white-space:nowrap">${dateStr}</td>
       <td style="padding:8px 6px;text-align:center"><span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:900;cursor:pointer;font-size:17px">${s.total||0}</span></td>
       <td style="padding:8px 6px;text-align:center"><span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:900;cursor:pointer;font-size:17px">${s.pending||0}</span></td>
-      <td style="padding:8px 6px;text-align:center"><span onclick="goPage('payments');setTimeout(()=>{const f=document.getElementById('paymentSesFilter'); if(f){f.value='${s.id}'; renderPaymentManagement();}},80)" style="font-size:17px;font-weight:900;color:#D97706;cursor:pointer;text-decoration:underline">${pendingPayCount}</span></td>
+      <td style="padding:8px 6px;text-align:center"><span onclick="goPage('payments');ST._payFilterSesId='${s.id}';setTimeout(()=>renderPaymentManagement(),80)" style="font-size:17px;font-weight:900;color:#D97706;cursor:pointer;text-decoration:underline">${pendingPayCount}</span></td>
       <td style="padding:8px 6px;text-align:center"><span onclick="goToSesCheckin('${s.id}')" style="font-size:17px;font-weight:900;color:#1D9E75;cursor:pointer;text-decoration:underline">${s.paid||0}</span></td>
       <td style="padding:8px 6px;font-size:12px;color:#555;max-width:150px;white-space:normal">${equipStr}</td>
       <td style="padding:8px 6px;text-align:right;font-size:13px;font-weight:800;white-space:nowrap">NT$${(s.revenue||0).toLocaleString()}</td>
@@ -1189,7 +1189,7 @@ function renderOverviewSessions(){
       <div class="ov-metric-grid">
         <div class="ov-metric"><div class="label">報名</div><div class="num" onclick="goToSesRegs('${s.id}')">${s.total||0}</div></div>
         <div class="ov-metric"><div class="label">待審核</div><div class="num" style="color:#BA7517" onclick="goToSesPending('${s.id}')">${s.pending||0}</div></div>
-        <div class="ov-metric"><div class="label">繳費確認</div><div class="num" style="color:#D97706" onclick="goPage('payments');setTimeout(()=>{const f=document.getElementById('paymentSesFilter'); if(f){f.value='${s.id}'; renderPaymentManagement();}},80)">${pendingPayCount}</div></div>
+        <div class="ov-metric"><div class="label">繳費確認</div><div class="num" style="color:#D97706" onclick="goPage('payments');ST._payFilterSesId='${s.id}';setTimeout(()=>renderPaymentManagement(),80)">${pendingPayCount}</div></div>
         <div class="ov-metric"><div class="label">已繳費</div><div class="num" onclick="goToSesCheckin('${s.id}')">${s.paid||0}</div></div>
         <div class="ov-metric"><div class="label">已收費用</div><div class="num" style="font-size:18px">NT$${(s.revenue||0).toLocaleString()}</div></div>
         <div class="ov-metric"><div class="label">押金</div><div class="num" style="font-size:18px;color:#854F0B">NT$${(s.depositTotal||0).toLocaleString()}</div></div>
@@ -2224,6 +2224,9 @@ function renderPaymentManagement(targetId){
   if(!el) return;
   const kw=($('paymentSearch')?.value||'').toLowerCase().trim();
   const filter=$('paymentStatusFilter')?.value || '待確認';
+  // 從總覽點入時有場次篩選
+  const sesFilter = ST._payFilterSesId || '';
+  if(sesFilter) ST._payFilterSesId = null; // 讀取後清除，避免影響後續手動篩選
   const regs=(ST.allRegs||[]).slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
 
   const pending=regs.filter(r=>isPendingPayText(r.payStatus));
@@ -2244,7 +2247,8 @@ function renderPaymentManagement(targetId){
     const matchStatus=filter==='全部' || (filter==='已繳費'?isPaidText(r.payStatus):(filter==='待確認'?isPendingPayText(r.payStatus):label===filter));
     const text=[r.name,r.brand,r.email,r.phone,r.sessionId,r.payMethod,r.adminNote].join(' ').toLowerCase();
     const matchKw=!kw || text.includes(kw);
-    return matchStatus && matchKw;
+    const matchSes=!sesFilter || String(r.sessionId||r.sesId||'')===String(sesFilter);
+    return matchStatus && matchKw && matchSes;
   });
 
   if(!list.length){
