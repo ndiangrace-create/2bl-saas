@@ -904,6 +904,11 @@ function setCFFilter(val){
 function fillCheckinSesFilter(){
   const sel=$('checkinSesFilter');
   if(!sel) return;
+  // 若資料尚未就緒，顯示提示並等待
+  if(!ST.sdData||!ST.sdData.length){
+    sel.innerHTML='<option value="">資料載入中…</option>';
+    return;
+  }
   // 活動夥伴只看指派的場次
   const isSuperAdmin=ST.role==='superadmin';
   let sessions=ST.sdData||[];
@@ -1243,6 +1248,9 @@ async function loadAllData(){
   fillRegSessionFilter();
   renderOverviewCards();
   await loadAllRegs();
+  // 若現場管理頁面已開啟，補填場次選單
+  const checkinPage=$('page-checkin');
+  if(checkinPage&&checkinPage.classList.contains('active')) fillCheckinSesFilter();
   // 載入管理員清單供指派用
   api({action:'getStaff'}).then(list=>{ ST.staffList=list||[]; });
 }
@@ -2843,6 +2851,26 @@ async function loadFinanceData(){
   ].filter(Boolean),totalIncome,'income');
   if($('f-expense-section')) $('f-expense-section').innerHTML=renderFinSection('支出',manualExpense.map(i=>({name:i['品項']||i.name,amt:safeN(i['金額']||i.amount),auto:false,id:i['ID']||i.id})),totalExpense,'expense');
   if($('f-net')) $('f-net').innerHTML=`<div style="border-radius:12px;padding:14px 16px;background:#E1F5EE;border:1px solid #9FE1CB"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;font-weight:800;color:#085041">本場損益</span><span style="font-size:24px;font-weight:900;color:#085041">NT$${netProfit.toLocaleString()}</span></div><div style="font-size:12px;color:#1D9E75;margin-top:4px">收入 ${totalIncome.toLocaleString()} － 支出 ${totalExpense.toLocaleString()} ＝ ${netProfit.toLocaleString()}</div></div>`;
+  // 設備統計區：總需／內含／加租
+  if($('f-equip-diff')){
+    const equipDefs=ses.equip||{};
+    const equipDetailRows=Object.keys(equipSummary).map(name=>{
+      const totalNeed=equipSummary[name]||0;
+      const def=equipDefs[name]||{};
+      const inclPerStall=safeN(def.incl)||0;
+      const paidCount=paidRegs.length;
+      // 內含 = 每攤內含 × 本場已繳費攤數合計
+      const totalStalls=paidRegs.reduce((s,r)=>s+(safeN(r.stallCount)||1),0);
+      const totalIncl=inclPerStall*totalStalls;
+      const totalRental=Math.max(0,totalNeed-totalIncl);
+      const price=safeN(def.price)||0;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0">
+        <span style="font-weight:600">${name}</span>
+        <span style="color:#555">總需 <b>${totalNeed}</b>　內含 ${totalIncl}　加租 <b style="color:${totalRental>0?'#1D9E75':'#aaa'}">${totalRental}</b>${totalRental>0?`　小計 NT$${(totalRental*price).toLocaleString()}`:''}</span>
+      </div>`;
+    });
+    $('f-equip-diff').innerHTML=Object.keys(equipSummary).length?`<div style="border-radius:12px;padding:13px 15px;background:#F0FDF8;border:1px solid #9FE1CB"><div style="font-size:12px;font-weight:800;color:#085041;margin-bottom:8px">設備統計（已繳費）</div>${equipDetailRows.join('')}</div>`:'';
+  }
   if($('f-deposit')) $('f-deposit').innerHTML=`<div style="border-radius:12px;padding:13px 15px;background:#FAEEDA;border:1px solid #FAC775"><div style="font-size:12px;font-weight:800;color:#633806;margin-bottom:7px">押金專區（不列入損益）</div><div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>收取押金</span><span>NT$${depositTotal.toLocaleString()}</span></div><div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>已退還</span><span style="color:#1D9E75">－NT$${refundedTotal.toLocaleString()}</span></div><div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;padding:8px 0 3px;border-top:1px solid #FAC775;margin-top:5px"><span>未退餘額</span><span style="color:#854F0B">NT$${depositLeft.toLocaleString()}</span></div></div>`;
   if($('f-invoice-tax-section')) $('f-invoice-tax-section').innerHTML=`<div style="border-radius:12px;padding:13px 15px;background:#F8F5FF;border:1px solid #DDD6FE"><div style="font-size:13px;font-weight:900;color:#5B21B6;margin-bottom:8px">本場發票試算</div><div style="font-size:12px;color:#555;margin-bottom:8px">稅率：${taxCfg.rate}%　列入項目：${invoiceTaxItemLabels(taxCfg).join('、')||'未設定'}　｜　不列入：押金／保證金</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"><div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#666">含稅銷售額</div><div style="font-size:18px;font-weight:900;color:#5B21B6">NT$${taxSplit.total.toLocaleString()}</div></div><div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#666">未稅銷售額</div><div style="font-size:18px;font-weight:900;color:#333">NT$${taxSplit.untaxed.toLocaleString()}</div></div><div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:11px;color:#666">營業稅額</div><div style="font-size:18px;font-weight:900;color:#BA7517">NT$${taxSplit.tax.toLocaleString()}</div></div></div><div style="font-size:12px;color:#666;margin-top:8px">發票資料：個人 ${ST_invoiceData.filter(i=>!i.taxId).length} 筆，公司／機關 ${ST_invoiceData.filter(i=>i.taxId).length} 筆。</div></div>`;
 }
@@ -2903,19 +2931,30 @@ async function loadInvoiceList(){
     return;
   }
   const pending=list.filter(i=>i.invoiceStatus==='待開立').length;
-  if(cnt) cnt.textContent=list.length+'筆 · 待開立'+pending+'筆';
-  if(el) el.innerHTML=list.map(i=>`
-    <div style="display:flex;align-items:flex-start;padding:10px 12px;background:var(--color-background-primary,#fff);border:0.5px solid #e0e0e0;border-radius:10px;margin-bottom:6px;gap:8px">
+  const personal=list.filter(i=>!i.taxId).length;
+  const company=list.filter(i=>i.taxId).length;
+  if(cnt) cnt.textContent=list.length+'筆（個人'+personal+'、公司'+company+'）　待開立'+pending+'筆';
+  if(el) el.innerHTML=list.map(i=>{
+    const isCompany=!!i.taxId;
+    const invAmt=safeN(i.amount);
+    const untaxed=safeN(i.untaxedAmount)||Math.round(invAmt/1.05);
+    const tax=safeN(i.taxAmount)||Math.round(untaxed*0.05);
+    const typeLabel=isCompany?'<span style="background:#EEF2FF;color:#4F46E5;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700">公司／機關</span>':'<span style="background:#F0FDF8;color:#0F6E56;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700">個人</span>';
+    return `<div style="display:flex;align-items:flex-start;padding:10px 12px;background:#fff;border:0.5px solid #e0e0e0;border-radius:10px;margin-bottom:6px;gap:8px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:500">${i.brand}</div>
-        <div style="font-size:10px;color:#666;margin-top:2px">統編：${i.taxId}　抬頭：${i.invoiceTitle}</div>
-        <div style="font-size:10px;color:#666">未稅 NT$${(i.amount||0).toLocaleString()}　稅金 NT$${(i.taxAmount||0).toLocaleString()}　含稅 <strong>NT$${(i.totalAmount||0).toLocaleString()}</strong></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">${typeLabel}<span style="font-size:13px;font-weight:600">${i.brand||i.name}</span></div>
+        <div style="font-size:11px;color:#666">${i.name}　${i.email||''}　${i.phone||''}</div>
+        ${isCompany?`<div style="font-size:11px;color:#555;margin-top:2px">統編：${i.taxId}　抬頭：${i.invoiceTitle}</div>`:''}
+        ${i.carrier?`<div style="font-size:11px;color:#555;margin-top:1px">載具：${i.carrier}</div>`:''}
+        ${i.invoiceEmail?`<div style="font-size:11px;color:#555;margin-top:1px">發票信箱：${i.invoiceEmail}</div>`:''}
+        <div style="font-size:11px;color:#666;margin-top:3px">含稅 <strong>NT$${invAmt.toLocaleString()}</strong>　未稅 NT$${untaxed.toLocaleString()}　稅額 NT$${tax.toLocaleString()}${i.deposit>0?`　押金 NT$${safeN(i.deposit).toLocaleString()}`:''}
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         <span onclick="toggleInvoiceStatus('${i.id}','${i.invoiceStatus}')" style="background:${i.invoiceStatus==='待開立'?'#FAEEDA':'#E1F5EE'};color:${i.invoiceStatus==='待開立'?'#854F0B':'#0F6E56'};padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500;cursor:pointer">${i.invoiceStatus||'待開立'}</span>
-        <span style="font-size:13px;font-weight:500">NT$${(i.totalAmount||0).toLocaleString()}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function switchFTab(name, el){
@@ -3027,6 +3066,7 @@ async function openFinanceModal(sesId, sesName, evName){
   if($('f-income-section')) $('f-income-section').innerHTML='<div style="padding:18px;text-align:center;color:#999">財報載入中…</div>';
   if($('f-expense-section')) $('f-expense-section').innerHTML='';
   if($('f-net')) $('f-net').innerHTML='';
+  if($('f-equip-diff')) $('f-equip-diff').innerHTML='';
   if($('f-deposit')) $('f-deposit').innerHTML='';
   const ftab=$('ftab-report');
   if(ftab) switchFTab('report', ftab);

@@ -368,7 +368,15 @@ textarea{min-height:72px;resize:vertical}
           <div><label style="font-size:12px;color:var(--md)">品牌介紹</label><textarea id="editBrandIntro" placeholder="簡短介紹" style="height:60px"></textarea></div>
           <div><label style="font-size:12px;color:var(--md)">LINE ID</label><input type="text" id="editLineId"></div>
         </div>
-        <input type="hidden" id="editCompany"><input type="hidden" id="editTaxId"><input type="hidden" id="editInvoiceEmail"><input type="hidden" id="editCollabDesc">
+        <div style="margin:10px 0;padding:12px;background:var(--gp);border-radius:12px">
+          <div style="font-size:13px;font-weight:800;color:var(--g);margin-bottom:8px">常用發票資訊</div>
+          <label style="font-size:12px;color:var(--md)">發票載具</label><input type="text" id="editInvoiceCarrier" placeholder="手機條碼或自然人憑證載具" style="margin-bottom:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><label style="font-size:12px;color:var(--md)">統一編號</label><input type="text" id="editTaxId" inputmode="numeric" maxlength="8"></div>
+            <div><label style="font-size:12px;color:var(--md)">公司抬頭</label><input type="text" id="editCompany"></div>
+          </div>
+          <label style="font-size:12px;color:var(--md)">收發票 Email</label><input type="email" id="editInvoiceEmail" inputmode="email">
+        </div>
         <button class="btn-p" onclick="saveMemberEdit()" style="width:100%">更新資料</button>
         <div id="saveSuccessMsg" style="display:none;text-align:center;color:var(--g);font-weight:700;padding:8px;font-size:14px">✓ 更新完成！</div>
       </div>
@@ -451,6 +459,29 @@ textarea{min-height:72px;resize:vertical}
   </div>
 </div>
 
+<!-- ══ 取消報名確認 Modal ══ -->
+<div class="modal-overlay" id="cancelModal" onclick="if(event.target===this)closeModal('cancelModal')">
+  <div class="modal-box">
+    <div class="modal-title">取消報名確認</div>
+    <div style="font-size:14px;font-weight:700;color:var(--dk);margin-bottom:12px" id="cancelModalSesName"></div>
+    <div style="background:var(--rdp);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.9;color:var(--dk)">
+      <div style="font-weight:700;margin-bottom:6px;color:var(--rd)">取消報名前請先確認以下退款原則：</div>
+      <div>1. 活動前 7 日以上取消<br><span style="color:var(--md)">酌收行政處理費 NT$500，餘額退還。</span></div>
+      <div style="margin-top:6px">2. 活動前 3～6 日取消<br><span style="color:var(--md)">退還報名費 50%，保證金不退還。</span></div>
+      <div style="margin-top:6px">3. 活動前 3 日內取消或活動當日未出席<br><span style="color:var(--md)">報名費與保證金皆不退還。</span></div>
+      <div style="margin-top:6px">4. 因天災、疫情或其他不可抗力因素導致活動取消<br><span style="color:var(--md)">主辦單位將依實際情況安排延期，或辦理部分退費。</span></div>
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1.5px solid #e8b5b5;border-radius:10px;cursor:pointer;font-size:13px;color:var(--dk);margin-bottom:14px">
+      <input type="checkbox" id="cancelConfirmCheck" onchange="onCancelCheckChange()" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--rd);margin-top:1px">
+      我已了解取消與退款規則，仍要送出取消申請
+    </label>
+    <div class="modal-actions">
+      <button class="btn-s2" onclick="closeModal('cancelModal')" style="flex:1;padding:12px;font-size:14px">返回，不取消</button>
+      <button id="cancelSubmitBtn" onclick="doSubmitCancel()" disabled style="flex:1;padding:12px;font-size:14px;font-weight:700;background:var(--rd);color:#fff;border:none;border-radius:10px;cursor:not-allowed;opacity:.5">我已了解，送出取消申請</button>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <script>
@@ -515,15 +546,18 @@ function closeInlineSessions(){
   ST.sessions=[];
 }
 function backToSessions(){
-  $('pageForm').style.display='none';
-  // 判斷從哪裡來的
-  if($('portalSessionArea').style.display!=='none'){
-    $('portalSessionArea').scrollIntoView({behavior:'smooth',block:'start'});
-  } else if($('inlineSessionArea').style.display!=='none'){
-    $('inlineSessionArea').scrollIntoView({behavior:'smooth',block:'start'});
+  navTo('home');
+  const from=ST._formFrom||'home';
+  if(from==='portal'){
+    const pa=$('portalSessionArea');
+    if(pa&&pa.style.display!=='none') setTimeout(()=>pa.scrollIntoView({behavior:'smooth',block:'start'}),50);
+  } else if(from==='inline'){
+    const ia=$('inlineSessionArea');
+    if(ia&&ia.style.display!=='none') setTimeout(()=>ia.scrollIntoView({behavior:'smooth',block:'start'}),50);
   } else {
-    window.scrollTo({top:0,behavior:'smooth'});
+    setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),50);
   }
+  ST._formFrom=null;
 }
 
 // ── 首頁載入 ──
@@ -677,9 +711,10 @@ function renderAllSessions(){
 async function openSessionDirect(sessionId){
   const s=ST.allSessionsData&&ST.allSessionsData.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
   if(!s||s.error)return;
-  ST.currentSession=s;ST.equipQty={};ST.stallCount=1;
+  ST.currentSession=s;ST.equipQty={};ST.addonQty={};ST.stallCount=1;
   const cover=s.cover||'';
   buildFormHero(s,cover);
+  ST._formFrom='home';
   navTo('form');
   renderDynForm(s);
   updateFee();
@@ -715,9 +750,10 @@ async function openSession(sessionId){
   // 更新標題列
   const titleEl=$('formBackTitle');
   if(titleEl) titleEl.textContent=s.name||'報名表';
-  $('inlineSessionArea').style.display='none';
-  $('pageForm').style.display='block';
-  $('pageForm').scrollIntoView({behavior:'smooth',block:'start'});
+  // 記錄來源，供返回時使用
+  ST._formFrom = ($('portalSessionArea').style.display!=='none') ? 'portal'
+    : ($('inlineSessionArea').style.display!=='none') ? 'inline' : 'home';
+  navTo('form');
   renderDynForm(s);
   updateFee();
 }
@@ -781,21 +817,35 @@ function renderDynForm(s){
       html+=`<div style="background:var(--gp);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:var(--g)">✅ 已自動帶入您的會員資料</div>`;
     }
     html+=`<label>品牌名稱</label><input type="text" id="f_brand" value="${esc(V.brand||'')}" placeholder="品牌名稱">`;
-    // 發票選項
-  html+=`<div style="margin-top:4px;margin-bottom:4px">
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:700;padding:10px;background:var(--gp);border-radius:10px">
-      <input type="checkbox" id="f_needInvoice" style="width:17px;height:17px;accent-color:var(--g)" onchange="toggleInvoiceFields()">
-      需要開立發票（費用含稅 5%）
-    </label>
-    <div id="invoiceFields" style="display:none;margin-top:8px;padding:12px;background:var(--gp);border-radius:10px">
-      <label style="font-size:12px;color:var(--md)">統一編號 *</label>
-      <input type="text" id="f_taxId" value="${esc(ST.member?.taxId||'')}" placeholder="8碼統編" inputmode="numeric" maxlength="8" style="margin-bottom:8px">
-      <label style="font-size:12px;color:var(--md)">發票抬頭 *</label>
-      <input type="text" id="f_invoiceTitle" value="${esc(ST.member?.company||'')}" placeholder="公司或品牌全名" style="margin-bottom:8px">
-      <label style="font-size:12px;color:var(--md)">發票 Email</label>
-      <input type="email" id="f_invoiceEmail" value="${esc(ST.member?.invoiceEmail||ST.memberEmail||'')}" placeholder="發票寄送信箱" inputmode="email">
-    </div>
-  </div>`;
+    // 發票資訊（依場次發票設定顯示；不出現後台稅務提示）
+  const invEnabled = (s.invoiceTax && s.invoiceTax.enabled===false) ? false : true;
+  if(invEnabled){
+    html+=`<div style="margin-top:12px;margin-bottom:4px;background:var(--gp);border-radius:12px;padding:12px">
+      <div style="font-size:14px;font-weight:800;color:var(--g);margin-bottom:8px">發票資訊</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;margin:0;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;font-weight:700">
+          <input type="radio" name="f_invoiceType" value="個人" checked onchange="toggleInvoiceFields()" style="width:17px;height:17px;accent-color:var(--g)"> 個人
+        </label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;margin:0;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;font-weight:700">
+          <input type="radio" name="f_invoiceType" value="公司／機關" onchange="toggleInvoiceFields()" style="width:17px;height:17px;accent-color:var(--g)"> 公司／機關
+        </label>
+      </div>
+      <div id="invoicePersonalFields" style="display:block">
+        <label style="font-size:12px;color:var(--md)">發票載具</label>
+        <input type="text" id="f_invoiceCarrier" value="${esc(ST.member?.invoiceCarrier||'')}" placeholder="手機條碼或自然人憑證載具（選填）" style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">收發票 Email</label>
+        <input type="email" id="f_personalInvoiceEmail" value="${esc(ST.member?.invoiceEmail||ST.memberEmail||'')}" placeholder="發票寄送信箱" inputmode="email">
+      </div>
+      <div id="invoiceCompanyFields" style="display:none">
+        <label style="font-size:12px;color:var(--md)">統一編號 *</label>
+        <input type="text" id="f_taxId" value="${esc(ST.member?.taxId||'')}" placeholder="8碼統編" inputmode="numeric" maxlength="8" style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">公司抬頭 *</label>
+        <input type="text" id="f_invoiceTitle" value="${esc(ST.member?.company||'')}" placeholder="公司或機關全名" style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--md)">收發票 Email</label>
+        <input type="email" id="f_invoiceEmail" value="${esc(ST.member?.invoiceEmail||ST.memberEmail||'')}" placeholder="發票寄送信箱" inputmode="email">
+      </div>
+    </div>`;
+  }
   html+=`<label>品牌介紹</label><textarea id="f_brandIntro" placeholder="簡短介紹品牌或商品">${esc(V.brandIntro||'')}</textarea>`;
     html+=`<label>FB 粉絲專頁</label>`;
     html+=`<div style="display:flex;align-items:center;gap:8px">`;
@@ -970,9 +1020,9 @@ async function quickMemberLogin(){
   const emailEl=document.getElementById('f_email');
   if(emailEl&&!emailEl.value) emailEl.value=email;
 }
-function adjStall(delta){
+function adjStall(delta, maxOverride){
   const s=ST.currentSession;
-  const max=(s&&s.maxStalls>0)?s.maxStalls:3;
+  const max=maxOverride||(s&&s.maxStalls>0?s.maxStalls:3);
   const cur=ST.stallCount||1;
   const next=Math.min(max,Math.max(1,cur+delta));
   ST.stallCount=next;
@@ -981,9 +1031,11 @@ function adjStall(delta){
   updateFee();
 }
 function toggleInvoiceFields(){
-  const chk=$('f_needInvoice');
-  const fields=$('invoiceFields');
-  if(chk&&fields) fields.style.display=chk.checked?'block':'none';
+  const type=document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人';
+  const personal=$('invoicePersonalFields');
+  const company=$('invoiceCompanyFields');
+  if(personal) personal.style.display=type==='個人'?'block':'none';
+  if(company) company.style.display=type==='公司／機關'?'block':'none';
   updateFee();
 }
 function toggleDate(i){
@@ -1062,13 +1114,21 @@ async function submitReg(){
   if(!email||!/\S+@\S+\.\S+/.test(email)){$('e_email').textContent='請填寫正確 Email';ok=false;}else $('e_email').textContent='';
   if(!ok){toast('請確認必填欄位');return;}
   btn.disabled=true;btn.textContent='送出中…';
+  const invoiceType=document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人';
+  if(invoiceType==='公司／機關'){
+    const tax=$('f_taxId')?.value.trim()||'';
+    const title=$('f_invoiceTitle')?.value.trim()||'';
+    if(!/^\d{8}$/.test(tax)){toast('請填寫正確 8 碼統一編號');btn.disabled=false;btn.textContent='送出報名';return;}
+    if(!title){toast('請填寫公司抬頭');btn.disabled=false;btn.textContent='送出報名';return;}
+  }
   const body={
     action:'register', sessionId:s.id, email, name, phone,
     stallCount:ST.stallCount||1,
-    needInvoice:$('f_needInvoice')?.checked||false,
+    invoiceType:document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人',
+    invoiceCarrier:$('f_invoiceCarrier')?.value.trim()||'',
     taxId:$('f_taxId')?.value.trim()||'',
     invoiceTitle:$('f_invoiceTitle')?.value.trim()||'',
-    invoiceEmail:$('f_invoiceEmail')?.value.trim()||'',
+    invoiceEmail:($('f_invoiceEmail')?.value.trim()||$('f_personalInvoiceEmail')?.value.trim()||email),
     selectedDates:(ST.currentSession?.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked).map(d=>d.date),
     brand:$('f_brand')?.value.trim()||'',
     brandIntro:$('f_brandIntro')?.value.trim()||'',
@@ -1082,7 +1142,6 @@ async function submitReg(){
     remark:$('f_remark')?.value.trim()||'',
     stallNumber:ST.selectedStall||'',
     customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
-    customFields:{},
   };
   try{
     const res=await apiPost(body);
@@ -1091,14 +1150,14 @@ async function submitReg(){
     ST.memberEmail=email;
     const updatedMember=await api({action:'getMember',email});
     if(updatedMember&&!updatedMember.error) ST.member=updatedMember;
-    $('pageForm').style.display='none'
-    if(res&&res.regId&&(s.fee||0)>0){
-      setTimeout(()=>showPayPage(res.regId, s.name||'', res.totalAmount||s.fee||0), 600);
-    };
+    navTo('home');
     window.scrollTo(0,0);
-    // 若有費用，跳到繳費
-    if(res.regId && (s.fee||0) > 0){
-      setTimeout(()=>showPayPage(res.regId, s.name, res.totalAmount||s.fee||0), 500);
+    // 相容後端回傳 id 或 regId、total 或 totalAmount
+    const paidRegId = res.regId || res.id || '';
+    const paidAmount = res.totalAmount || res.total || s.fee || 0;
+    // 若有費用，跳到繳費（只執行一次）
+    if(paidRegId && paidAmount > 0){
+      setTimeout(()=>showPayPage(paidRegId, s.name||'', paidAmount), 500);
     }
   }catch(e){toast('網路錯誤，請重試');}
   btn.disabled=false;btn.textContent='送出報名';
@@ -1193,16 +1252,34 @@ async function renderMyRegs(regs){
 
 
 async function cancelMyReg(regId, sesName){
-  const rule = '【取消報名規範】\n\n' +
-    '1. 審核中或錄取後未繳費：可直接取消，名額釋出。\n' +
-    '2. 已繳費後取消：費用依本公司退費辦法處理，押金全額退還。\n' +
-    '3. 活動前 7 天內取消：恕不退還已繳費用。\n\n' +
-    '確定要取消「' + sesName + '」的報名嗎？';
-  if(!confirm(rule)) return;
-  const res = await apiPost({action:'cancelReg', regId, email: ST.member?.email||''});
-  if(res.error){ toast('❌ '+res.error); return; }
+  // 填入取消對話框資訊
+  $('cancelModalSesName').textContent='「'+sesName+'」';
+  $('cancelConfirmCheck').checked=false;
+  $('cancelSubmitBtn').disabled=true;
+  ST._pendingCancelRegId=regId;
+  ST._pendingCancelSesName=sesName;
+  openModal('cancelModal');
+}
+function onCancelCheckChange(){
+  const checked=$('cancelConfirmCheck').checked;
+  const btn=$('cancelSubmitBtn');
+  btn.disabled=!checked;
+  btn.style.opacity=checked?'1':'0.5';
+  btn.style.cursor=checked?'pointer':'not-allowed';
+}
+async function doSubmitCancel(){
+  const regId=ST._pendingCancelRegId;
+  if(!regId)return;
+  const btn=$('cancelSubmitBtn');
+  btn.disabled=true;btn.textContent='處理中…';
+  const res=await apiPost({action:'cancelReg',regId,email:ST.member?.email||ST.memberEmail||''});
+  closeModal('cancelModal');
+  if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已取消報名');
-  if(typeof loadMyRegs==='function') await loadMyRegs();
+  if(ST.memberEmail){
+    const regs=await api({action:'getMyRegs',email:ST.memberEmail});
+    renderMyRegs(regs||[]);
+  }
 }
 
 // ── 繳費流程 ──
@@ -1211,16 +1288,17 @@ let ST_currentPayAmount = 0;
 
 function showPayPage(regId, sesName, amount){
   ST_currentPayRegId = regId;
+  ST_currentPayAmount = amount;
   $('payModalTitle').textContent = '繳費 — '+sesName;
   $('payModalInfo').innerHTML = `
     <div>場次：<strong>${sesName}</strong></div>
     <div style="font-size:16px;font-weight:700;color:var(--g);margin-top:4px">應繳金額：NT$ ${amount}</div>
     <div style="font-size:12px;color:#888;margin-top:4px">請於錄取後一週內完成繳費，逾期名額將釋出</div>`;
-  ST_currentPayAmount = amount;
-  $('payAmount').value = amount;
-  if($('payAmountLine')) $('payAmountLine').value = amount;
-  $('payLastFive').value = '';
-  if($('payLastFiveLine')) $('payLastFiveLine').value = '';
+  // 預填匯款金額
+  const payAmtEl = $('payAmount');
+  const payLastEl = $('payLastFive');
+  if(payAmtEl) payAmtEl.value = amount;
+  if(payLastEl) payLastEl.value = '';
   $('payModal').classList.add('show');
 }
 
@@ -1259,12 +1337,8 @@ async function goEcpay(){
 }
 
 async function submitPaymentForm(method){
-  const lastFive = method==='LINE Pay' && $('payLastFiveLine')
-    ? $('payLastFiveLine').value.trim()
-    : $('payLastFive').value.trim();
-  const amount = method==='LINE Pay' && $('payAmountLine')
-    ? $('payAmountLine').value
-    : $('payAmount').value;
+  const lastFive = $('payLastFive')?.value.trim() || '';
+  const amount = $('payAmount')?.value || ST_currentPayAmount || 0;
 
   if(!lastFive){toast('請填寫末五碼');return;}
   if(!amount){toast('請填寫金額');return;}
@@ -1366,6 +1440,10 @@ function fillMemberCard(m){
   $('editPhoto').value=m.photo||'';
   $('editBrandIntro').value=m.brandIntro||'';
   $('editLineId').value=m.lineId||'';
+  if($('editInvoiceCarrier')) $('editInvoiceCarrier').value=m.invoiceCarrier||'';
+  if($('editTaxId')) $('editTaxId').value=m.taxId||'';
+  if($('editCompany')) $('editCompany').value=m.company||'';
+  if($('editInvoiceEmail')) $('editInvoiceEmail').value=m.invoiceEmail||'';
 }
 
 async function saveMemberEdit(){
@@ -1380,9 +1458,10 @@ async function saveMemberEdit(){
     photo:$('editPhoto').value.trim(),
     company:$('editCompany')?.value.trim()||'',
     taxId:$('editTaxId')?.value.trim()||'',
+    invoiceCarrier:$('editInvoiceCarrier')?.value.trim()||'',
     invoiceEmail:$('editInvoiceEmail')?.value.trim()||'',
     collabUrl:$('editCollabUrl').value.trim(),
-    collabDesc:$('editCollabDesc')?.value.trim()||''};
+    collabDesc:$('editCollabDesc').value.trim()};
   const res=await apiPost(body);
   if(res.error){toast('❌ '+res.error);return;}
   // 顯示成功訊息
