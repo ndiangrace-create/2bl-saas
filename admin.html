@@ -1945,54 +1945,7 @@ function renderRegs(){
 function toggleAll(el){document.querySelectorAll('.reg-chk').forEach(c=>c.checked=el.checked);}
 function getChecked(){return[...document.querySelectorAll('.reg-chk:checked')].map(e=>e.dataset.id);}
 
-async function openRegDetail(id){
-  const r=ST.regs.find(x=>x.id===id)||ST.allRegs.find(x=>x.id===id);
-  if(!r)return;
-  ST.currentReg=r;
-  let equip={};try{equip=JSON.parse(r.equip||'{}');}catch(e){}
-  const eqStr=Object.entries(equip).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join('、');
-  const sd=ST.sdData.find(s=>s.id===r.sessionId);
-  const coverHtml=sd?.eventCover?`<img src="${sd.eventCover}" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:12px">`:'';
-  const memberInfo=await api({action:'getMember',email:r.email});
-  const fbUrl=memberInfo?.fb||'';
-  const igUrl=memberInfo?.ig||'';
-  $('regDetail').innerHTML=`
-    ${coverHtml}
-    <div style="display:grid;gap:7px;font-size:13px">
-      <div><strong>報名 ID：</strong>${r.id}</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span><strong>姓名：</strong>${r.name}　<strong>手機：</strong>${r.phone||'-'}</span>
-        ${fbUrl?`<a href="${fbUrl}" target="_blank" style="background:#1877F2;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:700">FB ↗</a>`:''}
-        ${igUrl?`<a href="${igUrl}" target="_blank" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:700">IG ↗</a>`:''}
-      </div>
-      <div><strong>Email：</strong>${r.email}</div>
-      <div><strong>品牌：</strong>${r.brand||'-'}</div>
-      ${r.photo?`<div><strong>出攤照：</strong><a href="${r.photo}" target="_blank" style="color:var(--bl)">查看照片 ↗</a></div>`:''}
-      ${eqStr?`<div><strong>設備：</strong>${eqStr}</div>`:''}
-      <div><strong>審核：</strong>${r.status==='已錄取'?'已發錄取信':r.status}　<strong>付款：</strong>${r.payStatus||'-'}　<strong>金額：</strong>NT$${r.amount||0}</div>
-      <div><strong>報到：</strong>${r.checkin||'未報到'}　<strong>清場：</strong>${r.clearStatus||'-'}</div>
-      <div style="font-size:11px;color:var(--lt)">報名時間：${r.createdAt?.slice(0,16)||'-'}</div>
-    </div>
-    <div id="stallInfo_${r.id}" style="margin-top:8px;font-size:13px;color:var(--g)">載入攤位資訊…</div>`;
-  // 載入攤位
-  api({action:'getMyStall',regId:r.id}).then(stall=>{
-    const el=document.getElementById('stallInfo_'+r.id);
-    if(el) el.textContent=stall?.number?'📍 攤位號碼：'+stall.number+' ('+stall.status+')':'尚未選位';
-  });
-  $('regNote').value=r.adminNote||'';
-  // 快速通關狀態
-  api({action:'getMember',email:r.email}).then(m=>{
-    $('fastPassChk').checked=m?.fastPass||false;
-  });
-  // 手機版：不用 modal，直接顯示詳情
-  if(window.innerWidth < 640){
-    $('regBackBtn').style.display='block';
-    $('regListArea').style.display='none';
-    $('regDetailArea').style.display='block';
-  } else {
-    openModal('regModal');
-  }
-}
+
 
 function closeRegDetail(){
   $('regBackBtn').style.display='none';
@@ -2029,8 +1982,32 @@ async function saveFastPass(){
   if(res.error){toast('❌ '+res.error);return;}
   toast(enable?'✅ 已開啟快速通關':'✅ 已關閉快速通關');
 }
-async function approveReg(){await updateStatus(ST.currentReg?.id,'已錄取');closeModal('regModal');}
-async function rejectReg(){await updateStatus(ST.currentReg?.id,'不錄取');closeModal('regModal');}
+async function approveReg(){
+  if(!ST.currentReg)return;
+  const btn=getClickBtn();
+  return withBtnLock(btn,'處理中…',async()=>{
+    const res=await apiPost({action:'approveReg',regId:ST.currentReg.id,approved:true});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已核准，通知已送出');
+    closeModal('regModal');
+    await loadAllRegs();renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverviewSessions();
+  });
+}
+async function rejectReg(){
+  if(!ST.currentReg)return;
+  const btn=getClickBtn();
+  return withBtnLock(btn,'處理中…',async()=>{
+    const res=await apiPost({action:'approveReg',regId:ST.currentReg.id,approved:false});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('已拒絕');
+    closeModal('regModal');
+    await loadAllRegs();renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverviewSessions();
+  });
+}
 async function quickApprove(regId){
   const btn=getClickBtn();
   return withBtnLock(btn,'處理中…',async()=>{
@@ -2104,13 +2081,14 @@ async function quickWaitlist(regId){
 async function openRegDetail(regId){
   const reg=(ST.allRegs||[]).find(r=>r.id===regId);
   if(!reg){toast('找不到資料');return;}
+  ST.currentReg=reg;
   const ses=(ST.sdData||[]).find(s=>s.id===reg.sessionId)||{};
   const ev=(ST.events||[]).find(e=>e.id===reg.eventId)||{};
   let equipStr='';
   try{const eq=JSON.parse(reg.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
   let customStr='';
   try{const cf=JSON.parse(reg.customFields||'{}');customStr=Object.entries(cf).map(([k,v])=>`<div><strong>${k}：</strong>${v}</div>`).join('');}catch(e){}
-  $('regDetailBody').innerHTML=`
+  $('regDetail').innerHTML=`
     <div style="font-size:13px;line-height:2">
       <div><strong>活動：</strong>${ev.title||''}</div>
       <div><strong>場次：</strong>${ses.name||''}</div>
@@ -2131,15 +2109,14 @@ async function openRegDetail(regId){
       <div><strong>付款狀態：</strong>${reg.payStatus||'未繳費'}</div>
       <div><strong>報名時間：</strong>${(reg.createdAt||'').slice(0,16)}</div>
     </div>`;
-  openModal('regDetailModal');
+  const regNoteEl=$('regNote');
+  if(regNoteEl) regNoteEl.value=reg.adminNote||'';
+  const fpChk=$('fastPassChk');
+  if(fpChk) fpChk.checked=!!(reg.fastPass);
+  openModal('regModal');
 }
 
-async function quickApprove(regId){
-  const res=await apiPost({action:'approveReg',regId,approved:true});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已核准');
-  await loadAllRegs(); renderRegs();
-}
+
 async function quickReject(regId){
   const btn=getClickBtn();
   return withBtnLock(btn,'處理中…',async()=>{
