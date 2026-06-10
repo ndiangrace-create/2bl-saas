@@ -325,12 +325,16 @@ textarea{min-height:72px;resize:vertical}
   <div class="events-section">
     <div class="section-hd">
       <span class="section-deco">🌿</span>
-      <div class="section-title">近 期 活 動</div>
+      <div class="section-title">主 題 活 動</div>
       <span class="section-deco">🌿</span>
     </div>
     <div class="events-scroll" id="eventsList">
       <div style="padding:20px;color:#aaa;font-size:13px">載入中…</div>
     </div>
+  </div>
+  <!-- 場次清單（filterCat 後顯示） -->
+  <div class="sessions-section" id="allSessionsSection" style="padding:0 16px 12px">
+    <div id="allSessionsList"></div>
   </div>
 
   <!-- Inline 場次展開區 -->
@@ -658,7 +662,6 @@ async function filterCat(type, el){
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
 
-  // 展開該入口的所有場次
   const portalArea=$('portalSessionArea');
   const portalList=$('portalSessionList');
   const portalTitle=$('portalSessionTitle');
@@ -675,23 +678,7 @@ async function filterCat(type, el){
     portalList.innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">目前無開放場次</div>';
     return;
   }
-  portalList.innerHTML=list.map(s=>{
-    const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>d.date).join('/'):(s.date||'');
-    const thumb = s.cover
-      ?`<img src="${s.cover}" style="width:72px;height:72px;border-radius:10px;object-fit:cover;flex-shrink:0">`
-      :`<div style="width:72px;height:72px;border-radius:10px;background:linear-gradient(135deg,var(--gp),#fff);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0">🎪</div>`;
-    return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center">
-      ${thumb}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
-          ${s.region?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${s.region}</span>`:''}
-          <span style="font-size:15px;font-weight:700">${s.name}</span>
-        </div>
-        <div style="font-size:12px;color:var(--md)">${dateStr||''}　${s.limit>0?'共'+s.limit+'攤':'不限攤'}　${s.fee>0?'NT$'+s.fee:'免費'}</div>
-      </div>
-      <button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">報名</button>
-    </div>`;
-  }).join('');
+  portalList.innerHTML=list.map(s=>renderSessionCard(s)).join('');
 }
 
 function renderEvents(){
