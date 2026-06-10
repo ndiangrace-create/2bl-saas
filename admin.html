@@ -294,6 +294,16 @@ textarea{min-height:64px;resize:vertical}
   <!-- 搜尋 -->
   <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email" oninput="ST._filterSesId=null;renderRegs()" style="margin-bottom:10px">
   <div id="regCount" style="font-size:12px;color:var(--md);margin-bottom:8px"></div>
+  <!-- 批次操作工具列 -->
+  <div style="display:flex;align-items:center;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--md);cursor:pointer">
+      <input type="checkbox" id="regSelectAll" onchange="toggleAll(this)" style="width:15px;height:15px;accent-color:var(--g)"> 全選
+    </label>
+    <span style="font-size:12px;color:#ccc">|</span>
+    <button class="btn btn-g btn-xs" onclick="batchApprove()">批次錄取</button>
+    <button class="btn btn-r btn-xs" onclick="batchReject()">批次拒絕</button>
+    <button class="btn btn-b btn-xs" onclick="batchCheckinFromRegs()">批次報到</button>
+  </div>
   <!-- 報名列表 -->
   <div id="regsCardList"></div>
   <!-- 明細 Modal -->
@@ -326,6 +336,14 @@ textarea{min-height:64px;resize:vertical}
       <button id="cf-all" onclick="setCFFilter('')" class="btn btn-sm" style="flex:1;background:var(--g);color:#fff">全部</button>
       <button id="cf-not" onclick="setCFFilter('未報到')" class="btn btn-sm" style="flex:1;background:#f0f0f0;color:var(--md)">未報到</button>
       <button id="cf-in" onclick="setCFFilter('已報到')" class="btn btn-sm" style="flex:1;background:#f0f0f0;color:var(--md)">已報到</button>
+    </div>
+    <!-- 批次工具列 -->
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--md);cursor:pointer">
+        <input type="checkbox" id="checkinSelectAll" onchange="document.querySelectorAll('.checkin-chk').forEach(cb=>cb.checked=this.checked)" style="width:15px;height:15px;accent-color:var(--g)"> 全選
+      </label>
+      <span style="font-size:12px;color:#ccc">|</span>
+      <button class="btn btn-g btn-xs" onclick="batchCheckin()">批次報到</button>
     </div>
     <!-- 名單 -->
     <div id="checkinList"></div>
@@ -1079,6 +1097,7 @@ function filterCheckinList(){
     try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
     return `<div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh)">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
+        <input type="checkbox" class="checkin-chk" data-id="${r.id}" style="width:15px;height:15px;accent-color:var(--g);flex-shrink:0;margin-top:3px;cursor:pointer">
         <div style="flex:1;min-width:0">
           <div style="font-size:16px;font-weight:900">${r.brand||r.name||'-'}</div>
           <div style="font-size:12px;color:var(--md);margin-top:2px">
@@ -2007,8 +2026,9 @@ function renderRegs(){
     const statusBg={待審核:'#fff3cd',已錄取:'#d4edda',不錄取:'#f8d7da',備取:'#e2e3ff'}[r.status]||'#f0f0f0';
     const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',備取:'#383d8a'}[r.status]||'#666';
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh)">
-      <!-- 第一行：狀態、活動名、場次名 -->
+      <!-- 第一行：checkbox + 狀態、活動名、場次名 -->
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <input type="checkbox" class="reg-chk" data-id="${r.id}" style="width:15px;height:15px;accent-color:var(--g);flex-shrink:0;cursor:pointer">
         <span style="background:${statusBg};color:${statusColor};padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0">${r.status||'待審核'}</span>
         ${ev.title?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0">${ev.title}</span>`:''}
         <span style="font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ses.name||r.sessionId}</span>
@@ -2037,6 +2057,7 @@ function renderRegs(){
 }
 function toggleAll(el){document.querySelectorAll('.reg-chk').forEach(c=>c.checked=el.checked);}
 function getChecked(){return[...document.querySelectorAll('.reg-chk:checked')].map(e=>e.dataset.id);}
+function getCheckedIds(){return[...document.querySelectorAll('.checkin-chk:checked')].map(e=>e.dataset.id);}
 
 
 
@@ -2249,6 +2270,25 @@ async function batchReject(){
     ST.sdData=sd||[];renderOverview();
   });
 }
+
+async function batchCheckinFromRegs(){
+  const ids=getChecked();
+  if(!ids.length){toast('請先勾選報名');return;}
+  if(!confirm('確定批次報到 '+ids.length+' 筆？'))return;
+  const btn=getClickBtn();
+  return withBtnLock(btn,'批次報到中…',async()=>{
+    let ok=0;
+    for(const id of ids){
+      const res=await apiPost({action:'checkin',regId:id});
+      if(!res.error) ok++;
+    }
+    toast('已報到 '+ok+' 筆');
+    await loadAllRegs(); renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[]; renderOverviewSessions();
+  });
+}
+
 
 async function sendSingleNotify(){
   if(!ST.currentReg)return;
