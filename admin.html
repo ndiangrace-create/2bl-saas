@@ -1038,12 +1038,12 @@ function filterCheckinList(){
         </span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <button onclick="quickCheckin('${r.id}',this)" style="
-          background:${checked?'#e8f7ee':'var(--g)'};
-          color:${checked?'var(--g)':'#fff'};
-          border:${checked?'1.5px solid var(--g)':'none'};
+        <button onclick="quickCheckin('${r.id}',this,${checked})" style="
+          background:${checked?'#fdecea':'var(--g)'};
+          color:${checked?'var(--rd)':'#fff'};
+          border:${checked?'1.5px solid var(--rd)':'none'};
           border-radius:10px;padding:12px 8px;font-size:14px;font-weight:700;cursor:pointer">
-          ${checked?'✓ 已報到':'報到'}
+          ${checked?'↩ 取消報到':'報到'}
         </button>
         <button onclick="quickClear('${r.id}',this)" style="
           background:${cleared?'#fdecea':'#f0f0f0'};
@@ -1062,39 +1062,52 @@ function filterCheckinList(){
   }).join('');
 }
 
-async function quickCheckin(regId, btn){
-  const res=await apiPost({action:'checkin',regId});
-  if(res.error){toast('❌ '+res.error);return;}
-  const reg=ST_checkinRegs.find(r=>r.id===regId);
-  if(reg) reg.checkin='已報到';
-  updateCheckinStats();
-  filterCheckinList();
-  toast('已報到');
-  await loadCheckinRegs();
+async function quickCheckin(regId, btn, undo){
+  if(btn){btn.disabled=true;btn.textContent='處理中…';}
+  try{
+    const res=await apiPost({action:'checkin',regId,undo:!!undo});
+    if(res.error){toast('❌ '+res.error);return;}
+    const reg=ST_checkinRegs.find(r=>r.id===regId);
+    if(reg) reg.checkin=undo?'':'已報到';
+    updateCheckinStats();
+    filterCheckinList();
+    toast(undo?'✅ 已取消報到':'✅ 已報到');
+    await loadCheckinRegs();
+  }finally{
+    if(btn){btn.disabled=false;}
+  }
 }
 
 async function quickClear(regId, btn){
-  const res=await apiPost({action:'markClear',regId});
-  if(res.error){toast('❌ '+res.error);return;}
-  const reg=ST_checkinRegs.find(r=>r.id===regId);
-  if(reg) reg.clearStatus='已撤場';
-  filterCheckinList();
-  toast('已撤場');
-  await loadCheckinRegs();
+  if(btn){btn.disabled=true;btn.textContent='處理中…';}
+  try{
+    const res=await apiPost({action:'markClear',regId});
+    if(res.error){toast('❌ '+res.error);return;}
+    const reg=ST_checkinRegs.find(r=>r.id===regId);
+    if(reg) reg.clearStatus='已撤場';
+    filterCheckinList();
+    toast('✅ 已撤場');
+    await loadCheckinRegs();
+  }finally{
+    if(btn){btn.disabled=false;}
+  }
 }
 
 async function quickRefund(regId, deposit, btn){
   if(!deposit||deposit<=0){toast('此報名無押金');return;}
   if(!confirm('確認退還押金 NT$'+deposit+' 給此攤友？'))return;
-  const res=await apiPost({action:'refundDeposit',regId});
-  if(res.error){toast('❌ '+res.error);return;}
-  const reg=ST_checkinRegs.find(r=>r.id===regId);
-  if(reg) reg.depositRefunded='已退';
-  updateCheckinStats();
-  filterCheckinList();
-  toast('已記錄退押金');
-
-  await loadCheckinRegs();
+  if(btn){btn.disabled=true;btn.textContent='處理中…';}
+  try{
+    const res=await apiPost({action:'refundDeposit',regId});
+    if(res.error){toast('❌ '+res.error);return;}
+    const reg=ST_checkinRegs.find(r=>r.id===regId);
+    if(reg) reg.depositRefunded='已退';
+    filterCheckinList();
+    toast('✅ 已記錄退押金');
+    await loadCheckinRegs();
+  }finally{
+    if(btn){btn.disabled=false;}
+  }
 }
 
 // ── 總覽 ──
@@ -1196,8 +1209,8 @@ function renderOverviewSessions(){
         <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">編輯</button>
         <button onclick="downloadSesData('${s.id}','${safeName}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">下載</button>
         <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">對帳</button>
-        <button onclick="toggleSesStatus('${s.id}','${s.status||''}')" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${String(s.status)==='關閉'?'開啟':'關閉'}</button>
-        <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}')" style="background:#f4f4f5;border:1px solid #d4d4d8;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isArchivedSession(s)?'取消封存':'封存'}</button>
+        <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${String(s.status)==='關閉'?'開啟':'關閉'}</button>
+        <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}',this)" style="background:#f4f4f5;border:1px solid #d4d4d8;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isArchivedSession(s)?'取消封存':'封存'}</button>
       </td>
     </tr>`;
   }).join('');
@@ -1222,8 +1235,8 @@ function renderOverviewSessions(){
         <button onclick="editSes('${s.id}')" class="btn btn-s">編輯</button>
         <button onclick="downloadSesData('${s.id}','${safeName}')" class="btn btn-b">下載</button>
         <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" class="btn btn-y">對帳</button>
-        <button onclick="toggleSesStatus('${s.id}','${s.status||''}')" class="btn btn-y">${String(s.status)==='關閉'?'開啟':'關閉'}</button>
-        <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}')" class="btn btn-s">${isArchivedSession(s)?'取消封存':'封存'}</button>
+        <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" class="btn btn-y">${String(s.status)==='關閉'?'開啟':'關閉'}</button>
+        <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}',this)" class="btn btn-s">${isArchivedSession(s)?'取消封存':'封存'}</button>
       </div>
     </div>`;
   }).join('');
@@ -1864,18 +1877,11 @@ function backToOverview(){
   $('regsTitle').textContent='報名審核';
   $('regsBackBtn').style.display='none';
   ST.regs=ST.allRegs;
-  $('regStatusFilter').value='';
+  const _rsf=$('regStatusFilter'); if(_rsf) _rsf.value='';
   renderRegs();
   goPage('overview');
 }
-function onRegEventChange(){
-  const evId=$('regEventFilter').value;
-  // 更新場次下拉
-  const sesSel=$('regSesFilter');
-  const sesOpts=ST.sdData.filter(s=>!evId||s.eventId===evId).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-  sesSel.innerHTML='<option value="">所有場次</option>'+sesOpts;
-  loadRegs();
-}
+
 async function loadRegs(){
   const evId=$('regEventFilter')?.value||'';
   const sesId=$('regSesFilter')?.value||'';
@@ -1948,9 +1954,9 @@ function getChecked(){return[...document.querySelectorAll('.reg-chk:checked')].m
 
 
 function closeRegDetail(){
-  $('regBackBtn').style.display='none';
-  $('regListArea').style.display='block';
-  $('regDetailArea').style.display='none';
+  const _rb=$('regBackBtn'); if(_rb) _rb.style.display='none';
+  const _rl=$('regListArea'); if(_rl) _rl.style.display='block';
+  const _rd=$('regDetailArea'); if(_rd) _rd.style.display='none';
 }
 
 let ST_currentSesId='';
@@ -2354,7 +2360,7 @@ async function loadStaff(){
           <div style="font-size:12px;color:var(--lt)">${s.email}</div>
           <div style="margin-top:6px">${permHtml}</div>
         </div>
-        ${!isSuperAdmin?`<div style="display:flex;gap:6px"><button class="btn btn-b btn-xs" onclick="resendStaffInvite('${s.email}')">重寄通知</button><button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}')">移除</button></div>`:''}
+        ${!isSuperAdmin?`<div style="display:flex;gap:6px"><button class="btn btn-b btn-xs" onclick="resendStaffInvite('${s.email}')">重寄通知</button><button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}',this)">移除</button></div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -2464,11 +2470,16 @@ async function resendStaffInvite(email){
   toast('✅ 已重寄通知信');
 }
 
-async function removeStaff(email,name){
+async function removeStaff(email,name,btn){
   if(!confirm('確定移除「'+name+'」？'))return;
-  const res=await apiPost({action:'removeStaff',targetEmail:email});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已移除');loadStaff();
+  if(btn){btn.disabled=true;btn.textContent='處理中…';}
+  try{
+    const res=await apiPost({action:'removeStaff',targetEmail:email});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已移除');loadStaff();
+  }finally{
+    if(btn){btn.disabled=false;}
+  }
 }
 
 function safeN(v){return Number(v)||0;}
@@ -2866,23 +2877,33 @@ function printFinance(){
 }
 
 
-async function setSessionStatus(sesId,status){
+async function setSessionStatus(sesId,status,btn){
   const msg=status==='封存'?'確定封存此場次？資料不會刪除，只會從預設總覽收起。':(status==='報名中'?'確定取消封存並重新放回進行中？':'確定變更場次狀態？');
   if(!confirm(msg)) return;
-  const res=await apiPost({action:'toggleSessionStatus',sessionId:sesId,status});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast(status==='封存'?'✅ 已封存':'✅ 已更新');
-  await loadAllData();
+  if(btn){btn.disabled=true;btn.textContent='處理中…';}
+  try{
+    const res=await apiPost({action:'toggleSessionStatus',sessionId:sesId,status});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast(status==='封存'?'✅ 已封存':'✅ 已更新');
+    await loadAllData();
+  }finally{
+    if(btn){btn.disabled=false;}
+  }
 }
 
-async function toggleSesStatus(sesId, currentStatus){
+async function toggleSesStatus(sesId, currentStatus, btn){
   const newStatus = currentStatus==='報名中'?'已關閉':'報名中';
   if(!confirm('確定'+(newStatus==='報名中'?'開放':'關閉')+'報名？'))return;
-  const res = await apiPost({action:'toggleSessionStatus', sessionId:sesId, status:newStatus});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast(newStatus==='報名中'?'✅ 已開放報名':'已關閉報名');
-  await loadAllData();
-  renderOverviewCards();
+  if(btn){btn.disabled=true;btn.textContent='處理中…';}
+  try{
+    const res = await apiPost({action:'toggleSessionStatus', sessionId:sesId, status:newStatus});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast(newStatus==='報名中'?'✅ 已開放報名':'已關閉報名');
+    await loadAllData();
+    renderOverviewCards();
+  }finally{
+    if(btn){btn.disabled=false;}
+  }
 }
 
 async function closeAnn(id){
