@@ -365,6 +365,27 @@ textarea{min-height:64px;resize:vertical}
   <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">📢 公告管理</div>
   <button class="btn btn-g btn-sm" onclick="openAnnModal()" style="margin-bottom:10px">＋ 新增公告</button>
   <div id="announceList" style="margin-bottom:24px"></div>
+
+  <!-- 系統外觀 -->
+  <div style="font-size:14px;font-weight:700;color:var(--g);margin:16px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">🎨 系統外觀設定</div>
+
+  <label style="font-size:13px;color:var(--md);display:block;margin-bottom:4px">首頁封面圖片連結（選填，空白＝使用預設漸層）</label>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <input id="siteHeroImg" type="url" placeholder="https://… 圖片連結（建議 1600×600px 以上）" style="flex:1;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:14px;font-family:inherit">
+    <button class="btn btn-g btn-sm" onclick="saveSiteConfig()" style="white-space:nowrap">儲存</button>
+  </div>
+  <div id="siteHeroPreview" style="display:none;margin-bottom:8px">
+    <img id="siteHeroPreviewImg" src="" alt="封面預覽" style="width:100%;max-height:140px;object-fit:cover;border-radius:10px;border:1px solid #d0e8d8">
+  </div>
+  <div style="font-size:11px;color:var(--lt);margin-bottom:14px">圖片建議寬景橫幅（1600 × 600 px 以上），上傳到 GitHub 後貼連結。儲存後前台馬上套用。</div>
+
+  <label style="font-size:13px;color:var(--md);display:block;margin-bottom:4px">首頁資訊帶文字（下方粗體那行）</label>
+  <div style="display:flex;gap:8px;margin-bottom:4px">
+    <input id="siteInfoText" type="text" placeholder="兔彼樂共創活動 期待與您的每場相遇 🌿" style="flex:1;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:14px;font-family:inherit">
+    <button class="btn btn-g btn-sm" onclick="saveSiteConfig()" style="white-space:nowrap">儲存</button>
+  </div>
+  <div style="font-size:11px;color:var(--lt)">空白則使用預設文字。</div>
+
 </div>
 
 </div><!-- /main -->
@@ -1298,7 +1319,7 @@ function goPage(name){
     regs: ()=>{ renderRegs(); },
     checkin: ()=>{ fillCheckinSesFilter(); },
     payments: async ()=>{ await loadAllRegs(); renderPaymentManagement(); },
-    settings: ()=>{ loadStaff(); loadAnnounce(); },
+    settings: ()=>{ loadStaff(); loadAnnounce(); loadSiteConfig(); },
   };
   if(inits[name]) inits[name]();
 }
@@ -2384,6 +2405,41 @@ const PERM_DEFS=[
   {k:'notify',label:'發送通知'},
   {k:'announce',label:'管理公告'},
 ];
+
+
+// ── 系統外觀設定 ──
+async function loadSiteConfig(){
+  try{
+    const cfg=await api({action:'getSiteConfig'});
+    if(!cfg||cfg.error) return;
+    if(cfg.heroImg){
+      const el=$('siteHeroImg');
+      if(el) el.value=cfg.heroImg;
+      const prev=$('siteHeroPreview');
+      const prevImg=$('siteHeroPreviewImg');
+      if(prev&&prevImg){prevImg.src=cfg.heroImg;prev.style.display='block';}
+    }
+    if(cfg.infoText){
+      const el=$('siteInfoText');
+      if(el) el.value=cfg.infoText;
+    }
+  }catch(e){}
+}
+
+async function saveSiteConfig(){
+  const heroImg=($('siteHeroImg')?.value||'').trim();
+  const infoText=($('siteInfoText')?.value||'').trim();
+  const res=await apiPost({action:'saveSiteConfig',heroImg,infoText});
+  if(res&&res.error){toast('❌ '+res.error);return;}
+  toast('✅ 外觀設定已儲存');
+  // 更新預覽
+  const prev=$('siteHeroPreview');
+  const prevImg=$('siteHeroPreviewImg');
+  if(prev&&prevImg){
+    if(heroImg){prevImg.src=heroImg;prev.style.display='block';}
+    else{prev.style.display='none';}
+  }
+}
 
 async function loadStaff(){
   const list=await api({action:'getStaff',email:ST.email,token:ST.token});

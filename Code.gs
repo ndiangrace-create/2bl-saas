@@ -66,6 +66,7 @@ function doGet(e) {
       case 'getEventsAdmin': result = getEventsAdmin(p); break;
       case 'getSessionsAdmin': result = getSessionsAdmin(p); break;
       case 'getPayments':    result = getPayments(p); break;
+      case 'getSiteConfig':  result = getSiteConfig(); break;
       case 'ecpayReturn':    return ecpayCallback(e);
       default: result = { error: 'unknown action: ' + action };
     }
@@ -127,6 +128,7 @@ function doPost(e) {
       case 'selectStall':     result = selectStall(body); break;
       case 'initStalls':      result = initStalls(body); break;
       case 'saveStallConfig': result = saveStallConfig(body); break;
+      case 'saveSiteConfig':  result = saveSiteConfig(body); break;
       default: result = { error: 'unknown action: ' + action };
     }
   } catch(err) {
@@ -2457,3 +2459,21 @@ function DISABLED_setupTestData() {
   Logger.log('');
   Logger.log('→ 請至後台重新整理頁面查看測試資料');
 }
+
+// ── 系統外觀設定（PropertiesService）──
+function getSiteConfig() {
+  const props = PropertiesService.getScriptProperties();
+  return {
+    heroImg:  props.getProperty('SITE_HERO_IMG')  || '',
+    infoText: props.getProperty('SITE_INFO_TEXT') || '',
+  };
+}
+
+function saveSiteConfig(body) {
+  if (!verifyStaff(body.email, body.token, 'superadmin')) return { error: '無權限' };
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('SITE_HERO_IMG',  body.heroImg  || '');
+  props.setProperty('SITE_INFO_TEXT', body.infoText || '');
+  return { success: true };
+}
+

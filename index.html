@@ -258,7 +258,7 @@ textarea{min-height:72px;resize:vertical}
 <div id="pageHome" class="page active">
 
   <!-- Hero -->
-  <div class="hero">
+  <div class="hero" id="siteHero">
     <div class="hero-bg-deco">
       <div class="hd1"></div>
       <div class="hd2"></div>
@@ -278,7 +278,7 @@ textarea{min-height:72px;resize:vertical}
   </div>
 
   <!-- 說明帶 -->
-  <div class="info-band">
+  <div class="info-band" id="siteInfoBand">
     加入會員後，資料填一次就好、下次報名自動帶入。（記得加入手機桌面喔 📲）<br>
     <strong>兔彼樂共創活動 期待與您的每場相遇 🌿</strong>
   </div>
@@ -542,6 +542,32 @@ textarea{min-height:72px;resize:vertical}
 </div>
 
 <script>
+// ── 系統外觀設定套用 ──
+async function applySiteConfig(){
+  try{
+    const cfg = await fetch(API + '?action=getSiteConfig').then(r=>r.json());
+    if(!cfg || cfg.error) return;
+    // 封面圖片
+    if(cfg.heroImg){
+      const hero = document.getElementById('siteHero');
+      if(hero){
+        hero.style.backgroundImage = 'url(' + cfg.heroImg + ')';
+        hero.style.backgroundSize = 'cover';
+        hero.style.backgroundPosition = 'center';
+        hero.style.backgroundRepeat = 'no-repeat';
+      }
+    }
+    // 資訊帶文字
+    if(cfg.infoText){
+      const band = document.getElementById('siteInfoBand');
+      if(band){
+        const strong = band.querySelector('strong');
+        if(strong) strong.textContent = cfg.infoText;
+      }
+    }
+  }catch(e){}
+}
+
 const API = 'https://script.google.com/macros/s/AKfycbz34vXdofbWxMBSKVkDxsvSjLwI_TPlFdX420bXDmxDbNGe5cXcG2RzeeoUsGySI8Ipjw/exec';
 const LINE_URL = 'https://lin.ee/Xpiib15';
 
@@ -1542,6 +1568,7 @@ function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
 // ── 初始化 ──
 // v1780560027
+applySiteConfig();
 loadHome();
 
 // ── 電腦版滑鼠拖曳橫向滑動 ──
