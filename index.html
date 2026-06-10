@@ -596,13 +596,20 @@ function navTo(tab){
 function backToHome(){navTo('home');}
 function goMemberPage(){
   navTo('member');
+  const loginArea=$('memberLoginArea');
+  const memberArea=$('memberArea');
+  if(!loginArea||!memberArea) return;
   if(!ST.memberEmail){
-    $('memberLoginArea').style.display='block';
-    $('memberArea').style.display='none';
+    loginArea.style.display='block';
+    memberArea.style.display='none';
   } else {
-    $('memberLoginArea').style.display='none';
-    $('memberArea').style.display='block';
+    loginArea.style.display='none';
+    memberArea.style.display='block';
     fillMemberCard(ST.member);
+    // 重新載入最新報名紀錄
+    api({action:'getMyRegs',email:ST.memberEmail}).then(regs=>{
+      renderMyRegs(regs||[]);
+    });
   }
 }
 function closePortalSessions(){
@@ -731,20 +738,62 @@ async function openEvent(eventId){
 }
 
 function renderSessionCard(s, onclick=true){
-  const full=s.limit>0&&s.count>=s.limit;
-  const closed=s.status==='關閉'||full;
-  const dateStr=(s.dates&&s.dates.length)?s.dates.map(d=>`${d.date}`).join(' / '):(s.date||'');
-  return `<div style="background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.06);padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
-    <div style="flex:1;min-width:0">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
-        ${s.region?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">📍 ${s.region}</span>`:''}
-        <span style="font-size:15px;font-weight:700">${s.name}</span>
-        ${closed?`<span style="background:#fde8e8;color:#c0392b;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${full?'名額已滿':'已關閉'}</span>`:''}
+  const full = s.limit>0 && s.count>=s.limit;
+  const closed = s.status==='關閉' || full;
+  // 日期顯示：多日用 7/18-7/19，單日用 7/18
+  let dateStr = '';
+  if(s.dates && s.dates.length>1){
+    const first = s.dates[0].date||'';
+    const last  = s.dates[s.dates.length-1].date||'';
+    // 簡化顯示 MM/DD
+    const fmt = d => { const p=d.slice(5).replace('-','/'); return p; };
+    dateStr = first===last ? fmt(first) : fmt(first)+'-'+fmt(last);
+  } else if(s.dates && s.dates.length===1){
+    const d = s.dates[0].date||'';
+    dateStr = d ? d.slice(5).replace('-','/') : '';
+  } else if(s.date){
+    dateStr = String(s.date).slice(5).replace('-','/');
+  }
+  // 費用顯示
+  let feeStr = '免費';
+  if(s.dates && s.dates.length>1){
+    if(s.fee>0){
+      feeStr = '全報 NT$'+s.fee;
+    } else {
+      const dayFee = s.dates[0]?.fee||0;
+      feeStr = dayFee>0 ? 'NT$'+dayFee+'/日' : '免費';
+    }
+  } else if(s.fee>0){
+    feeStr = 'NT$'+s.fee;
+  }
+  // 類型標籤
+  const typeMap = {'市集場次':'市集','活動報名':'活動','體驗活動':'體驗','通路寄賣':'寄賣','合作申請':'合作'};
+  const typeLabel = typeMap[s.type||''] || (s.type||'');
+  // 資訊行：日期 · 地區 · 費用 · 場地（單行截斷）
+  const metaParts = [dateStr, s.region, feeStr, s.venue].filter(Boolean);
+  const metaStr = metaParts.join('  ·  ');
+  if(closed){
+    return \`<div style="background:#f8f8f8;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.04);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:.6">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:nowrap;overflow:hidden">
+          \${typeLabel?\`<span style="background:#e8e8e8;color:#888;padding:1px 7px;border-radius:5px;font-size:11px;font-weight:700;flex-shrink:0">\${typeLabel}</span>\`:''}
+          <span style="font-size:14px;font-weight:700;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${s.name}</span>
+        </div>
+        <div style="font-size:11px;color:#bbb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${metaStr}</div>
       </div>
-      <div style="font-size:12px;color:var(--md)">${dateStr?dateStr+'　':''}${s.venue?s.venue+'　':''}${s.fee>0?'NT$ '+s.fee:'免費'}</div>
+      <span style="font-size:12px;color:#bbb;flex-shrink:0;font-weight:700">\${full?'名額已滿':'已關閉'}</span>
+    </div>\`;
+  }
+  return \`<div onclick="openSession('\${s.id}')" style="background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,.04);active:opacity:.9">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:nowrap;overflow:hidden">
+        \${typeLabel?\`<span style="background:var(--gp);color:var(--g);padding:1px 7px;border-radius:5px;font-size:11px;font-weight:700;flex-shrink:0">\${typeLabel}</span>\`:''}
+        <span style="font-size:14px;font-weight:700;color:var(--dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${s.name}</span>
+      </div>
+      <div style="font-size:11px;color:var(--md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\${metaStr}</div>
     </div>
-    ${!closed?`<button onclick="openSession('${s.id}')" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">報名</button>`:''}
-  </div>`;
+    <span style="color:var(--g);font-size:18px;flex-shrink:0;line-height:1">›</span>
+  </div>\`;
 }
 
 function renderSessions(){
@@ -1006,6 +1055,12 @@ function renderDynForm(s){
     html+=`</div></div>`;
   }
 
+  // 選位說明（有攤位清單才顯示）
+  if(s.stallList && s.stallList.length>0){
+    html+=\`<div style="background:#f0fdf4;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:12px;color:#2d6a4f;font-weight:600">
+      🗺️ 本場次開放自選攤位，完成繳費後可進入「我的紀錄」選擇攤位號碼。
+    </div>\`;
+  }
   // 選位（有設定攤位清單才顯示）
   html+=`<div class="fcard" id="stallPickerCard" style="display:none">
     <div class="fcard-t">📍 選擇攤位</div>

@@ -547,6 +547,7 @@ textarea{min-height:64px;resize:vertical}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div style="font-size:12px;font-weight:700;color:var(--md)">活動日期 & 時段 *</div>
         <button class="btn btn-g btn-xs" onclick="addDateSlot()" type="button">＋ 新增日期</button>
+        <button class="btn btn-s btn-xs" onclick="copyLastDateSlot()" type="button" style="margin-left:4px">複製上一個</button>
       </div>
       <div id="dateSlots"></div>
       <div style="font-size:11px;color:var(--lt);margin-top:4px">每個日期可分別設定費用；單日報名按各日費用累加，全選才套用多日優惠總價。攤位數上限請見下方「名額上限」欄位說明。</div>
@@ -557,7 +558,7 @@ textarea{min-height:64px;resize:vertical}
       <div><label>多日優惠總價（選填）</label><input type="number" id="sm_fee" value="0" inputmode="numeric" placeholder="0=不設優惠"></div>
       <div><label>保證金</label><input type="number" id="sm_deposit" value="0" inputmode="numeric"></div>
     </div>
-    <div style="font-size:11px;color:var(--lt);margin-top:2px">例：7/18 NT$1000 + 7/19 NT$800，多日優惠填 NT$1700（全選才適用此優惠價）</div>
+    <div style="font-size:11px;color:var(--lt);margin-top:2px">（活動日全選才適用此優惠價）例：7/18 NT$1000 + 7/19 NT$800，多日優惠填 NT$1700</div>
     <div class="form-row">
       <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"><div style="font-size:11px;color:var(--lt);margin-top:3px">市集場次填 0（不限），系統依攤位數自動控管；活動／體驗類填實際開放人數，滿額後前台自動關閉報名。</div></div>
       <div>
@@ -1658,11 +1659,9 @@ function previewSesCover(url){
 
 // ── 多日期時段 ──
 let dateSlotIdx=0;
-function addDateSlot(date='',start='10:00',end='18:00',fee=0){
-  // 正規化日期格式為 YYYY-MM-DD（date input 只接受這格式）
+function addDateSlot(date='',start='10:00',end='18:00',fee=0,limit=0){
   if(date){
     date=String(date).slice(0,10).replace(/\//g,'-');
-    // 處理可能的 ISO 格式或其他
     const m=date.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
     if(m) date=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
   }
@@ -1675,11 +1674,28 @@ function addDateSlot(date='',start='10:00',end='18:00',fee=0){
     <input type="time" id="ds_start_${idx}" value="${start}" style="width:90px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" step="300">
     <span style="font-size:12px;color:#aaa">~</span>
     <input type="time" id="ds_end_${idx}" value="${end}" style="width:90px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" step="300">
-    <input type="number" id="ds_fee_${idx}" value="${fee}" placeholder="費用" style="width:75px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" inputmode="numeric">
-    <button onclick="document.getElementById('ds_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:13px">✕</button>
+    <input type="number" id="ds_fee_${idx}" value="${fee||''}" placeholder="單日費用（元）" style="width:110px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" inputmode="numeric">
+    <input type="number" id="ds_limit_${idx}" value="${limit||''}" placeholder="當日名額（0=不限）" style="width:130px;padding:7px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px" inputmode="numeric">
+    <button onclick="copyLastDateSlot()" type="button" style="background:var(--gp);color:var(--g);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;font-weight:700" title="複製此日期建立新欄">複製</button>
+    <button onclick="document.getElementById('ds_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:13px" title="刪除此日期">✕</button>
   `;
   $('dateSlots').appendChild(div);
 }
+function copyLastDateSlot(){
+  // 複製最後一個日期欄位，建立新的相同設定
+  const slots=$('dateSlots').querySelectorAll('[id^=ds_date_]');
+  if(!slots.length){ addDateSlot(); return; }
+  const last=slots[slots.length-1];
+  const lastIdx=last.id.replace('ds_date_','');
+  const date=$('ds_date_'+lastIdx)?.value||'';
+  const start=$('ds_start_'+lastIdx)?.value||'10:00';
+  const end=$('ds_end_'+lastIdx)?.value||'18:00';
+  const fee=parseInt($('ds_fee_'+lastIdx)?.value)||0;
+  const limit=parseInt($('ds_limit_'+lastIdx)?.value)||0;
+  addDateSlot(date, start, end, fee, limit);
+}
+
+
 function getDateSlots(){
   const slots=[];
   $('dateSlots').querySelectorAll('[id^=ds_date_]').forEach(el=>{
@@ -1688,7 +1704,8 @@ function getDateSlots(){
     const s=$('ds_start_'+idx)?.value||'';
     const e=$('ds_end_'+idx)?.value||'';
     const f=parseInt($('ds_fee_'+idx)?.value)||0;
-    if(d) slots.push({date:d,start:s,end:e,fee:f});
+    const l=parseInt($('ds_limit_'+idx)?.value)||0;
+    if(d) slots.push({date:d,start:s,end:e,fee:f,limit:l});
   });
   return slots;
 }
@@ -1824,7 +1841,7 @@ async function editSes(id){
   // 日期
   $('dateSlots').innerHTML='';dateSlotIdx=0;
   if(s.dates&&s.dates.length){
-    s.dates.forEach(d=>addDateSlot(d.date||'',d.start||'10:00',d.end||'18:00',d.fee||0));
+    s.dates.forEach(d=>addDateSlot(d.date||'',d.start||'10:00',d.end||'18:00',d.fee||0,d.limit||0));
   } else {
     addDateSlot();
   }
