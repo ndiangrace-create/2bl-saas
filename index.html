@@ -466,43 +466,29 @@ textarea{min-height:72px;resize:vertical}
 <!-- ══ 繳費 Modal ══ -->
 <div class="modal-overlay" id="payModal" onclick="if(event.target===this)closeModal('payModal')">
   <div class="modal-box">
-    <div class="modal-title" id="payModalTitle">繳費</div>
+    <div class="modal-title" id="payModalTitle">繳費回報</div>
     <div id="payModalInfo" style="background:var(--gp);border-radius:10px;padding:14px;margin-bottom:16px;font-size:14px"></div>
 
-    <div style="font-weight:700;font-size:14px;margin-bottom:10px">選擇繳費方式</div>
-
-    <!-- A. 匯款 -->
-    <div style="border:1.5px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px">
-      <div style="font-weight:700;font-size:14px;margin-bottom:8px">🏦 匯款</div>
-      <div style="font-size:13px;color:var(--md);line-height:1.8">
-        銀行：台北富邦銀行左營分行（012）<br>
-        帳號：<strong style="color:var(--dk)">82110000172998</strong><br>
-        戶名：兔彼樂共創活動有限公司
-      </div>
-      <div style="margin-top:12px">
-        <label>匯款末五碼 *</label>
-        <input type="text" id="payLastFive" placeholder="請填末五碼" inputmode="numeric" maxlength="5">
-        <label>匯款金額 *</label>
-        <input type="number" id="payAmount" inputmode="numeric">
-        <button class="btn-p" onclick="submitPaymentForm('匯款')" style="margin-top:10px">確認匯款完成，送出通知</button>
-      </div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:10px">選擇繳費方式 *</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid #d0e8d8;border-radius:10px;cursor:pointer;font-size:14px">
+        <input type="radio" name="payMethod" value="匯款／ATM" style="accent-color:var(--g);width:16px;height:16px"> 🏦 匯款／ATM
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid #d0e8d8;border-radius:10px;cursor:pointer;font-size:14px">
+        <input type="radio" name="payMethod" value="刷卡" style="accent-color:var(--g);width:16px;height:16px"> 💳 刷卡
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid #06C755;border-radius:10px;cursor:pointer;font-size:14px">
+        <input type="radio" name="payMethod" value="LINE Pay" style="accent-color:#06C755;width:16px;height:16px"> <span style="color:#06C755;font-weight:700">LINE Pay</span>
+      </label>
     </div>
 
-    <!-- B. 綠界線上付款 -->
-    <div style="border:1.5px solid #06C755;border-radius:12px;padding:14px;margin-bottom:10px">
-      <div style="font-weight:700;font-size:14px;margin-bottom:6px">💳 線上付款（信用卡 / ATM / 超商）</div>
-      <div style="font-size:12px;color:var(--md);margin-bottom:10px">透過綠界安全付款，支援信用卡、ATM 轉帳、超商代碼</div>
-      <button class="btn-p" onclick="goEcpay()" style="background:#2d6a4f;width:100%">立即線上付款 →</button>
-    </div>
+    <label style="font-size:13px;color:var(--md)">帳號末五碼（匯款／ATM 請填，刷卡／LINE Pay 可空白）</label>
+    <input type="text" id="payLastFive" placeholder="選填" inputmode="numeric" maxlength="5" style="margin-bottom:10px">
+    <label style="font-size:13px;color:var(--md)">繳費金額 *</label>
+    <input type="number" id="payAmount" inputmode="numeric" style="margin-bottom:14px">
 
-    <!-- C. LINE Pay -->
-    <div style="border:1.5px solid #06C755;border-radius:12px;padding:14px;margin-bottom:10px">
-      <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#06C755">LINE Pay</div>
-      <div style="font-size:12px;color:var(--md);margin-bottom:10px">透過 LINE Pay 安全付款</div>
-      <button class="btn-p" onclick="goLinePay()" style="background:#06C755;width:100%">LINE Pay 立即付款 →</button>
-    </div>
-
-    <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;margin-top:4px">取消</button>
+    <button class="btn-p" onclick="submitPaymentForm()" style="width:100%;margin-bottom:8px">確認送出繳費通知</button>
+    <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%">取消</button>
   </div>
 </div>
 
@@ -1419,29 +1405,35 @@ async function goEcpay(){
   toast('✅ 已開啟付款頁面，完成付款後系統自動確認', 5000);
 }
 
-async function submitPaymentForm(method){
+async function submitPaymentForm(){
+  const methodEl = document.querySelector('input[name="payMethod"]:checked');
+  if(!methodEl){toast('請選擇繳費方式');return;}
+  const method = methodEl.value;
   const lastFive = $('payLastFive')?.value.trim() || '';
   const amount = $('payAmount')?.value || ST_currentPayAmount || 0;
+  if(!amount){toast('請填寫繳費金額');return;}
+  // 匯款/ATM 需要末五碼
+  if(method==='匯款／ATM' && !lastFive){toast('匯款／ATM 請填寫帳號末五碼');return;}
 
-  if(!lastFive){toast('請填寫末五碼');return;}
-  if(!amount){toast('請填寫金額');return;}
-
-  const res = await apiPost({
-    action: 'submitPayment',
-    regId: ST_currentPayRegId,
-    method: method,
-    lastFive: lastFive,
-    amount: amount,
-  });
-
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已送出繳費通知，請等待確認！', 4000);
-  closeModal('payModal');
-
-  // 更新報名紀錄顯示
-  if(ST.memberEmail){
-    const regs = await api({action:'getMyRegs', email:ST.memberEmail});
-    renderMyRegs(regs||[]);
+  const btn = document.querySelector('#payModal .btn-p');
+  if(btn){btn.disabled=true;btn.textContent='送出中…';}
+  try{
+    const res = await apiPost({
+      action:'submitPayment',
+      regId:ST_currentPayRegId,
+      method:method,
+      lastFive:lastFive,
+      amount:amount,
+    });
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已送出繳費通知，請等待確認！',4000);
+    closeModal('payModal');
+    if(ST.memberEmail){
+      const regs = await api({action:'getMyRegs',email:ST.memberEmail});
+      renderMyRegs(regs||[]);
+    }
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='確認送出繳費通知';}
   }
 }
 
