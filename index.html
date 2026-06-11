@@ -218,7 +218,7 @@ textarea{min-height:72px;resize:vertical}
   .cat-name{font-size:17px}
   .cat-sub{font-size:13px}
   /* 活動卡片電腦版加大 */
-  .events-section{padding:28px 48px 12px;max-width:1400px;margin:0 auto}
+  .events-section{padding:28px 48px 12px}
   .section-title{font-size:24px}
   .event-card{width:260px}
   .event-name{font-size:16px}
@@ -261,14 +261,14 @@ textarea{min-height:72px;resize:vertical}
 <div id="pageHome" class="page active">
 
   <!-- Hero -->
-  <div class="hero" id="siteHero">
+  <div class="hero" id="siteHero" onmousedown="startLogoHold()" onmouseup="stopLogoHold()" onmouseleave="stopLogoHold()" ontouchstart="startLogoHold()" ontouchend="stopLogoHold()" ontouchcancel="stopLogoHold()" style="cursor:pointer;user-select:none">
     <div class="hero-bg-deco">
       <div class="hd1"></div>
       <div class="hd2"></div>
       <div class="hd3"></div>
     </div>
     <div class="hero-left">
-      <div class="logo-row" id="logoBtn" onmousedown="startLogoHold()" onmouseup="stopLogoHold()" ontouchstart="startLogoHold()" ontouchend="stopLogoHold()" style="cursor:pointer;user-select:none">
+      <div class="logo-row" id="logoBtn">
         <img class="logo-img" src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/logo.jpg" alt="兔彼樂" onerror="this.style.display='none'">
         <div class="logo-text">兔彼樂共創活動<span>ToBeloved Co-Creation Event Ltd.</span></div>
       </div>
