@@ -645,16 +645,19 @@ function backToSessions(){
 
 // ── 首頁載入 ──
 async function loadHome(){
-  const [events, sessions] = await Promise.all([
-    api({action:'getEvents'}),
-    api({action:'getSessionDashboard', email:'', token:''}).catch(()=>({error:'no auth'})),
-  ]);
-  ST.events = events||[];
-  // 場次總覽用公開 getSessions
-  const allSes = await api({action:'getSessions'});
-  ST.allSessionsData = allSes||[];
-  renderEvents();
-  renderAllSessions();
+  try{
+    const [events, sessions] = await Promise.all([
+      api({action:'getEvents'}),
+      api({action:'getSessions'}),
+    ]);
+    ST.events = Array.isArray(events) ? events : [];
+    ST.allSessionsData = Array.isArray(sessions) ? sessions : [];
+    ST.sessions = ST.allSessionsData; // 統一來源
+    renderEvents();
+    renderAllSessions();
+  }catch(e){
+    console.error('loadHome error:', e);
+  }
 }
 
 async function filterCat(type, el){
@@ -719,6 +722,8 @@ async function openEvent(eventId){
   // 不篩入口，顯示所有開放場次
   const sessions=await api(params);
   ST.sessions=sessions||[];
+  // 更新總資料來源
+  ST.allSessionsData=[...new Map([...ST.allSessionsData,...ST.sessions].map(s=>[s.id,s])).values()];
 
   if(!ST.sessions.length){
     $('inlineSessionList').innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">目前無開放場次</div>';
