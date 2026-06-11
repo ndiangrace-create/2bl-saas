@@ -578,7 +578,6 @@ textarea{min-height:64px;resize:vertical}
     </div>
     <div style="font-size:11px;color:var(--lt);margin-top:2px">（活動日全選才適用此優惠價）例：7/18 NT$1000 + 7/19 NT$800，多日優惠填 NT$1700</div>
     <div class="form-row">
-      <div><label>名額上限（0=不限）</label><input type="number" id="sm_limit" value="0" inputmode="numeric"><div style="font-size:11px;color:var(--lt);margin-top:3px">市集場次填 0（不限），系統依攤位數自動控管；活動／體驗類填實際開放人數，滿額後前台自動關閉報名。</div></div>
       <div>
   <label>開放選位（付費選項）</label>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
@@ -1841,7 +1840,7 @@ async function editSes(id){
   $('sm_venue').value=s.venue||'';
   $('sm_fee').value=Math.max(0,Number(s.fee)||0);
   $('sm_deposit').value=Math.max(0,Number(s.deposit)||0);
-  $('sm_limit').value=Math.max(0,Number(s.limit)||0);
+  // sm_limit 已移除，由各日 dates[].limit 控管
   const hasStalls=(s.stallList&&s.stallList.length>0)||s.enableStalls;
   $('sm_enableStalls').checked=!!hasStalls;
   $('sm_stallsConfig').style.display=hasStalls?'block':'none';
@@ -1933,7 +1932,7 @@ async function saveSession(){
     action:id?'updateSession':'createSession',id,eventId,name,
     type:$('sm_type').value,region,dates,venue,
     fee:parseInt($('sm_fee').value)||0,deposit:parseInt($('sm_deposit').value)||0,
-    limit:parseInt($('sm_limit').value)||0,
+    limit:0,  // 由各日 dates[].limit 控管，整體 limit 設為 0
     maxStalls:$('sm_enableStalls').checked?(parseInt($('sm_maxStalls').value)||3):0,
     organizer:$('sm_organizer').value.trim(),
     coorg:$('sm_coorg').value.trim(),

@@ -479,7 +479,7 @@ textarea{min-height:72px;resize:vertical}
     <label style="font-size:13px;color:var(--md)">帳號末五碼（匯款／ATM 請填，刷卡／LINE Pay 可空白）</label>
     <input type="text" id="payLastFive" placeholder="選填" inputmode="numeric" maxlength="5" style="margin-bottom:10px">
     <label style="font-size:13px;color:var(--md)">繳費金額 *</label>
-    <input type="number" id="payAmount" inputmode="numeric" style="margin-bottom:14px">
+    <div id="payAmount" style="background:#f8f8f8;border:1.5px solid #d0e8d8;border-radius:8px;padding:10px 12px;font-size:14px;font-weight:700;color:#2d6a4f;margin-bottom:14px"></div>
 
     <button class="btn-p" onclick="submitPaymentForm()" style="width:100%;margin-bottom:8px">確認送出繳費通知</button>
     <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%">取消</button>
@@ -1469,7 +1469,7 @@ function showPayPage(regId, sesName, amount){
   // 預填匯款金額
   const payAmtEl = $('payAmount');
   const payLastEl = $('payLastFive');
-  if(payAmtEl) payAmtEl.value = amount;
+  if(payAmtEl) payAmtEl.textContent = 'NT$ ' + amount;
   if(payLastEl) payLastEl.value = '';
   $('payModal').classList.add('show');
 }
@@ -1513,8 +1513,8 @@ async function submitPaymentForm(){
   if(!methodEl){toast('請選擇繳費方式');return;}
   const method = methodEl.value;
   const lastFive = $('payLastFive')?.value.trim() || '';
-  const amount = $('payAmount')?.value || ST_currentPayAmount || 0;
-  if(!amount){toast('請填寫繳費金額');return;}
+  const amount = ST_currentPayAmount || 0;
+  if(!amount){toast('繳費金額有誤，請重新進入繳費頁面');return;}
   // 匯款/ATM 需要末五碼
   if(method==='匯款／ATM' && !lastFive){toast('匯款／ATM 請填寫帳號末五碼');return;}
 
