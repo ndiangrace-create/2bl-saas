@@ -542,11 +542,28 @@ textarea{min-height:64px;resize:vertical}
         <label>地區</label>
         <select id="sm_region">
           <option value="">請選擇</option>
-          <option value="台北">台北</option>
-          <option value="台中">台中</option>
-          <option value="高雄">高雄</option>
-          <option value="台南">台南</option>
-          <option value="新竹">新竹</option>
+          <option value="台北市">台北市</option>
+          <option value="新北市">新北市</option>
+          <option value="桃園市">桃園市</option>
+          <option value="台中市">台中市</option>
+          <option value="台南市">台南市</option>
+          <option value="高雄市">高雄市</option>
+          <option value="基隆市">基隆市</option>
+          <option value="新竹市">新竹市</option>
+          <option value="新竹縣">新竹縣</option>
+          <option value="苗栗縣">苗栗縣</option>
+          <option value="彰化縣">彰化縣</option>
+          <option value="南投縣">南投縣</option>
+          <option value="雲林縣">雲林縣</option>
+          <option value="嘉義市">嘉義市</option>
+          <option value="嘉義縣">嘉義縣</option>
+          <option value="屏東縣">屏東縣</option>
+          <option value="宜蘭縣">宜蘭縣</option>
+          <option value="花蓮縣">花蓮縣</option>
+          <option value="台東縣">台東縣</option>
+          <option value="澎湖縣">澎湖縣</option>
+          <option value="金門縣">金門縣</option>
+          <option value="連江縣">連江縣</option>
           <option value="其他">其他</option>
         </select>
       </div>
@@ -585,9 +602,18 @@ textarea{min-height:64px;resize:vertical}
     <span style="font-size:13px">開放攤主自選攤位（付款後鎖定，未付款2日內釋出）</span>
   </div>
   <div id="sm_stallsConfig" style="display:none;margin-top:8px;padding:10px;background:#f7faf8;border-radius:8px">
-    <label style="font-size:12px;color:var(--md);display:block">攤位號碼清單（用逗號分隔，對應你的場地圖，例：A1,A2,A3）</label>
-    <input type="text" id="sm_stallNumbers" placeholder="A1,A2,A3,B1,B2" style="margin-top:4px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <label style="font-size:12px;color:var(--md)">攤位號碼（逗號分隔，例：A1,A2,A3）</label>
+      <button class="btn btn-g btn-xs" onclick="addStallItem()" type="button">＋ 新增</button>
+    </div>
+    <div style="font-size:11px;color:var(--lt);margin-bottom:6px">例：A1、A2、B1、B2...</div>
+    <div id="stallItemsList"></div>
+    <input type="text" id="sm_stallNumbers" placeholder="A1,A2,A3,B1,B2" style="margin-top:8px">
     <div id="stallPreview" style="margin-top:6px;font-size:12px;color:var(--md)"></div>
+    <div style="margin-top:8px">
+      <label style="font-size:12px;color:var(--md)">每攤選位加購費用（NT$）</label>
+      <input type="number" id="sm_stallFee" value="0" inputmode="numeric" placeholder="0=不加收" style="margin-top:4px">
+    </div>
   </div>
   <input type="hidden" id="sm_maxStalls" value="0">
 </div>
@@ -677,19 +703,7 @@ textarea{min-height:64px;resize:vertical}
       <div id="addonsList"></div>
     </div>
 
-    <!-- 攤位設定 -->
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:700;color:var(--md)">攤位號碼設定（可選位才需填）</div>
-        <button class="btn btn-g btn-xs" onclick="addStallItem()" type="button">＋ 新增</button>
-      </div>
-      <div style="font-size:11px;color:var(--lt);margin-bottom:6px">例：A1、A2、B1、B2...</div>
-      <div id="stallItemsList"></div>
-      <div style="margin-top:8px">
-        <label>每攤加購費用（NT$）</label>
-        <input type="number" id="sm_stallFee" value="0" inputmode="numeric" placeholder="0=不加收">
-      </div>
-    </div>
+
 
     <!-- 設備加購 -->
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
