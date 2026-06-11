@@ -679,6 +679,7 @@ async function filterCat(type, el){
   const list = $('portalSessionList');
   if(list) list.innerHTML = '<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中…</div>';
   navTo('portal');
+  window.scrollTo(0,0);
   // 載入場次
   const sessions = await api({action:'getSessions', portal:type});
   const data = Array.isArray(sessions) ? sessions.filter(s=>s.status==='報名中') : [];
