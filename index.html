@@ -252,9 +252,8 @@ textarea{min-height:72px;resize:vertical}
   .bot-icon{font-size:18px}
   /* 資訊帶 */
   .info-band{font-size:14px;padding:14px 48px}
-  /* 電腦版整體最大寬度 */
-  #pageHome,#pagePortal,#pageMember,#pageSession{max-width:900px!important;margin:0 auto!important}
-  .bottom-fixed{max-width:900px!important;left:50%!important;transform:translateX(-50%)!important;width:900px!important}
+  /* 電腦版整體寬度：全寬 */
+  #pageHome,#pagePortal,#pageMember,#pageSession{max-width:none!important;width:100%!important;margin:0!important}
 }
 </style>
 <body>
@@ -630,10 +629,7 @@ function closePortalSessions(){
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('.cats-section').scrollIntoView({behavior:'smooth',block:'start'});
 }
-function closeInlineSessions(){
-  $('inlineSessionArea').style.display='none';
-  ST.sessions=[];
-}
+function closeInlineSessions(){ navTo("home"); }
 function backToSessions(){
   closeRegFormModal();
 }
@@ -719,27 +715,21 @@ function renderEvents(){
 async function openEvent(eventId){
   const evt=ST.events.find(e=>e.id===eventId);
   ST.currentEvent=evt;
-
-  // 一頁式：在首頁直接展開場次
-  const sesArea=$('inlineSessionArea');
-  if(!sesArea) return;
-  sesArea.style.display='block';
-  $('inlineSessionTitle').textContent=evt?evt.title:'場次列表';
-  $('inlineSessionList').innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
-  sesArea.scrollIntoView({behavior:'smooth',block:'start'});
-
-  const params={action:'getSessions',eventId};
-  // 不篩入口，顯示所有開放場次
-  const sessions=await api(params);
-  ST.sessions=sessions||[];
-  // 更新總資料來源
+  // 進入 pagePortal 顯示該活動的場次
+  const title=$('portalTitle');
+  if(title) title.textContent=evt?evt.title:'場次列表';
+  const list=$('portalSessionList');
+  if(list) list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
+  navTo('portal');
+  const sessions=await api({action:'getSessions',eventId});
+  ST.sessions=Array.isArray(sessions)?sessions:[];
   ST.allSessionsData=[...new Map([...ST.allSessionsData,...ST.sessions].map(s=>[s.id,s])).values()];
-
+  if(!list) return;
   if(!ST.sessions.length){
-    $('inlineSessionList').innerHTML='<div style="padding:16px;text-align:center;color:#aaa;font-size:13px">目前無開放場次</div>';
+    list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">目前無開放場次</div>';
     return;
   }
-  $('inlineSessionList').innerHTML=ST.sessions.map(s=>renderSessionCard(s)).join('');
+  list.innerHTML=ST.sessions.map(s=>renderSessionCard(s)).join('');
 }
 
 function renderSessionCard(s){
