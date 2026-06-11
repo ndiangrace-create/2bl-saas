@@ -287,14 +287,14 @@ textarea{min-height:72px;resize:vertical}
   <div id="announcementBar" style="display:none;padding:0 16px 4px"></div>
 
   <!-- 主題活動 -->
-  <div class="events-section" style="padding:16px 16px 8px">
+  <div class="events-section">
     <div class="section-hd">
       <span class="section-deco">🌿</span>
       <div class="section-title">主 題 活 動</div>
       <span class="section-deco">🌿</span>
     </div>
-    <div id="homeEventsList">
-      <div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中…</div>
+    <div class="events-scroll" id="eventsList">
+      <div style="padding:20px;color:#aaa;font-size:13px">載入中…</div>
     </div>
   </div>
 
@@ -651,36 +651,7 @@ function renderAnnouncements(list){
 }
 
 
-function renderHomeEvents(){
-  const el=$('homeEventsList');
-  if(!el) return;
-  if(!ST.allSessionsData.length){
-    el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前無開放場次</div>';
-    return;
-  }
-  // 按 eventId 分組
-  const groups={};
-  ST.allSessionsData.forEach(s=>{
-    const evtId = s.eventId||'_';
-    if(!groups[evtId]) groups[evtId]=[];
-    groups[evtId].push(s);
-  });
-  // 渲染每個 Event 群組
-  let html='';
-  Object.keys(groups).forEach(evtId=>{
-    const evt = ST.events.find(e=>e.id===evtId)||{};
-    const sessions = groups[evtId];
-    html+=`<div style="margin-bottom:16px">`;
-    if(evt.title){
-      html+=`<div style="font-size:13px;font-weight:700;color:var(--g);padding:6px 4px 4px;letter-spacing:1px">
-        🎪 ${evt.title}
-      </div>`;
-    }
-    html+=sessions.map(s=>renderSessionCard(s)).join('');
-    html+=`</div>`;
-  });
-  el.innerHTML=html;
-}
+
 
 async function loadHome(){
   try{
@@ -693,7 +664,7 @@ async function loadHome(){
     ST.allSessionsData = Array.isArray(sessions) ? sessions.filter(s=>s.status==='報名中') : [];
     ST.sessions = ST.allSessionsData;
     renderAnnouncements(Array.isArray(announcements) ? announcements : []);
-    renderHomeEvents();
+    renderEvents();
   }catch(e){
     console.error('loadHome error:', e);
   }
