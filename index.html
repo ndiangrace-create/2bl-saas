@@ -203,8 +203,8 @@ textarea{min-height:72px;resize:vertical}
 @media(min-width:768px){
   html,body{font-size:16px}
   /* 頁面容器電腦版加寬 */
-  .page{max-width:1200px!important;margin:0 auto!important}
-  .bottom-fixed{max-width:1200px!important}
+  .page{max-width:none!important;width:100%!important;margin:0!important}
+  .bottom-fixed{max-width:none!important;width:100%!important}
   /* Hero 電腦版 */
   .hero{padding:36px 48px;min-height:280px;gap:24px}
   .hero-title{font-size:34px}
@@ -361,7 +361,7 @@ textarea{min-height:72px;resize:vertical}
 
 <!-- ══ 報名表頁 ══ -->
 <!-- pageForm 保留空殼（供 navTo 相容）-->
-<div id="pageForm" class="page" style="display:none!important"></div>
+<div id="pageForm" class="page" style="display:none"></div>
 
 <!-- ══ 報名表 Modal ══ -->
 <div class="modal-overlay" id="regFormModal" onclick="if(event.target===this)closeRegFormModal()">
