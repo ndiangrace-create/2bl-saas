@@ -400,7 +400,7 @@ textarea{min-height:72px;resize:vertical}
       <div style="font-size:13px;color:var(--md);margin-bottom:16px">輸入 Email 查詢報名紀錄，資料自動帶入</div>
       <label>Email</label>
       <input type="email" id="loginEmail" placeholder="your@email.com" inputmode="email">
-      <button class="btn-p" onclick="memberLogin()" style="margin-top:12px">登入 / 查詢報名</button>
+      <button id="loginBtn" class="btn-p" onclick="memberLogin()" style="margin-top:12px">登入 / 查詢報名</button>
     </div>
   </div>
 
@@ -444,7 +444,7 @@ textarea{min-height:72px;resize:vertical}
           </div>
           <label style="font-size:12px;color:var(--md)">收發票 Email</label><input type="email" id="editInvoiceEmail" inputmode="email">
         </div>
-        <button class="btn-p" onclick="saveMemberEdit()" style="width:100%">更新資料</button>
+        <button id="saveMemberBtn" class="btn-p" onclick="saveMemberEdit()" style="width:100%">更新資料</button>
         <div id="saveSuccessMsg" style="display:none;text-align:center;color:var(--g);font-weight:700;padding:8px;font-size:14px">✓ 更新完成！</div>
       </div>
     </div>
@@ -1226,7 +1226,17 @@ function adjAddon(i,delta){
 }
 function adjEquip(k,delta){
   const cur=ST.equipQty[k]||0;
-  const next=Math.max(0,Math.min(50,cur+delta));
+  const s=ST.currentSession;
+  const equipDef=s?.equip?.[k]||{};
+  const stalls=ST.stallCount||1;
+  // 每攤上限（0=不限）
+  const maxPerStall=equipDef.maxPerStall||0;
+  const maxTotal=maxPerStall>0?maxPerStall*stalls:50;
+  const next=Math.max(0,Math.min(maxTotal,cur+delta));
+  if(next===cur && delta>0 && maxPerStall>0){
+    toast('每攤最多加購 '+maxPerStall+' 件，超出請租多攤！');
+    return;
+  }
   ST.equipQty[k]=next;
   const el=document.getElementById('eq_num_'+k);
   if(el)el.textContent=next;
@@ -1285,6 +1295,11 @@ async function submitReg(){
   if(!phone||!/^09\d{8}$/.test(phone)){$('e_phone').textContent='請填寫正確手機';ok=false;}else $('e_phone').textContent='';
   if(!email||!/\S+@\S+\.\S+/.test(email)){$('e_email').textContent='請填寫正確 Email';ok=false;}else $('e_email').textContent='';
   if(!ok){toast('請確認必填欄位');return;}
+  // 多日場次：至少勾選一天
+  if(ST.currentSession && ST.currentSession.dates && ST.currentSession.dates.length>1){
+    const checkedDates=(ST.currentSession.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked);
+    if(!checkedDates.length){toast('請至少選擇一個參加日期');return;}
+  }
   btn.disabled=true;btn.textContent='送出中…';
   const invoiceType=document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人';
   if(invoiceType==='公司／機關'){
@@ -1337,6 +1352,9 @@ async function submitReg(){
 
 // ── 會員 ──
 async function memberLogin(){
+  const btn=$('loginBtn');
+  if(btn){btn.disabled=true;btn.textContent='查詢中…';}
+  const restoreBtn=()=>{if(btn){btn.disabled=false;btn.textContent='查詢紀錄';}}; 
   const email=$('loginEmail').value.trim();
   if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;}
   ST.memberEmail=email;
@@ -1379,46 +1397,70 @@ function memberLogout(){
   if(lbl) lbl.textContent='會員登入';
 }
 
-async function renderMyRegs(regs){
+function renderMyRegs(regs){
   const el=$('myRegsList');
-  if(!regs.length){el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:20px">目前無報名紀錄</div>';return;}
-  const sesCache={};
-  await Promise.all([...new Set(regs.map(r=>r.sessionId))].map(async id=>{
-    const s=await api({action:'getSession',id});
-    sesCache[id]=s||{};
-  }));
+  if(!el) return;
+  if(!regs||!regs.length){
+    el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:20px">目前無報名紀錄</div>';
+    return;
+  }
+  const statusColor={'待審核':'#f5a623','已錄取':'#2d6a4f','不錄取':'#d94f4f','已取消':'#aaa','已報到':'#1a7f5a'};
   el.innerHTML=regs.map(r=>{
-    const s=sesCache[r.sessionId]||{};
-    const region=s.region||'';
-    const sesName=s.name||r.sessionId;
-    let equipStr='';
-    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
-    const stalls=r.stallCount||1;
-    const statusColor={待審核:'#b7860b',已錄取:'#2d6a4f',不錄取:'#c0392b'}[r.status]||'#888';
-    const canPay=r.status==='已錄取'&&r.payStatus!=='已繳費 ✓'&&r.amount>0;
-    const paidTag=r.payStatus==='已繳費 ✓'
-      ?'<span style="background:#e8f7ee;color:#2d6a4f;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700">已繳費</span>'
-      :r.payStatus==='待確認'
-      ?'<span style="background:#fff8e1;color:#b7860b;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700">待確認</span>'
-      :'<span style="background:#f5f5f5;color:#888;padding:2px 7px;border-radius:6px;font-size:11px">未繳費</span>';
-    return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.07)">
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">
-        ${region?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${region}</span>`:''}
-        <span style="font-size:14px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sesName}</span>
+    const color=statusColor[r.status]||'#888';
+    const canCancel=['待審核','已錄取'].includes(r.status)&&r.payStatus!=='已繳費';
+    return `<div onclick="openRegDetail('${r.id}')" style="background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);padding:14px;margin-bottom:10px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="font-size:14px;font-weight:700;color:var(--dk);flex:1;margin-right:8px">${r.sessionName||r.sesName||'場次'}</div>
+        <span style="background:${color}22;color:${color};padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;flex-shrink:0">${r.status}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--md)">
-        <span>${stalls}攤</span>
-        ${equipStr?`<span style="color:#888">${equipStr}</span>`:''}
-        <span style="color:${statusColor};font-weight:700">${r.status}</span>
-        ${r.amount>0?`<span style="font-weight:700;color:var(--dk)">NT$${r.amount}</span>`:'<span>免費</span>'}
-        ${paidTag}
-        ${canPay?`<button onclick="showPayPage('${r.id}','${sesName}',${r.amount})" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">去繳費</button>`:''}
-      </div>
-      ${r.status!=='不錄取'&&r.status!=='已取消'?`<div style="margin-top:8px;text-align:right">
-        <button onclick="cancelMyReg('${r.id}','${sesName}')" style="background:#fff;color:#c0392b;border:1px solid #e8b5b5;border-radius:8px;padding:5px 12px;font-size:11px;cursor:pointer">取消報名</button>
-      </div>`:''}
+      <div style="font-size:12px;color:var(--md)">攤位數：${r.stallCount||1} 攤　${r.total>0?'NT$ '+r.total:r.payStatus==='免費'?'免費':''}</div>
+      <div style="font-size:12px;color:var(--lt);margin-top:2px">${r.payStatus||''}</div>
     </div>`;
   }).join('');
+}
+
+function openRegDetail(regId){
+  const reg=(ST.regs||[]).find(r=>r.id===regId);
+  if(!reg) return;
+  const statusColor={'待審核':'#f5a623','已錄取':'#2d6a4f','不錄取':'#d94f4f','已取消':'#aaa','已報到':'#1a7f5a'};
+  const color=statusColor[reg.status]||'#888';
+  const canCancel=['待審核','已錄取'].includes(reg.status)&&reg.payStatus!=='已繳費';
+  const modal=document.createElement('div');
+  modal.id='regDetailModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML=`<div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:700;color:var(--dk)">報名詳情</div>
+      <button onclick="document.getElementById('regDetailModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#aaa">✕</button>
+    </div>
+    <div style="background:#f8f8f8;border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="font-size:14px;font-weight:700;color:var(--dk);margin-bottom:8px">${reg.sessionName||reg.sesName||'場次'}</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:13px;color:var(--md)">狀態</span>
+        <span style="font-size:13px;font-weight:700;color:${color}">${reg.status}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:13px;color:var(--md)">攤位數</span>
+        <span style="font-size:13px;font-weight:700">${reg.stallCount||1} 攤</span>
+      </div>
+      ${reg.total>0?`<div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:13px;color:var(--md)">應繳金額</span>
+        <span style="font-size:13px;font-weight:700;color:var(--g)">NT$ ${reg.total}</span>
+      </div>`:''}
+      <div style="display:flex;justify-content:space-between">
+        <span style="font-size:13px;color:var(--md)">繳費狀態</span>
+        <span style="font-size:13px;font-weight:700">${reg.payStatus||'-'}</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--lt);margin-bottom:14px">報名編號：${reg.id}</div>
+    ${canCancel?`<button onclick="cancelMyReg('${reg.id}',this.dataset.ses);document.getElementById('regDetailModal').remove();" data-ses="${(reg.sessionName||reg.sesName||'').replace(/"/g,'&quot;')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">取消報名</button>`:''}
+    <button onclick="document.getElementById('regDetailModal').remove()" style="width:100%;background:#f0f0f0;color:#888;border:none;padding:12px;border-radius:10px;font-size:14px;cursor:pointer">關閉</button>
+  </div>`;
+  // 點背景關閉
+  modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+  // 加入 history
+  history.pushState({regDetail:true},'',location.href);
+  document.body.appendChild(modal);
 }
 
 
@@ -1625,6 +1667,9 @@ function fillMemberCard(m){
 }
 
 async function saveMemberEdit(){
+  const btn=$('saveMemberBtn');
+  if(btn){btn.disabled=true;btn.textContent='更新中…';}
+  const restoreBtn=()=>{if(btn){btn.disabled=false;btn.textContent='更新資料';}};
   const body={action:'saveMember',email:ST.memberEmail,
     name:$('editName').value.trim(),
     phone:$('editPhone').value.trim(),
