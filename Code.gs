@@ -754,25 +754,7 @@ function submitPayment(body) {
     ' 時間:'+new Date().toLocaleString('zh-TW')
   );
 
-  // 通知管理員
-  try {
-    const staffSh = getSheet(CONFIG.SH_STAFF);
-    const staffRows = sheetToObjects(staffSh);
-    staffRows.forEach(s => {
-      if(s['Email']) {
-        GmailApp.sendEmail(s['Email'], '[兔彼樂] 攤友回報付款待確認  '+obj['場次ID'], '', {
-          htmlBody: buildEmailHtml(`
-            <p><strong>${obj['姓名']}</strong> 回報付款，請至後台確認。</p>
-            <p>報名ID：${body.regId}</p>
-            <p>付款方式：${body.method||'匯款'}</p>
-            <p>金額：NT$ ${body.amount||''}</p>
-            <p>末五碼：${body.lastFive||''}</p>
-            <p><a href="${CONFIG.ADMIN_URL}" style="background:#2d6a4f;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none">前往後台確認</a></p>
-          `, '管理員')
-        });
-      }
-    });
-  } catch(e) {}
+  // 管理員通知：不寄信，請自行至後台查看
 
   return { success: true };
 }
@@ -1259,7 +1241,7 @@ function register(body) {
   }
 
   // 發確認信
-  sendRegConfirmEmail(body.email, body.name, sesObj['場次名稱'], id, status, total);
+  sendRegConfirmEmail(body.email, body.name, sesObj['場次名稱'], id, status, total, sesObj['場次ID']);
 
   return { success: true, id, status, total };
 }
@@ -1942,73 +1924,85 @@ function sendNotify(body) {
   return { success: true, sent };
 }
 
-function sendRegConfirmEmail(email, name, sessionName, regId, status, total) {
+function sendRegConfirmEmail(email, name, sessionName, regId, status, total, sessionId) {
   try {
-    GmailApp.sendEmail(email, `【兔彼樂】收到您的報名  ${sessionName}`, '', {
+    const sesType = sessionId ? getSessionType(sessionId) : '';
+    const brand = '';  // register 時 brand 從 body 傳入，若未傳用空
+    const displayName = name;  // register 呼叫時只有 name，brand 另外從 obj 取
+    GmailApp.sendEmail(email, `【${sessionName}】收到您的報名申請`, '', {
       htmlBody: buildEmailHtml(`
-        <p>親愛的 <strong>${name}</strong>，</p>
-        <p>我們已收到您報名 <strong>${sessionName}</strong> 的申請。</p>
+        <p>親愛的 <strong>${displayName}</strong>，</p>
+        <p>我們已收到您報名 <strong>${sessionName}</strong> 的申請，請耐心等候審核通知。</p>
         <p>【報名編號】：<strong>${regId}</strong></p>
-        <p>【狀態】：<strong>${status}</strong></p>
-        ${status === '待審核' ? '<p>我們會在審核後通知您結果，請耐心等候。</p>' : ''}
-        ${status === '已錄取' && total > 0 ? `<p>【應繳金額】：<strong>NT$ ${total}</strong>，請等待付款連結通知。</p>` : ''}
-        <p>如有問題請透過 LINE 聯繫我們：<a href="https://lin.ee/Xpiib15">@2beloved</a></p>
-      `, name)
+        <p style="margin-top:16px">審核結果將以 Email 通知，請記得先加入官方 LINE 告知品牌，即可快速劃位！</p>
+        <p style="text-align:center;margin:20px 0">
+          <a href="https://lin.ee/ZMcOn34" style="background:#06C755;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">加入官方 LINE</a>
+        </p>
+        <p style="text-align:center;margin:20px 0">
+          <a href="${CONFIG.SITE_URL}" style="background:#f0fdf4;color:#2d6a4f;border:2px solid #2d6a4f;padding:10px 24px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">報名其他場次</a>
+        </p>
+      `, displayName)
     });
   } catch(e) {}
 }
 
 function sendApprovalEmail(email, name, sessionId, regId, fee) {
   const sesName = getSessionNameById(sessionId);
+  const sesType = getSessionType(sessionId);
   const deadline = new Date();
   deadline.setDate(deadline.getDate() + CONFIG.PAY_DEADLINE_DAYS);
   const deadlineStr = deadline.getFullYear()+'/'+(deadline.getMonth()+1)+'/'+deadline.getDate();
+  // 取品牌名稱（從報名資料）
+  const sh = getSheet(CONFIG.SH_REGS);
+  const rows = sheetToObjects(sh);
+  const reg = rows.find(r => r['報名ID'] == regId);
+  const brand = reg ? (reg['品牌名稱']||'') : '';
+  const displayName = getDisplayName(name, brand, sesType);
   const payUrl = CONFIG.SITE_URL + '?member=1&pay=' + regId;
   try {
-    GmailApp.sendEmail(email, '【兔彼樂】恭喜錄取 請完成繳費  ' + sesName, '', {
+    GmailApp.sendEmail(email, `【${sesName}】${displayName} 恭喜錄取！請完成繳費`, '', {
       htmlBody: buildEmailHtml(`
-        <p>親愛的 <strong>${name}</strong>，</p>
+        <p>親愛的 <strong>${displayName}</strong>，</p>
         <p>恭喜！您已成功錄取 <strong>${sesName}</strong>。</p>
         ${fee > 0 ? `
         <div style="background:#f0fdf4;border-radius:10px;padding:16px;margin:16px 0">
-          <p style="font-size:15px;font-weight:700;color:#2d6a4f;margin-bottom:8px">應繳金額：NT$ ${fee}</p>
-          <p style="color:#c0392b;font-size:13px">請於 <strong>${deadlineStr}</strong> 前完成繳費，逾期將自動釋出位置給候補。</p>
-        </div>
-        <p style="font-weight:700;margin-bottom:8px">繳費方式：</p>
-        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:16px;margin-bottom:12px">
-          <p style="font-weight:700;margin-bottom:6px">A. 匯款</p>
-          <p>銀行：${CONFIG.BANK_NAME}</p>
-          <p>帳號：<strong>${CONFIG.BANK_ACCOUNT}</strong></p>
-          <p>戶名：${CONFIG.BANK_HOLDER}</p>
-          <p style="font-size:12px;color:#888;margin-top:6px">匯款後請至會員區回報繳費資訊</p>
-        </div>
-        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:16px;margin-bottom:16px">
-          <p style="font-weight:700;margin-bottom:6px">B. 線上繳費（信用卡 / LINE Pay）</p>
-          <p style="font-size:13px;color:#666">登入會員區選擇線上繳費</p>
+          <p style="font-size:16px;font-weight:700;color:#2d6a4f;margin-bottom:8px">應繳金額：NT$ ${fee}</p>
+          <p style="color:#c0392b;font-size:13px">請於 <strong>${deadlineStr}</strong> 前完成繳費，逾期將自動釋出位置。</p>
         </div>
         <p style="text-align:center;margin:20px 0">
-          <a href="${payUrl}" style="background:#2d6a4f;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">前往會員區繳費</a>
+          <a href="${payUrl}" style="background:#2d6a4f;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">前往會員區完成繳費 →</a>
         </p>
         ` : '<p style="color:#2d6a4f;font-weight:700">本場次免費，您的名額已保留！</p>'}
-        <p style="text-align:center;margin:16px 0">
-          <a href="${CONFIG.SITE_URL}" style="background:#f0fdf4;color:#2d6a4f;border:2px solid #2d6a4f;padding:10px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px">登入會員區查看報名紀錄</a>
+        <p style="text-align:center;margin:16px 0;font-size:13px;color:#888">
+          如有問題請聯繫官方 LINE：<a href="https://lin.ee/ZMcOn34" style="color:#06C755;font-weight:700">@2beloved</a>
         </p>
-        <p style="font-size:13px;color:#888">如有問題請透過 LINE 聯繫：<a href="${CONFIG.LINE_URL}">@2beloved</a></p>
-      `, name)
+      `, displayName)
     });
   } catch(e) {}
 }
 
 function sendRejectionEmail(email, name, sessionId) {
   const sesName = getSessionNameById(sessionId);
+  const sesType = getSessionType(sessionId);
+  const sh = getSheet(CONFIG.SH_REGS);
+  const rows = sheetToObjects(sh);
+  // 找最新一筆該 email + 場次的報名
+  const reg = rows.filter(r => r['Email']==email && r['場次ID']==sessionId).pop();
+  const brand = reg ? (reg['品牌名稱']||'') : '';
+  const displayName = getDisplayName(name, brand, sesType);
   try {
-    GmailApp.sendEmail(email, `您的報名結果通知  ${sesName}`, '', {
+    GmailApp.sendEmail(email, `【${sesName}】報名結果通知`, '', {
       htmlBody: buildEmailHtml(`
-        <p>親愛的 <strong>${name}</strong>，</p>
-        <p>感謝您報名 <strong>${sesName}</strong>。</p>
-        <p>很抱歉，這次未能錄取您。歡迎繼續關注我們下一場活動！</p>
-        <p>如有問題請透過 LINE 聯繫：<a href="https://lin.ee/Xpiib15">@2beloved</a></p>
-      `, name)
+        <p>親愛的 <strong>${displayName}</strong>，</p>
+        <p>很抱歉，您本次報名的 <strong>${sesName}</strong> 已額滿。</p>
+        <p>歡迎提前報名其他場次，我們期待與您相遇！</p>
+        <p style="text-align:center;margin:24px 0">
+          <a href="${CONFIG.SITE_URL}" style="background:#2d6a4f;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">報名其他場次</a>
+        </p>
+        <p style="text-align:center;font-size:13px;color:#888">
+          如有問題請聯繫官方 LINE：<a href="https://lin.ee/ZMcOn34" style="color:#06C755;font-weight:700">@2beloved</a>
+        </p>
+      `, displayName)
     });
   } catch(e) {}
 }
@@ -2016,73 +2010,99 @@ function sendRejectionEmail(email, name, sessionId) {
 
 function sendStaffInviteEmail(email, name, role, perms, limitSessions) {
   const permLabels = {
-    view_regs:'查看報名', review:'審核報名', checkin:'現場報到', pay:'確認付款',
-    sessions:'管理場次', events:'管理活動', notify:'發送通知', announce:'管理公告', admin:'管理員帳號'
+    view_regs:'查看報名',review:'審核報名',checkin:'現場報到',pay:'確認付款',
+    sessions:'管理場次',events:'管理活動',notify:'發送通知',announce:'管理公告',admin:'管理員帳號'
   };
   let permText = '';
-  if (role === 'superadmin' || role === '超級管理員') {
+  if (role==='superadmin'||role==='超級管理員') {
     permText = '所有功能（超級管理員）';
   } else {
-    const granted = Object.keys(perms || {}).filter(k => perms[k]).map(k => permLabels[k] || k);
-    permText = granted.length ? granted.join('、') : '（尚未設定，請聯繫主辦）';
+    const granted = Object.keys(perms||{}).filter(k=>perms[k]).map(k=>permLabels[k]||k);
+    permText = granted.length ? granted.join('、') : '（請聯繫主辦確認）';
   }
   let sesText = '所有場次';
-  if (limitSessions && limitSessions.length) {
-    const names = limitSessions.map(id => getSessionNameById(id)).join('、');
-    sesText = '僅限：' + names;
+  if (limitSessions&&limitSessions.length) {
+    sesText = '僅限：'+limitSessions.map(id=>getSessionNameById(id)).join('、');
   }
-  const adminUrl = CONFIG.ADMIN_URL;
+  const displayName = name||email;
   try {
     GmailApp.sendEmail(email, '【兔彼樂】您已被授權為活動管理員', '', {
       htmlBody: buildEmailHtml(`
-        <p>親愛的 <strong>${name||email}</strong>，</p>
+        <p>親愛的 <strong>${displayName}</strong>，</p>
         <p>兔彼樂共創活動已開通您的後台管理權限，歡迎加入團隊！</p>
         <div style="background:#f0fdf4;border-radius:10px;padding:16px;margin:16px 0">
           <p style="margin:0 0 8px"><strong>您的權限：</strong>${permText}</p>
           <p style="margin:0"><strong>可管理場次：</strong>${sesText}</p>
         </div>
-        <p style="font-weight:700;margin-bottom:6px">如何進入後台：</p>
-        <ol style="margin:0 0 12px;padding-left:20px;line-height:1.8">
-          <li>點下方按鈕開啟後台網頁</li>
-          <li>輸入您這個 Email（${email}）登入</li>
-          <li>進入後即可看到您被授權的功能</li>
+        <p style="font-weight:700;margin-bottom:6px">登入後台方式：</p>
+        <ol style="margin:0 0 12px;padding-left:20px;line-height:2">
+          <li>開啟前台網址：<a href="${CONFIG.SITE_URL}">${CONFIG.SITE_URL}</a></li>
+          <li>在首頁封面區域（Logo 位置）<strong>長按 3 秒</strong>，即可進入後台</li>
+          <li>輸入您的 Email（${email}）登入</li>
         </ol>
-        <p style="text-align:center;margin:20px 0">
-          <a href="${adminUrl}" style="background:#2d6a4f;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">進入管理後台</a>
+        <p style="background:#fff8ed;border-radius:8px;padding:12px 14px;font-size:13px;color:#7c2d12">
+          ⚠️ 登入方式為「長按首頁封面區域 3 秒」，非點擊圖片，任何封面圖片下都有效。
         </p>
-        <div style="background:#fff8ed;border-radius:10px;padding:12px 14px;margin:12px 0;font-size:13px;color:#7c2d12">
-          <strong>簡易操作說明：</strong><br>
-          ・<strong>報名審核</strong>：查看待審核攤主，按錄取／不錄取／備取<br>
-          ・<strong>現場管理</strong>：活動當天用，攤主報到打卡、撤場、退押金<br>
-          ・<strong>總覽</strong>：看各場次報名狀況與統計
-        </div>
-        <p style="font-size:13px;color:#888">如有任何問題，請透過 LINE 聯繫：<a href="${CONFIG.LINE_URL}">@2beloved</a></p>
-      `, name||email)
+        <p style="text-align:center;margin:20px 0">
+          <a href="${CONFIG.SITE_URL}" style="background:#2d6a4f;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">前往前台登入後台</a>
+        </p>
+        <p style="text-align:center;font-size:13px;color:#888">
+          如有問題請聯繫官方 LINE：<a href="https://lin.ee/ZMcOn34" style="color:#06C755;font-weight:700">@2beloved</a>
+        </p>
+      `, displayName)
     });
-  } catch(e) { Logger.log('Email 失敗: '+e); }
+  } catch(e) { Logger.log('Staff invite email 失敗: '+e); }
 }
 
 function sendPaymentConfirmEmail(email, name, sessionId, amount, equipStr, stallNo) {
   const sesName = getSessionNameById(sessionId);
+  const sesType = getSessionType(sessionId);
+  const sh = getSheet(CONFIG.SH_REGS);
+  const rows = sheetToObjects(sh);
+  const reg = rows.filter(r => r['Email']==email && r['場次ID']==sessionId).pop();
+  const brand = reg ? (reg['品牌名稱']||'') : '';
+  const displayName = getDisplayName(name, brand, sesType);
+  const regId = reg ? (reg['報名ID']||'') : '';
+  const payUrl = CONFIG.SITE_URL + (regId ? '?member=1&pay='+regId : '');
   try {
-    GmailApp.sendEmail(email, '【兔彼樂】付款確認成功  ' + sesName, '', {
+    GmailApp.sendEmail(email, `【${sesName}】${displayName} 付款確認成功！`, '', {
       htmlBody: buildEmailHtml(`
-        <p>親愛的 <strong>${name}</strong>，</p>
+        <p>親愛的 <strong>${displayName}</strong>，</p>
         <div style="background:#f0fdf4;border-radius:10px;padding:16px;margin:16px 0">
-          <p style="font-size:15px;font-weight:700;color:#2d6a4f;margin-bottom:8px">付款確認成功！</p>
+          <p style="font-size:16px;font-weight:700;color:#2d6a4f;margin-bottom:8px">✅ 付款確認成功！</p>
           <p>場次：<strong>${sesName}</strong></p>
           <p>繳費金額：<strong>NT$ ${amount}</strong></p>
           ${equipStr ? `<p>設備：${equipStr}</p>` : ''}
           ${stallNo ? `<p style="color:#2d6a4f;font-weight:700;font-size:16px;margin-top:8px">攤位號碼：${stallNo}</p>` : ''}
         </div>
+        <p>繳費後記得填寫匯款通知，方便對帳快速劃位！</p>
+        <p style="text-align:center;margin:20px 0">
+          <a href="${payUrl}" style="background:#2d6a4f;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">填寫繳費通知</a>
+        </p>
         <p>請記得按時出席，期待與您相見！</p>
         <p style="text-align:center;margin:16px 0">
-          <a href="${CONFIG.SITE_URL}" style="background:#f0fdf4;color:#2d6a4f;border:2px solid #2d6a4f;padding:10px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px">登入會員區查看報名紀錄</a>
+          <a href="${CONFIG.SITE_URL}" style="background:#f0fdf4;color:#2d6a4f;border:2px solid #2d6a4f;padding:10px 24px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">報名其他場次</a>
         </p>
-        <p style="font-size:13px;color:#888">如有問題請透過 LINE 聯繫：<a href="${CONFIG.LINE_URL}">@2beloved</a></p>
-      `, name)
+        <p style="text-align:center;font-size:13px;color:#888">
+          如有問題請聯繫官方 LINE：<a href="https://lin.ee/ZMcOn34" style="color:#06C755;font-weight:700">@2beloved</a>
+        </p>
+      `, displayName)
     });
   } catch(e) {}
+}
+
+
+// ── Email 稱呼 helper ──
+function getDisplayName(name, brand, sessionType) {
+  const useBrand = ['市集場次','通路寄賣'].includes(sessionType||'');
+  return (useBrand && brand) ? brand : (name || brand || '您');
+}
+
+function getSessionType(sessionId) {
+  const sh = getSheet(CONFIG.SH_SESSIONS);
+  const rows = sheetToObjects(sh);
+  const s = rows.find(r => r['場次ID'] == sessionId);
+  return s ? (s['場次類型']||'') : '';
 }
 
 function buildEmailHtml(content, name) {
