@@ -255,13 +255,15 @@ textarea{min-height:72px;resize:vertical}
   /* 電腦版整體寬度：全寬 */
   #pageHome,#pagePortal,#pageMember,#pageSession{max-width:none!important;width:100%!important;margin:0!important}
 }
+/* 防止圖片長按選單 */
+#siteHero img{-webkit-user-drag:none;-webkit-touch-callout:none;pointer-events:none;user-select:none}
 </style>
 <body>
 <!-- ══ 首頁 ══ -->
 <div id="pageHome" class="page active">
 
   <!-- Hero -->
-  <div class="hero" id="siteHero" onmousedown="startLogoHold()" onmouseup="stopLogoHold()" onmouseleave="stopLogoHold()" ontouchstart="startLogoHold()" ontouchend="stopLogoHold()" ontouchcancel="stopLogoHold()" style="cursor:pointer;user-select:none">
+  <div class="hero" id="siteHero" onmousedown="startLogoHold()" onmouseup="stopLogoHold()" onmouseleave="stopLogoHold()" ontouchstart="startLogoHold(event)" ontouchend="stopLogoHold()" ontouchcancel="stopLogoHold()" oncontextmenu="return false" style="cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none">
     <div class="hero-bg-deco">
       <div class="hd1"></div>
       <div class="hd2"></div>
@@ -269,7 +271,7 @@ textarea{min-height:72px;resize:vertical}
     </div>
     <div class="hero-left">
       <div class="logo-row" id="logoBtn">
-        <img class="logo-img" src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/logo.jpg" alt="兔彼樂" onerror="this.style.display='none'">
+        <img class="logo-img" draggable="false" oncontextmenu="return false" style="pointer-events:none" src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/logo.jpg" alt="兔彼樂" onerror="this.style.display='none'">
         <div class="logo-text">兔彼樂共創活動<span>ToBeloved Co-Creation Event Ltd.</span></div>
       </div>
       <div class="hero-title" style="text-align:center;margin-top:8px">今天想參加<br><span class="hi">哪一場活動呢～</span></div>
@@ -1649,7 +1651,8 @@ async function saveMemberEdit(){
 
 // LOGO 長按3秒進後台
 let logoHoldTimer = null;
-function startLogoHold(){
+function startLogoHold(e){
+  if(e && e.preventDefault) e.preventDefault();
   logoHoldTimer = setTimeout(()=>{
     window.location.href='admin.html';
   }, 3000);
