@@ -1943,7 +1943,7 @@ async function saveSession(){
   const venue=$('sm_venue').value.trim();
   const region=$('sm_region').value;
   const dates=getDateSlots();
-  if(!name||!eventId){toast('請填寫活動和場次名稱');return;}
+  if(!name){toast('請填寫場次名稱');return;}
   const body={
     action:id?'updateSession':'createSession',id,eventId,name,
     type:$('sm_type').value,region,dates,venue,
