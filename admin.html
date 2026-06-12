@@ -2467,13 +2467,12 @@ function setStaffPermCache(email,perms){
 function truthyPerm(v){return v===true || v==='TRUE' || v==='true' || v==='1' || v===1 || v==='是' || v==='開啟';}
 
 const PERM_DEFS=[
-  {k:'review',  label:'📋 審核報名', desc:'審核通過/不通過報名申請'},
-  {k:'checkin', label:'✔️ 現場報到', desc:'現場掃描或手動報到'},
-  {k:'sessions',label:'🗓 管理場次', desc:'新增、編輯、刪除場次'},
-  {k:'events',  label:'🎪 管理活動', desc:'新增、編輯、刪除活動'},
-  {k:'finance', label:'💰 財務管理', desc:'查看財報與收支記錄'},
-  {k:'notify',  label:'📢 發送通知', desc:'寄送報名通知信件'},
-  {k:'announce',label:'📣 公告管理', desc:'新增、編輯公告'},
+  {k:'review',  label:'審核報名', desc:'審核通過/不通過 + 補寄通知信'},
+  {k:'checkin', label:'現場報到', desc:'報到 + 查看繳費名單 + 確認付款'},
+  {k:'sessions',label:'管理場次', desc:'新增、編輯（刪除僅超管）'},
+  {k:'events',  label:'管理活動', desc:'新增、編輯（刪除僅超管）'},
+  {k:'finance', label:'財務管理', desc:'查看財報與收支記錄'},
+  {k:'announce',label:'公告管理', desc:'新增、編輯公告'},
 ];
 
 
@@ -2524,12 +2523,9 @@ async function loadStaff(){
       '<div style="font-size:11px;color:var(--yl);margin-top:4px">限定場次：'+s.limitSessions.length+'個</div>':'';
     const permHtml=isSuperAdmin
       ?'<div style="font-size:11px;color:var(--g);margin-top:4px">超級管理員（全部權限）</div>'
-      :PERM_DEFS.map(p=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${(truthyPerm(perms[p.k])||isSuperAdmin)?'#f0fdf4':'#f7f7f7'};border-radius:8px;margin-bottom:4px;cursor:pointer;border:1.5px solid ${(truthyPerm(perms[p.k])||isSuperAdmin)?'var(--g)':'#e0e0e0'}">
-          <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${(truthyPerm(perms[p.k])||isSuperAdmin)?'checked':''} style="width:18px;height:18px;accent-color:var(--g);cursor:pointer;flex-shrink:0" onchange="updatePerm('${s.email}',this)">
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--dk)">${p.label}</div>
-            <div style="font-size:11px;color:var(--md)">${p.desc||''}</div>
-          </div>
+      :PERM_DEFS.map(p=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:13px;margin:4px 10px 4px 0;cursor:pointer;padding:4px 8px;background:#f7f7f7;border-radius:6px">
+          <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${(truthyPerm(perms[p.k])||isSuperAdmin)?'checked':''} style="width:18px;height:18px;accent-color:var(--g);cursor:pointer" onchange="updatePerm('${s.email}',this)">
+          ${p.label}
         </label>`).join('')+limitStr;
     return `<div style="padding:12px 0;border-bottom:1px solid #f5f5f5">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">

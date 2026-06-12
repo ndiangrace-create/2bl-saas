@@ -847,12 +847,18 @@ function buildFormHero(s, cover){
 function openRegFormModal(){
   const modal=$('regFormModal');
   if(!modal) return;
+  // 生成表單內容
+  if(ST.currentSession){
+    renderDynForm(ST.currentSession);
+    updateFee();
+  }
   modal.classList.add('show');
   // 推入 history，讓返回鍵可以關閉 modal
   history.pushState({regFormOpen:true}, '', location.href);
   // 捲動到頂部
   const inner=modal.querySelector('[style*="overflow-y:auto"]');
   if(inner) inner.scrollTop=0;
+  window.scrollTo(0,0);
 }
 
 function closeRegFormModal(){
