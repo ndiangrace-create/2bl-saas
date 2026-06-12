@@ -2523,18 +2523,24 @@ async function loadStaff(){
       '<div style="font-size:11px;color:var(--yl);margin-top:4px">限定場次：'+s.limitSessions.length+'個</div>':'';
     const permHtml=isSuperAdmin
       ?'<div style="font-size:11px;color:var(--g);margin-top:4px">超級管理員（全部權限）</div>'
-      :PERM_DEFS.map(p=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:13px;margin:4px 10px 4px 0;cursor:pointer;padding:4px 8px;background:#f7f7f7;border-radius:6px">
-          <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${(truthyPerm(perms[p.k])||isSuperAdmin)?'checked':''} style="width:18px;height:18px;accent-color:var(--g);cursor:pointer" onchange="updatePerm('${s.email}',this)">
-          ${p.label}
-        </label>`).join('')+limitStr;
-    return `<div style="padding:12px 0;border-bottom:1px solid #f5f5f5">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div style="flex:1">
-          <div style="font-weight:700;font-size:14px">${s.name||s.email}</div>
-          <div style="font-size:12px;color:var(--lt)">${s.email}</div>
-          <div style="margin-top:6px">${permHtml}</div>
+      :PERM_DEFS.map(p=>{
+          const on=(truthyPerm(perms[p.k])||isSuperAdmin);
+          return `<label style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:${on?'var(--gp)':'#f0f0f0'};border:0.5px solid ${on?'var(--gl)':'#ddd'};border-radius:20px;cursor:pointer;margin:2px">
+            <input type="checkbox" data-email="${s.email}" data-perm="${p.k}" ${on?'checked':''} style="width:12px;height:12px;accent-color:var(--g);margin:0;cursor:pointer" onchange="updatePerm('${s.email}',this)">
+            <span style="font-size:11px;font-weight:600;color:${on?'var(--g)':'#999'}">${p.label}</span>
+          </label>`;
+        }).join('')+limitStr;
+    return `<div style="padding:8px 0;border-bottom:0.5px solid #f0f0f0">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="min-width:0;flex-shrink:0">
+          <span style="font-weight:700;font-size:13px;color:var(--dk)">${s.name||s.email}</span>
+          <span style="font-size:11px;color:var(--lt);margin-left:6px">${s.email}</span>
+          ${isSuperAdmin?'<span style="font-size:10px;color:var(--g);background:var(--gp);padding:1px 7px;border-radius:20px;margin-left:4px">超管</span>':''}
         </div>
-        ${!isSuperAdmin?`<div style="display:flex;gap:6px"><button class="btn btn-b btn-xs" onclick="resendStaffInvite('${s.email}')">重寄通知</button><button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}',this)">移除</button></div>`:''}
+        <div style="flex:1;display:flex;flex-wrap:wrap;gap:3px;align-items:center">
+          ${permHtml}
+        </div>
+        ${!isSuperAdmin?`<div style="display:flex;gap:4px;flex-shrink:0"><button class="btn btn-b btn-xs" onclick="resendStaffInvite('${s.email}')">重寄</button><button class="btn btn-r btn-xs" onclick="removeStaff('${s.email}','${esc(s.name||s.email)}',this)">移除</button></div>`:''}
       </div>
     </div>`;
   }).join('');
