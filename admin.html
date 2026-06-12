@@ -1254,7 +1254,10 @@ function renderOverviewStatusFilters(){
   const b=(id,txt,n)=>`<button class="ov-filter-btn ${active===id?'active':''}" onclick="setOverviewFilter('${id}')" style="border:1px solid #d4d4d8;background:#fff;border-radius:10px;padding:9px 13px;font-size:14px;font-weight:800;cursor:pointer">${txt} <span style="font-size:12px;opacity:.75">${n}</span></button>`;
   return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 12px">${b('current','進行中',cur)}${b('archived','封存',arc)}${b('all','全部',all.length)}<span style="font-size:12px;color:#999">封存不刪資料，只從預設總覽收起。</span></div>`;
 }
-function renderOverviewSessions(){
+function loadSessions(){
+  if(typeof renderOverviewSessionsFn==="function") renderOverviewSessionsFn();
+}
+function renderOverviewSessionsFn(){
   const el=$('overviewSessionList');
   if(!el) return;
   let sessions=ST.sdData||[];
@@ -1668,15 +1671,7 @@ function resetSesModal(){
   updateModPresets();buildEquipDefs({});
 }
 
-function fillAssignStaff(selected){
-  const grid=$('sm_assignStaff');
-  if(!grid) return;
-  grid.innerHTML=(ST.staffList||[]).filter(s=>s.role!=='superadmin').map(s=>`
-    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:3px 0">
-      <input type="checkbox" data-staffemail="${s.email}" ${selected.includes(s.email)?'checked':''} style="width:14px;height:14px;accent-color:var(--g)">
-      ${s.name||s.email}
-    </label>`).join('') || '<div style="font-size:12px;color:#aaa">無可指派的管理員</div>';
-}
+function fillAssignStaff(){}
 
 document.addEventListener('change', function(e){
   if(e.target.id==='sm_enableStalls'){
