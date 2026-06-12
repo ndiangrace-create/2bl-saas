@@ -1333,19 +1333,39 @@ async function submitReg(){
   try{
     const res=await apiPost(body);
     if(res.error){toast('❌ '+res.error);btn.disabled=false;btn.textContent='送出報名';return;}
-    toast('✅ 報名成功！',3000);
+    // 更新會員資料
     ST.memberEmail=email;
     const updatedMember=await api({action:'getMember',email});
     if(updatedMember&&!updatedMember.error) ST.member=updatedMember;
-    closeRegFormModal();
-    window.scrollTo(0,0);
-    // 相容後端回傳 id 或 regId、total 或 totalAmount
     const paidRegId = res.regId || res.id || '';
-    const paidAmount = res.totalAmount || res.total || s.fee || 0;
-    // 若有費用，跳到繳費（只執行一次）
-    if(paidRegId && paidAmount > 0){
-      setTimeout(()=>showPayPage(paidRegId, s.name||'', paidAmount), 500);
+    const paidAmount = res.totalAmount || res.total || 0;
+    // 顯示報名成功畫面
+    const dynForm=$('dynForm');
+    const feeBox=$('feeBox');
+    if(dynForm) dynForm.style.display='none';
+    if(feeBox) feeBox.style.display='none';
+    if(btn) btn.style.display='none';
+    const modalInner=$('regFormModal')?.querySelector('.modal');
+    if(modalInner){
+      const old=modalInner.querySelector('.success-screen');
+      if(old) old.remove();
+      const div=document.createElement('div');
+      div.className='success-screen';
+      div.style.cssText='text-align:center;padding:48px 20px';
+      div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div>
+        <div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div>
+        <div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div>
+        <div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div>
+        ${paidRegId&&paidAmount>0?`<div style="background:#fff3cd;border-radius:10px;padding:12px;font-size:13px;color:#856404;margin-bottom:16px">💳 請於 48 小時內完成繳費<br><strong>NT$ ${paidAmount}</strong></div>`:''}
+        <div style="font-size:12px;color:var(--lt)">3 秒後自動返回...</div>`;
+      modalInner.querySelector('.modal-body')?.appendChild(div) || modalInner.appendChild(div);
+      modalInner.querySelector('.modal-body')?.scrollTo(0,9999) || modalInner.scrollTo(0,9999);
     }
+    setTimeout(()=>{
+      closeRegFormModal();
+      window.scrollTo(0,0);
+      if(paidRegId&&paidAmount>0) showPayPage(paidRegId,s.name||'',paidAmount);
+    },3000);
   }catch(e){toast('網路錯誤，請重試');}
   btn.disabled=false;btn.textContent='送出報名';
 }
