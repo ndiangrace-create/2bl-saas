@@ -2567,46 +2567,57 @@ async function loadStaff(){
 }
 
 async function assignStaffSessions(targetEmail){
-  // 取得所有場次
   const allSes=await api({action:'getSessionsAdmin',email:ST.email,token:ST.token});
   const sesList=Array.isArray(allSes)?allSes:[];
-  // 取得該管理員目前的限定場次
   const staffList=await api({action:'getStaff',email:ST.email,token:ST.token});
   const staff=(staffList||[]).find(s=>s.email===targetEmail)||{};
   const current=new Set(staff.limitSessions||[]);
 
-  // 建立選擇 Modal
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
-  const sheet=document.createElement('div');
-  sheet.style.cssText='background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:20px;max-height:70vh;overflow-y:auto';
-  sheet.innerHTML=`
-    <div style="font-size:15px;font-weight:700;margin-bottom:14px">指派負責場次</div>
-    <div style="font-size:12px;color:var(--lt);margin-bottom:12px">未勾選 = 可存取全部場次</div>
-    <div id="sesAssignList">
-      ${sesList.map(ss=>`
-        <label style="display:flex;align-items:center;gap:10px;padding:10px;border:0.5px solid #eee;border-radius:10px;margin-bottom:6px;cursor:pointer">
-          <input type="checkbox" value="${ss.id}" ${current.has(ss.id)?'checked':''} style="width:16px;height:16px;accent-color:var(--g)">
-          <span style="font-size:13px">${ss.name}</span>
-        </label>
-      `).join('')}
-    </div>
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;padding:12px;border-radius:10px;background:#f0f0f0;border:none;cursor:pointer">取消</button>
-      <button id="saveAssignBtn" style="flex:2;padding:12px;border-radius:10px;background:var(--g);color:#fff;border:none;cursor:pointer;font-weight:700">儲存</button>
-    </div>
-  `;
-  overlay.appendChild(sheet);
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  // 移除舊的 overlay
+  const existingOverlay=document.getElementById('staffSesOverlay');
+  if(existingOverlay) existingOverlay.remove();
 
-  sheet.querySelector('#saveAssignBtn').onclick=async function(){
-    const checked=[...sheet.querySelectorAll('#sesAssignList input:checked')].map(c=>c.value);
+  const overlay=document.createElement('div');
+  overlay.id='staffSesOverlay';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+
+  const sesListHtml=sesList.length
+    ?sesList.map(ss=>`
+      <label style="display:flex;align-items:center;gap:10px;padding:10px;border:0.5px solid #eee;border-radius:10px;margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" value="${ss.id}" ${current.has(ss.id)?'checked':''} style="width:16px;height:16px;accent-color:var(--g)">
+        <span style="font-size:13px">${ss.name||ss.id}</span>
+      </label>`).join('')
+    :'<div style="color:var(--lt);font-size:13px;padding:10px">目前無場次</div>';
+
+  overlay.innerHTML=`
+    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:20px;max-height:70vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:700">指派負責場次</div>
+        <button id="closeAssignBtn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#aaa">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--lt);margin-bottom:12px">不勾選 = 可存取全部場次</div>
+      <div id="sesAssignList">${sesListHtml}</div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button id="cancelAssignBtn" style="flex:1;padding:12px;border-radius:10px;background:#f0f0f0;border:none;cursor:pointer">取消</button>
+        <button id="saveAssignBtn" style="flex:2;padding:12px;border-radius:10px;background:var(--g);color:#fff;border:none;cursor:pointer;font-weight:700">儲存</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  history.pushState({assignModal:true},'',location.href);
+
+  const closeOverlay=()=>{overlay.remove();};
+  overlay.querySelector('#closeAssignBtn').onclick=closeOverlay;
+  overlay.querySelector('#cancelAssignBtn').onclick=closeOverlay;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)closeOverlay();});
+
+  overlay.querySelector('#saveAssignBtn').onclick=async function(){
+    const checked=[...overlay.querySelectorAll('#sesAssignList input:checked')].map(c=>c.value);
     this.disabled=true;this.textContent='儲存中…';
     const res=await apiPost({action:'updateStaffSessions',email:ST.email,token:ST.token,targetEmail,sessions:checked});
     if(res.error){toast('❌ '+res.error);this.disabled=false;this.textContent='儲存';return;}
     toast('✅ 場次已更新');
-    overlay.remove();
+    closeOverlay();
     loadStaff();
   };
 }
