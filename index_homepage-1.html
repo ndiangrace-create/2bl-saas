@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>兔彼樂共創村 · To love To beloved</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { height: 100%; }
+
+  body {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow: hidden;
+    background: #2d1b4e;
+    font-family: 'Arial', sans-serif;
+    touch-action: none;
+  }
+
+  #scene {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #village-img {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+
+  #hotspots {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .hotspot {
+    position: absolute;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .hotspot:hover,
+  .hotspot:active {
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.5), 0 0 20px rgba(255,220,100,0.4);
+    transform: scale(1.04);
+  }
+
+  .hotspot:active {
+    background: rgba(255,255,255,0.25);
+  }
+
+  #loading {
+    position: fixed;
+    inset: 0;
+    background: #2d1b4e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: opacity 0.5s;
+  }
+  #loading.fade { opacity: 0; pointer-events: none; }
+  #loading-emoji { font-size: 60px; animation: bounce 1s infinite; }
+  #loading-text { color: #f8d7e8; font-size: 18px; margin-top: 16px; letter-spacing: 2px; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  #tooltip {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(45, 27, 78, 0.88);
+    color: #f8d7e8;
+    padding: 10px 24px;
+    border-radius: 24px;
+    font-size: 15px;
+    letter-spacing: 1px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+    z-index: 100;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  #tooltip.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div id="loading-emoji">🐰</div>
+  <div id="loading-text">歡迎來到兔彼樂共創村…</div>
+</div>
+
+<div id="tooltip"></div>
+
+<div id="scene">
+  <img id="village-img" src="village.jpg" alt="兔彼樂共創村" draggable="false">
+  <div id="hotspots"></div>
+</div>
+
+<script>
+const IMG_W = 2052;
+const IMG_H = 4325;
+
+const hotspots = [
+  { id: 'market',   label: '市集報名',       url: '#market',   x: 4,  y: 57, w: 34, h: 11 },
+  { id: 'activity', label: '報名活動・手作體驗', url: '#activity', x: 50, y: 62, w: 40, h: 12 },
+  { id: 'consign',  label: '通路寄賣',        url: '#consign',  x: 54, y: 74, w: 44, h: 9  },
+  { id: 'collab',   label: '合作洽詢',        url: '#collab',   x: 4,  y: 26, w: 38, h: 13 },
+  { id: 'member',   label: '會員中心',        url: '#member',   x: 1,  y: 91, w: 36, h: 8  },
+  { id: 'line',     label: '官方LINE',        url: 'https://lin.ee/Xpiib15', x: 54, y: 91, w: 44, h: 8 },
+  { id: 'mapinfo',  label: '全台市集資訊',    url: '#mapinfo',  x: 2,  y: 43, w: 30, h: 10 },
+  { id: 'plan244',  label: '244計劃',         url: '#plan244',  x: 28, y: 43, w: 38, h: 14 },
+  { id: 'giftshop', label: '禮物店',          url: '#giftshop', x: 58, y: 37, w: 40, h: 12 },
+  { id: 'event',    label: '辦活動找我們',    url: '#event',    x: 38, y: 18, w: 46, h: 13 },
+  { id: 'vending',  label: '進駐販賣機',      url: '#vending',  x: 54, y: 83, w: 44, h: 10 },
+  { id: 'design',   label: '設計找我們',      url: '#design',   x: 0,  y: 34, w: 22, h: 6  },
+];
+
+const img = document.getElementById('village-img');
+const hotspotsDiv = document.getElementById('hotspots');
+const tooltip = document.getElementById('tooltip');
+let tooltipTimer = null;
+
+function getViewSize() {
+  // 用 visualViewport 取得實際可視區域（排除瀏覽器 UI）
+  if (window.visualViewport) {
+    return { w: window.visualViewport.width, h: window.visualViewport.height };
+  }
+  return { w: window.innerWidth, h: window.innerHeight };
+}
+
+function updateLayout() {
+  const { w: vw, h: vh } = getViewSize();
+  const imgAspect = IMG_W / IMG_H;
+  const screenAspect = vw / vh;
+
+  let renderedW, renderedH;
+
+  if (screenAspect > imgAspect) {
+    renderedH = vh;
+    renderedW = vh * imgAspect;
+  } else {
+    renderedW = vw;
+    renderedH = vw / imgAspect;
+  }
+
+  img.style.width  = renderedW + 'px';
+  img.style.height = renderedH + 'px';
+
+  hotspotsDiv.style.width  = renderedW + 'px';
+  hotspotsDiv.style.height = renderedH + 'px';
+
+  hotspotsDiv.innerHTML = '';
+
+  hotspots.forEach(hs => {
+    const el = document.createElement('div');
+    el.className = 'hotspot';
+    el.style.left   = (hs.x / 100 * renderedW) + 'px';
+    el.style.top    = (hs.y / 100 * renderedH) + 'px';
+    el.style.width  = (hs.w / 100 * renderedW) + 'px';
+    el.style.height = (hs.h / 100 * renderedH) + 'px';
+
+    el.addEventListener('mouseenter', () => {
+      tooltip.textContent = hs.label;
+      tooltip.classList.add('show');
+    });
+    el.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('show');
+    });
+    el.addEventListener('click', () => {
+      tooltip.textContent = hs.label;
+      tooltip.classList.add('show');
+      clearTimeout(tooltipTimer);
+      tooltipTimer = setTimeout(() => tooltip.classList.remove('show'), 1500);
+      if (hs.url.startsWith('http')) {
+        window.open(hs.url, '_blank');
+      } else {
+        setTimeout(() => { window.location.href = hs.url; }, 120);
+      }
+    });
+
+    hotspotsDiv.appendChild(el);
+  });
+}
+
+function init() {
+  updateLayout();
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('fade');
+    setTimeout(() => {
+      const l = document.getElementById('loading');
+      if (l) l.remove();
+    }, 500);
+  }, 400);
+}
+
+img.addEventListener('load', init);
+if (img.complete) init();
+
+window.addEventListener('resize', updateLayout);
+window.addEventListener('orientationchange', () => setTimeout(updateLayout, 400));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateLayout);
+}
+</script>
+</body>
+</html>
