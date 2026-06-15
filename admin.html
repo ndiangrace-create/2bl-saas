@@ -1275,6 +1275,14 @@ function renderOverviewStatusFilters(){
 function loadSessions(){
   if(typeof renderOverviewSessionsFn==="function") renderOverviewSessionsFn();
 }
+
+// 相容修正：部分流程會呼叫 renderOverviewSessions，實際主函式為 renderOverviewSessionsFn
+function renderOverviewSessions(){
+  if (typeof renderOverviewSessionsFn === 'function') {
+    return renderOverviewSessionsFn();
+  }
+}
+
 function renderOverviewSessionsFn(){
   const el=$('overviewSessionList');
   if(!el) return;
