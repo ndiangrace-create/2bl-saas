@@ -720,7 +720,7 @@ textarea{min-height:64px;resize:vertical}
 
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('sesModal')" style="flex:1">取消</button>
-      <button class="btn btn-g" onclick="saveSession()" style="flex:2">儲存場次</button>
+      <button class="btn btn-g" onclick="saveSession(this)" style="flex:2">儲存場次</button>
     </div>
   </div>
 </div>
@@ -1928,43 +1928,47 @@ async function saveStallNumbers(){
   }
 }
 
-async function saveSession(){
-  const id=$('sm_id').value;
-  const name=$('sm_name').value.trim();
-  const eventId=$('sm_eventId').value;
-  const venue=$('sm_venue').value.trim();
-  const region=$('sm_region').value;
-  const dates=getDateSlots();
-  if(!name){toast('請填寫場次名稱');return;}
-  const body={
-    action:id?'updateSession':'createSession',id,eventId,name,
-    type:$('sm_type').value,region,dates,venue,
-    fee:parseInt($('sm_fee').value)||0,deposit:parseInt($('sm_deposit').value)||0,
-    limit:0,  // 由各日 dates[].limit 控管，整體 limit 設為 0
-    maxStalls:$('sm_enableStalls').checked?(parseInt($('sm_maxStalls').value)||3):0,
-    organizer:$('sm_organizer').value.trim(),
-    coorg:$('sm_coorg').value.trim(),
-    basicEquip:$('sm_basicEquip').value.trim(),
-    desc:$('sm_desc').value.trim(),
-    cover:$('sm_cover').value.trim(),
-    needReview:$('sm_review').checked,
-    portals:(()=>{const ids=['portal_market','portal_activity','portal_dept','portal_collab'];return ids.filter(pid=>{const el=document.getElementById(pid);return el&&el.checked;}).map(pid=>{const el=document.getElementById(pid);return el?el.value:'';}).filter(Boolean);})(),
-    modules:getModulesJson(),
-    equip:getEquipJson(),
-    customFields:getCustomFields(),
-    addons:getAddons(),
-    stallList:getStallList(),
-    stallFee:parseInt($('sm_stallFee').value)||0,
-    invoiceTax:getInvoiceTaxJson(),
-    status:'報名中',
-  };
-  const btn=getClickBtn();
-  return withBtnLock(btn,'儲存中…',async()=>{
-    const res=await apiPost(body);
-    if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 場次已儲存');closeModal('sesModal');
-    await loadAllData();
-  });
+async function saveSession(btn){
+  try{
+    const id=$('sm_id').value;
+    const name=$('sm_name').value.trim();
+    const eventId=$('sm_eventId').value;
+    const venue=$('sm_venue').value.trim();
+    const region=$('sm_region').value;
+    const dates=getDateSlots();
+    if(!name){toast('請填寫場次名稱');return;}
+    const body={
+      action:id?'updateSession':'createSession',id,eventId,name,
+      type:$('sm_type').value,region,dates,venue,
+      fee:parseInt($('sm_fee').value)||0,deposit:parseInt($('sm_deposit').value)||0,
+      limit:0,
+      maxStalls:$('sm_enableStalls').checked?(parseInt($('sm_maxStalls').value)||3):0,
+      organizer:$('sm_organizer').value.trim(),
+      coorg:$('sm_coorg').value.trim(),
+      basicEquip:$('sm_basicEquip').value.trim(),
+      desc:$('sm_desc').value.trim(),
+      cover:$('sm_cover').value.trim(),
+      needReview:$('sm_review').checked,
+      portals:(()=>{const ids=['portal_market','portal_activity','portal_dept','portal_collab'];return ids.filter(pid=>{const el=document.getElementById(pid);return el&&el.checked;}).map(pid=>{const el=document.getElementById(pid);return el?el.value:'';}).filter(Boolean);})(),
+      modules:getModulesJson(),
+      equip:getEquipJson(),
+      customFields:getCustomFields(),
+      addons:getAddons(),
+      stallList:getStallList(),
+      stallFee:parseInt($('sm_stallFee').value)||0,
+      invoiceTax:getInvoiceTaxJson(),
+      status:'報名中',
+    };
+    return withBtnLock(btn,'儲存中…',async()=>{
+      const res=await apiPost(body);
+      if(res.error){toast('❌ '+res.error);return;}
+      toast('✅ 場次已儲存');closeModal('sesModal');
+      await loadAllData();
+    });
+  }catch(e){
+    console.error('[saveSession]',e);
+    toast('❌ 儲存失敗：'+e.message);
+  }
 }
 
 async function toggleSes(id,status){
