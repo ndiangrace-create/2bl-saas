@@ -222,6 +222,36 @@ textarea{min-height:64px;resize:vertical}
   .finance-card-body{padding:16px 18px 96px}
 }
 
+
+
+/* ── 老花眼友善大字後台（2026-06） ── */
+body{font-size:18px!important;line-height:1.55!important}
+.topbar{height:54px!important}.topbar-logo{font-size:20px!important}.topbar-right{font-size:16px!important}
+.page-title{font-size:26px!important;line-height:1.35!important}
+.card-hd h3,.modal-title{font-size:22px!important}
+label{font-size:17px!important;line-height:1.45!important}
+input[type=text],input[type=email],input[type=number],input[type=url],input[type=date],input[type=time],input[type=password],textarea,select{font-size:18px!important;min-height:46px!important}
+.btn,.btn-sm,.btn-xs,button{font-size:18px!important;line-height:1.35!important;min-height:42px!important}
+.admin-tab-icon{font-size:30px!important}.admin-tab-label{font-size:15px!important}.admin-bottom-bar{padding-top:8px!important}
+#eventCardRow>div{width:150px!important;border-radius:14px!important}
+#eventCardRow>div img,#eventCardRow>div>span{width:150px!important;height:150px!important;object-fit:cover!important}
+#eventCardRow>div div{font-size:18px!important;line-height:1.35!important}
+#eventCardRow button{font-size:16px!important;min-height:40px!important;padding:8px 6px!important}
+.overview-desktop-wrap table{font-size:18px!important;min-width:1320px!important}
+.overview-desktop-wrap th{font-size:17px!important;padding:13px 9px!important;white-space:nowrap!important}
+.overview-desktop-wrap td{font-size:18px!important;padding:13px 9px!important;vertical-align:middle!important}
+.overview-desktop-wrap td span{font-size:18px!important}.overview-desktop-wrap td span[onclick]{font-size:20px!important}
+.overview-desktop-wrap td button{font-size:18px!important;padding:10px 14px!important;margin:3px!important}
+.ov-filter-btn{font-size:18px!important;padding:11px 16px!important}.ov-filter-btn span{font-size:15px!important}
+.ov-card-title{font-size:22px!important}.ov-card-meta{font-size:17px!important}.ov-metric .label{font-size:16px!important}.ov-metric .num{font-size:26px!important}.ov-actions button{font-size:18px!important;min-height:48px!important}.ov-equips{font-size:17px!important}
+.badge{font-size:16px!important}.reg-table,.ses-table{font-size:18px!important}.reg-table th,.ses-table th{font-size:17px!important}.reg-table td,.ses-table td{font-size:18px!important}
+@media(max-width:1024px){
+  .main{padding:14px 12px 112px!important}
+  .page-title{font-size:26px!important}
+  #eventCardRow>div{width:148px!important}
+  #eventCardRow>div img,#eventCardRow>div>span{width:148px!important;height:148px!important}
+}
+
 </style>
 <!-- build: finance-card-invoice-footer-187 -->
 </head>
@@ -1212,7 +1242,11 @@ async function quickRefund(regId, deposit, btn){
 function renderOverviewCards(){
   // 活動橫向卡片：只顯示真正活動，不顯示「全部場次」或「未分類活動」
   const row=$('eventCardRow');
-  const events=(ST.events||[]).filter(ev=>String(ev.id)!=='0' && String(ev.title||'')!=='未分類活動');
+  const events=(ST.events||[]).filter(ev=>{
+    const title=String(ev.title||'').trim();
+    const id=String(ev.id||'').trim();
+    return id && id!=='0' && title && title!=='未分類活動';
+  });
   if(row){
     const eventCards=events.map(ev=>`
       <div onclick="filterOverviewBySes('${ev.id}')" style="
@@ -1236,14 +1270,17 @@ function filterOverviewBySes(evId){
   renderOverviewCards();
 }
 
+function isClosedSessionStatus(status){
+  const st=String(status||'');
+  return st==='關閉'||st==='已關閉'||st==='停用'||st==='已截止';
+}
 function isArchivedSession(s){
   const st=String(s.status||'');
   return st==='封存'||st==='隱藏'||st==='已封存';
 }
 function getSessionStatusLabel(s){
   if(isArchivedSession(s)) return '封存';
-  const st=String(s.status||'');
-  if(st==='關閉'||st==='已關閉') return '已關閉';
+  if(isClosedSessionStatus(s.status)) return '已關閉';
   return '報名中';
 }
 function fmtOverviewDateText(s){
@@ -1320,9 +1357,10 @@ function renderOverviewSessionsFn(){
       <td style="padding:8px 6px;text-align:center;font-size:15px;color:#185FA5;font-weight:800">${s.seated||0}</td>
       <td style="padding:8px 6px;text-align:center;white-space:nowrap">
         <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">編輯</button>
+        <button onclick="copySes('${s.id}')" style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px;color:#3730a3">複製</button>
         <button onclick="downloadSesData('${s.id}','${safeName}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">下載</button>
         <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">對帳</button>
-        <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${String(s.status)==='關閉'?'開啟':'關閉'}</button>
+        <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isClosedSessionStatus(s.status)?'開啟':'關閉'}</button>
         <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}',this)" style="background:#f4f4f5;border:1px solid #d4d4d8;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isArchivedSession(s)?'取消封存':'封存'}</button>
       </td>
     </tr>`;
@@ -1346,9 +1384,10 @@ function renderOverviewSessionsFn(){
       <div class="ov-equips"><strong>設備：</strong>${equipText}</div>
       <div class="ov-actions">
         <button onclick="editSes('${s.id}')" class="btn btn-s">編輯</button>
+        <button onclick="copySes('${s.id}')" class="btn btn-b">複製</button>
         <button onclick="downloadSesData('${s.id}','${safeName}')" class="btn btn-b">下載</button>
         <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" class="btn btn-y">對帳</button>
-        <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" class="btn btn-y">${String(s.status)==='關閉'?'開啟':'關閉'}</button>
+        <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" class="btn btn-y">${isClosedSessionStatus(s.status)?'開啟':'關閉'}</button>
         <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}',this)" class="btn btn-s">${isArchivedSession(s)?'取消封存':'封存'}</button>
       </div>
     </div>`;
@@ -1499,7 +1538,7 @@ function renderEventsWithSessions(){
                 <div style="font-size:11px;color:var(--lt)">${s.dates&&s.dates.length?s.dates[0].date:s.date||''}　${s.venue||''}　報名${s.total}　費用${s.fee>0?'NT$'+s.fee:'免費'}</div>
               </div>
               <div style="display:flex;gap:4px;flex-shrink:0">
-                <button class="btn btn-y btn-xs" onclick="toggleSes('${s.id}','${s.status}')">${s.status==='關閉'?'開放':'關閉'}</button>
+                <button class="btn btn-y btn-xs" onclick="toggleSes('${s.id}','${s.status}')">${isClosedSessionStatus(s.status)?'開啟':'關閉'}</button>
                 <button class="btn btn-b btn-xs" onclick="editSes('${s.id}')">✏️</button>
                 <button class="btn btn-s btn-xs" onclick="copySes('${s.id}')">複製</button>
                 <button class="btn btn-r btn-xs" onclick="deleteSes('${s.id}','${esc(s.name)}')">🗑</button>
@@ -3347,7 +3386,7 @@ async function setSessionStatus(sesId,status,btn){
 }
 
 async function toggleSesStatus(sesId, currentStatus, btn){
-  const newStatus = currentStatus==='報名中'?'已關閉':'報名中';
+  const newStatus = isClosedSessionStatus(currentStatus)?'報名中':'已關閉';
   if(!confirm('確定'+(newStatus==='報名中'?'開放':'關閉')+'報名？'))return;
   if(btn){btn.disabled=true;btn.textContent='處理中…';}
   try{
