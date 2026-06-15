@@ -1357,7 +1357,7 @@ async function submitReg(){
     if(dynForm) dynForm.style.display='none';
     if(feeBox) feeBox.style.display='none';
     if(btn) btn.style.display='none';
-    const modalInner=$('regFormModal')?.querySelector('.modal');
+    const modalInner=$('regFormModal')?.querySelector('.modal-box');
     if(modalInner){
       const old=modalInner.querySelector('.success-screen');
       if(old) old.remove();
@@ -1386,9 +1386,9 @@ async function submitReg(){
 async function memberLogin(){
   const btn=$('loginBtn');
   if(btn){btn.disabled=true;btn.textContent='查詢中…';}
-  const restoreBtn=()=>{if(btn){btn.disabled=false;btn.textContent='查詢紀錄';}}; 
+  const restoreBtn=()=>{if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';}}; 
   const email=$('loginEmail').value.trim();
-  if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;}
+  if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');restoreBtn();return;}
   ST.memberEmail=email;
   const[member,regs]=await Promise.all([
     api({action:'getMember',email}),
@@ -1418,6 +1418,7 @@ async function memberLogin(){
     `;
   }
   renderMyRegs(regs||[]);
+  restoreBtn();
 }
 
 function memberLogout(){
@@ -1430,6 +1431,7 @@ function memberLogout(){
 }
 
 function renderMyRegs(regs){
+  ST.regs = Array.isArray(regs) ? regs : [];
   const el=$('myRegsList');
   if(!el) return;
   if(!regs||!regs.length){
@@ -1664,6 +1666,7 @@ async function pickStall(stallName){
   const res = await apiPost({
     action:'selectStall',
     regId: ST_selectingRegId,
+    sessionId: ST_selectingSession?.id || '',
     email: ST.memberEmail,
     stalls: [stallName]
   });

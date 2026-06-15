@@ -1952,7 +1952,6 @@ async function saveSession(btn){
     const region=$('sm_region').value;
     const dates=getDateSlots();
     if(!name){toast('請填寫場次名稱');return;}
-    if(!eventId){toast('請先選擇所屬活動（若無活動請先在「活動管理」新增）');return;}
     const body={
       action:id?'updateSession':'createSession',id,eventId,name,
       type:$('sm_type').value,region,dates,venue,
@@ -1978,6 +1977,15 @@ async function saveSession(btn){
     return withBtnLock(btn,'儲存中…',async()=>{
       const res=await apiPost(body);
       if(res.error){toast('❌ '+res.error);return;}
+      const savedId = res.id || id;
+      // 新增場次時若有攤位清單，同步建立 stalls 資料，避免前台選位找不到攤位
+      if(!id && savedId && Array.isArray(body.stallList) && body.stallList.length){
+        const stallNumbers = body.stallList.join(',');
+        const stallRes = await apiPost({action:'initStalls',sessionId:savedId,stallNumbers});
+        if(stallRes && stallRes.error){
+          toast('⚠️ 場次已儲存，但攤位清單未建立：'+stallRes.error);
+        }
+      }
       toast('✅ 場次已儲存');closeModal('sesModal');
       await loadAllData();
     });
