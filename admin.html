@@ -538,7 +538,7 @@ textarea{min-height:64px;resize:vertical}
     </div>
 
     <!-- 基本 -->
-    <label>場次名稱 *</label><input type="text" id="sm_name" placeholder="例：耶市集 07月場">
+    <label>場次名稱（可空白）</label><input type="text" id="sm_name" placeholder="例：耶市集 07月場">
     <div class="form-row">
       <div>
         <label>地區</label>
@@ -582,7 +582,7 @@ textarea{min-height:64px;resize:vertical}
     <!-- 多日期時段 -->
     <div style="margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div style="font-size:12px;font-weight:700;color:var(--md)">活動日期 & 時段 *</div>
+        <div style="font-size:12px;font-weight:700;color:var(--md)">活動日期 & 時段（可空白）</div>
         <button class="btn btn-g btn-xs" onclick="addDateSlot()" type="button">＋ 新增日期</button>
         <button class="btn btn-s btn-xs" onclick="copyLastDateSlot()" type="button" style="margin-left:4px">複製上一個</button>
       </div>
@@ -1951,9 +1951,8 @@ async function saveSession(btn){
     const venue=$('sm_venue').value.trim();
     const region=$('sm_region').value;
     const dates=getDateSlots();
-    if(!name){toast('請填寫場次名稱');return;}
     const body={
-      action:id?'updateSession':'createSession',id,eventId,name,
+      action:id?'updateSession':'createSession',id,eventId,name:(name||'未命名場次'),
       type:$('sm_type').value,region,dates,venue,
       fee:parseInt($('sm_fee').value)||0,deposit:parseInt($('sm_deposit').value)||0,
       limit:0,
