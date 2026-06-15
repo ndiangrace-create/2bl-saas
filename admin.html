@@ -2,6 +2,9 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>兔彼樂後台管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -1944,53 +1947,121 @@ async function saveStallNumbers(){
 }
 
 async function saveSession(btn){
+  // build: session-save-visible-error-20260615
+  const oldText = btn ? btn.innerHTML : '';
+  const showFail = (msg)=>{
+    console.error('[saveSession failed]', msg);
+    try{ toast('❌ '+msg, 6000); }catch(e){}
+    alert('儲存場次失敗：\n' + msg);
+  };
+  const getVal = (id, def='') => {
+    const el = document.getElementById(id);
+    if(!el) return def;
+    if(el.type === 'checkbox') return !!el.checked;
+    return (el.value ?? def);
+  };
   try{
-    const id=$('sm_id').value;
-    const name=$('sm_name').value.trim();
-    const eventId=$('sm_eventId').value;
-    const venue=$('sm_venue').value.trim();
-    const region=$('sm_region').value;
-    const dates=getDateSlots();
+    if(btn){
+      btn.disabled = true;
+      btn.innerHTML = '儲存中…';
+      btn.style.opacity = '.65';
+    }
+    try{ toast('正在儲存場次…'); }catch(e){}
+
+    const id = String(getVal('sm_id','')).trim();
+    const rawName = String(getVal('sm_name','')).trim();
+    const eventId = String(getVal('sm_eventId','')).trim();
+
+    let dates = [];
+    try{ dates = getDateSlots(); }catch(e){ dates = []; console.warn('[getDateSlots failed]', e); }
+
+    let portals = [];
+    try{
+      const ids=['portal_market','portal_activity','portal_dept','portal_collab'];
+      portals = ids.filter(pid=>{const el=document.getElementById(pid);return el&&el.checked;})
+        .map(pid=>document.getElementById(pid).value).filter(Boolean);
+    }catch(e){ portals=[]; }
+
+    let modules = {};
+    try{ modules = getModulesJson(); }catch(e){ modules = {}; console.warn('[getModulesJson failed]', e); }
+
+    let equip = {};
+    try{ equip = getEquipJson(); }catch(e){ equip = {}; console.warn('[getEquipJson failed]', e); }
+
+    let customFields = [];
+    try{ customFields = getCustomFields(); }catch(e){ customFields = []; console.warn('[getCustomFields failed]', e); }
+
+    let addons = [];
+    try{ addons = getAddons(); }catch(e){ addons = []; console.warn('[getAddons failed]', e); }
+
+    let stallList = [];
+    try{ stallList = getStallList(); }catch(e){ stallList = []; console.warn('[getStallList failed]', e); }
+    const typedStalls = String(getVal('sm_stallNumbers','')).trim();
+    if(typedStalls){
+      stallList = Array.from(new Set(stallList.concat(typedStalls.split(/[,，\n\r]/).map(x=>x.trim()).filter(Boolean))));
+    }
+
+    let invoiceTax = {enabled:true,rate:5,stall:true,equip:true,addon:true,extra:false};
+    try{ invoiceTax = getInvoiceTaxJson(); }catch(e){ console.warn('[getInvoiceTaxJson failed]', e); }
+
     const body={
-      action:id?'updateSession':'createSession',id,eventId,name:(name||'未命名場次'),
-      type:$('sm_type').value,region,dates,venue,
-      fee:parseInt($('sm_fee').value)||0,deposit:parseInt($('sm_deposit').value)||0,
+      action:id?'updateSession':'createSession',
+      id:id,
+      eventId:eventId || '',
+      name:rawName || '未命名場次',
+      type:String(getVal('sm_type','市集場次')) || '市集場次',
+      region:String(getVal('sm_region','')),
+      dates:Array.isArray(dates)?dates:[],
+      venue:String(getVal('sm_venue','')).trim(),
+      fee:parseInt(getVal('sm_fee','0'))||0,
+      deposit:parseInt(getVal('sm_deposit','0'))||0,
       limit:0,
-      maxStalls:$('sm_enableStalls').checked?(parseInt($('sm_maxStalls').value)||3):0,
-      organizer:$('sm_organizer').value.trim(),
-      coorg:$('sm_coorg').value.trim(),
-      basicEquip:$('sm_basicEquip').value.trim(),
-      desc:$('sm_desc').value.trim(),
-      cover:$('sm_cover').value.trim(),
-      needReview:$('sm_review').checked,
-      portals:(()=>{const ids=['portal_market','portal_activity','portal_dept','portal_collab'];return ids.filter(pid=>{const el=document.getElementById(pid);return el&&el.checked;}).map(pid=>{const el=document.getElementById(pid);return el?el.value:'';}).filter(Boolean);})(),
-      modules:getModulesJson(),
-      equip:getEquipJson(),
-      customFields:getCustomFields(),
-      addons:getAddons(),
-      stallList:getStallList(),
-      stallFee:parseInt($('sm_stallFee').value)||0,
-      invoiceTax:getInvoiceTaxJson(),
-      status:'報名中',
+      maxStalls:getVal('sm_enableStalls',false)?(parseInt(getVal('sm_maxStalls','3'))||3):0,
+      organizer:String(getVal('sm_organizer','')).trim(),
+      coorg:String(getVal('sm_coorg','')).trim(),
+      basicEquip:String(getVal('sm_basicEquip','')).trim(),
+      desc:String(getVal('sm_desc','')).trim(),
+      cover:String(getVal('sm_cover','')).trim(),
+      needReview:!!getVal('sm_review',true),
+      portals:portals,
+      modules:modules,
+      equip:equip,
+      customFields:customFields,
+      addons:addons,
+      stallList:stallList,
+      stallFee:parseInt(getVal('sm_stallFee','0'))||0,
+      invoiceTax:invoiceTax,
+      status:'報名中'
     };
-    return withBtnLock(btn,'儲存中…',async()=>{
-      const res=await apiPost(body);
-      if(res.error){toast('❌ '+res.error);return;}
-      const savedId = res.id || id;
-      // 新增場次時若有攤位清單，同步建立 stalls 資料，避免前台選位找不到攤位
-      if(!id && savedId && Array.isArray(body.stallList) && body.stallList.length){
-        const stallNumbers = body.stallList.join(',');
-        const stallRes = await apiPost({action:'initStalls',sessionId:savedId,stallNumbers});
-        if(stallRes && stallRes.error){
-          toast('⚠️ 場次已儲存，但攤位清單未建立：'+stallRes.error);
-        }
+
+    console.log('[saveSession body]', body);
+    const res = await apiPost(body);
+    console.log('[saveSession response]', res);
+
+    if(!res){ showFail('後端沒有回傳資料'); return; }
+    if(res.error){ showFail(res.error); return; }
+
+    const savedId = res.id || id;
+    if(!id && savedId && Array.isArray(body.stallList) && body.stallList.length){
+      const stallNumbers = body.stallList.join(',');
+      const stallRes = await apiPost({action:'initStalls',sessionId:savedId,stallNumbers});
+      if(stallRes && stallRes.error){
+        alert('場次已儲存，但攤位清單未建立：\n' + stallRes.error);
       }
-      toast('✅ 場次已儲存');closeModal('sesModal');
-      await loadAllData();
-    });
+    }
+
+    try{ toast('✅ 場次已儲存', 3000); }catch(e){}
+    alert('場次已儲存成功');
+    closeModal('sesModal');
+    await loadAllData();
   }catch(e){
-    console.error('[saveSession]',e);
-    toast('❌ 儲存失敗：'+e.message);
+    showFail(e && e.message ? e.message : String(e));
+  }finally{
+    if(btn){
+      btn.disabled = false;
+      btn.innerHTML = oldText || '儲存場次';
+      btn.style.opacity = '';
+    }
   }
 }
 
