@@ -252,6 +252,19 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
   #eventCardRow>div img,#eventCardRow>div>span{width:148px!important;height:148px!important}
 }
 
+
+.topbar-front-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:7px 12px;font-size:16px;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.topbar-front-btn:active{transform:scale(.98);opacity:.85}
+
+
+/* 老花眼友善補強與總覽壓縮 */
+.ses-table th, .ses-table td{font-size:18px}
+.ses-table th{font-size:16px}
+.action-cell button, .ses-table button{font-size:16px!important}
+@media(max-width:1024px){
+  .topbar-front-btn{font-size:15px;padding:7px 10px}
+}
+
 </style>
 <!-- build: finance-card-invoice-footer-187 -->
 </head>
@@ -280,6 +293,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
       <div class="topbar-logo">🐰 兔彼樂後台</div>
     </div>
     <div class="topbar-right">
+      <a class="topbar-front-btn" href="register.html" target="_blank">前台報名</a>
       <span id="staffName"></span>
       <button onclick="logout()" style="background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">登出</button>
     </div>
@@ -1320,6 +1334,32 @@ function renderOverviewSessions(){
   }
 }
 
+
+function shortSesType(type){
+  const t=String(type||'').trim();
+  if(t.includes('寄賣')) return '寄賣';
+  if(t.includes('體驗')||t.includes('活動報名')) return '體驗';
+  if(t.includes('合作')) return '合作';
+  return '市集';
+}
+function fmtOverviewDateRangeText(s){
+  const days=['日','一','二','三','四','五','六'];
+  let dates=[];
+  if(Array.isArray(s?.dates)) dates=s.dates.map(d=>d&&(d.date||d)).filter(Boolean);
+  if(!dates.length && s?.date) dates=String(s.date).split(/[\/、,，\s]+/).filter(Boolean);
+  const fmt=(v)=>{
+    const str=String(v||'').trim();
+    const m=str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m){const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));return `${Number(m[2])}/${Number(m[3])}(${days[d.getDay()]})`;}
+    const m2=str.match(/^(\d{1,2})[\/\-](\d{1,2})/); if(m2) return `${Number(m2[1])}/${Number(m2[2])}`;
+    return str;
+  };
+  if(dates.length>=2){
+    return `<span style="display:inline-block;line-height:1.35">${fmt(dates[0])}<br><span style="font-size:.88em;color:#666">至 ${fmt(dates[dates.length-1])}</span></span>`;
+  }
+  return dates.map(fmt).join('<br>');
+}
+
 function renderOverviewSessionsFn(){
   const el=$('overviewSessionList');
   if(!el) return;
@@ -1344,9 +1384,9 @@ function renderOverviewSessionsFn(){
     const safeName=String(s.name||'').replace(/'/g,''); const safeEv=String(ev.title||'').replace(/'/g,'');
     return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff">
       <td style="padding:8px 6px">${thumbHtml(cover,36,6)}</td>
-      <td style="padding:8px 6px;font-size:13px;color:#666;white-space:nowrap">${s.region||''}</td>
-      <td style="padding:8px 6px;max-width:210px"><span onclick="openSesDetail('${s.id}')" style="font-size:14px;font-weight:800;cursor:pointer;color:#1D9E75;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${s.name||''}</span><div style="font-size:11px;color:${statusLabel==='報名中'?'#1D9E75':statusLabel==='封存'?'#888':'#BA7517'}">${statusLabel}</div></td>
-      <td style="padding:8px 6px;text-align:center;font-size:13px;color:#555;white-space:nowrap">${dateStr}</td>
+      <td style="padding:8px 6px;font-size:16px;color:#333;white-space:nowrap;font-weight:800">${shortSesType(s.type)}</td>
+      <td style="padding:8px 6px;min-width:260px;max-width:360px"><span onclick="openSesDetail('${s.id}')" style="font-size:18px;font-weight:900;cursor:pointer;color:#1D9E75;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${s.name||''}</span><div style="font-size:11px;color:${statusLabel==='報名中'?'#1D9E75':statusLabel==='封存'?'#888':'#BA7517'}">${statusLabel}</div></td>
+      <td style="padding:8px 6px;text-align:center;font-size:13px;color:#555;white-space:nowrap">${fmtOverviewDateRangeText(s)}</td>
       <td style="padding:8px 6px;text-align:center"><span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:900;cursor:pointer;font-size:17px">${s.total||0}</span></td>
       <td style="padding:8px 6px;text-align:center"><span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:900;cursor:pointer;font-size:17px">${s.pending||0}</span></td>
       <td style="padding:8px 6px;text-align:center"><span onclick="goPage('payments');ST._payFilterSesId='${s.id}';setTimeout(()=>renderPaymentManagement(),80)" style="font-size:17px;font-weight:900;color:#D97706;cursor:pointer;text-decoration:underline">${pendingPayCount}</span></td>
@@ -1371,7 +1411,7 @@ function renderOverviewSessionsFn(){
     const safeName=String(s.name||'').replace(/'/g,''); const safeEv=String(ev.title||'').replace(/'/g,'');
     return `<div class="ov-card">
       <div class="ov-card-title">${s.name||''}</div>
-      <div class="ov-card-meta">${s.region||''}｜${dateStr}｜${getSessionStatusLabel(s)}</div>
+      <div class="ov-card-meta">${s.region||''}｜${fmtOverviewDateRangeText(s)}｜${getSessionStatusLabel(s)}</div>
       <div class="ov-metric-grid">
         <div class="ov-metric"><div class="label">報名</div><div class="num" onclick="goToSesRegs('${s.id}')">${s.total||0}</div></div>
         <div class="ov-metric"><div class="label">待審核</div><div class="num" style="color:#BA7517" onclick="goToSesPending('${s.id}')">${s.pending||0}</div></div>
@@ -1392,7 +1432,7 @@ function renderOverviewSessionsFn(){
       </div>
     </div>`;
   }).join('');
-  el.innerHTML=renderOverviewStatusFilters()+`<div class="overview-desktop-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:1120px"><thead><tr style="background:#f5f5f5;border-bottom:1.5px solid #e0e0e0"><th style="padding:9px 6px;text-align:left;width:44px"></th><th style="padding:9px 6px;text-align:left;white-space:nowrap">地區</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">場次名稱</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">活動日期</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">報名</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">待審核</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">繳費確認</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已繳費</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">設備</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">已收費用</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">押金</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已報到</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">操作</th></tr></thead><tbody>${rowHtml}</tbody></table></div><div class="overview-mobile-list">${cardHtml}</div>`;
+  el.innerHTML=renderOverviewStatusFilters()+`<div class="overview-desktop-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:1120px"><thead><tr style="background:#f5f5f5;border-bottom:1.5px solid #e0e0e0"><th style="padding:9px 6px;text-align:left;width:44px"></th><th style="padding:9px 6px;text-align:left;white-space:nowrap">類型</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">場次名稱</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">活動日期</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">報名</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">待審核</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">繳費確認</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已繳費</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">設備</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">已收費用</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">押金</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已報到</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">操作</th></tr></thead><tbody>${rowHtml}</tbody></table></div><div class="overview-mobile-list">${cardHtml}</div>`;
 }
 
 function toggleMoreMenu(){
