@@ -1970,7 +1970,9 @@ async function saveSession(btn){
 
     const id = String(getVal('sm_id','')).trim();
     const rawName = String(getVal('sm_name','')).trim();
-    const eventId = String(getVal('sm_eventId','')).trim();
+    let eventId = String(getVal('sm_eventId','')).trim();
+// 不選活動時，禁止送出 0，避免 Supabase 外鍵錯誤
+if(eventId === '0' || eventId.toLowerCase() === 'null' || eventId.toLowerCase() === 'undefined') eventId = '';
 
     let dates = [];
     try{ dates = getDateSlots(); }catch(e){ dates = []; console.warn('[getDateSlots failed]', e); }
