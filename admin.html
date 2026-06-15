@@ -806,7 +806,7 @@ textarea{min-height:64px;resize:vertical}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="sf_perms_grid"></div>
     </div>
     <div id="sf_sessions_area" style="margin-top:12px;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px">
-      <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:8px">限定場次（不勾=可管理全部場次）</div>
+      <div style="font-size:13px;font-weight:700;color:var(--md);margin-bottom:8px">限定場次（不勾=可管理）</div>
       <div style="display:grid;grid-template-columns:1fr;gap:6px;max-height:200px;overflow-y:auto" id="sf_sessions_grid"></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
@@ -1210,7 +1210,7 @@ async function quickRefund(regId, deposit, btn){
 
 // ── 總覽 ──
 function renderOverviewCards(){
-  // 活動橫向卡片；總覽預設一定顯示全部場次，不讓未綁活動的場次被藏起來
+  // 活動橫向卡片；總覽預設一定顯示，不讓未綁活動的場次被藏起來
   const row=$('eventCardRow');
   const events=(ST.events||[]).filter(ev=>String(ev.id)!=='0' && String(ev.title||'')!=='未分類活動');
   if(row){
@@ -1221,8 +1221,8 @@ function renderOverviewCards(){
         border:2px solid ${!ST.activeEventId?'var(--g)':'transparent'}">
         <div style="width:120px;height:80px;background:linear-gradient(135deg,#d8f3dc,#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:30px">📋</div>
         <div style="padding:6px 8px">
-          <div style="font-size:12px;font-weight:900;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">全部場次</div>
-          <div style="font-size:10px;color:var(--md)">含未綁活動場次</div>
+          <div style="font-size:12px;font-weight:900;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
+          <div style="font-size:10px;color:var(--md)"></div>
         </div>
       </div>`;
     const eventCards=events.map(ev=>`
@@ -1305,7 +1305,7 @@ function renderOverviewSessionsFn(){
   const ev_map={};(ST.events||[]).forEach(e=>ev_map[e.id]=e);
   if(!sessions.length){
     const msg=ST.activeEventId
-      ? '<div style="color:#aaa;text-align:center;padding:20px;font-size:14px">此活動底下目前沒有場次。<br><button class="btn btn-g btn-sm" style="margin-top:10px" onclick="ST.activeEventId=null;renderOverviewCards()">查看全部場次</button></div>'
+      ? '<div style="color:#aaa;text-align:center;padding:20px;font-size:14px">此活動底下目前沒有場次。<br><button class="btn btn-g btn-sm" style="margin-top:10px" onclick="ST.activeEventId=null;renderOverviewCards()">查看</button></div>'
       : '<div style="color:#aaa;text-align:center;padding:20px;font-size:14px">無場次資料</div>';
     el.innerHTML=renderOverviewStatusFilters()+msg;return;}
   const rowHtml=sessions.map(s=>{
@@ -2722,7 +2722,7 @@ async function assignStaffSessions(targetEmail){
         <div style="font-size:15px;font-weight:700">指派負責場次</div>
         <button id="closeAssignBtn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#aaa">✕</button>
       </div>
-      <div style="font-size:12px;color:var(--lt);margin-bottom:12px">不勾選 = 可存取全部場次</div>
+      <div style="font-size:12px;color:var(--lt);margin-bottom:12px">不勾選 = 可存取</div>
       <div id="sesAssignList">${sesListHtml}</div>
       <div style="display:flex;gap:8px;margin-top:16px">
         <button id="cancelAssignBtn" style="flex:1;padding:12px;border-radius:10px;background:#f0f0f0;border:none;cursor:pointer">取消</button>
