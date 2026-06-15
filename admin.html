@@ -233,6 +233,8 @@ textarea{min-height:64px;resize:vertical}
     <input type="email" id="loginEmail" placeholder="your@email.com" inputmode="email" onkeydown="if(event.key==='Enter')doLogin()">
     <div style="height:10px"></div>
     <button class="btn btn-g" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">登入</button>
+    <button onclick="testConnection()" style="width:100%;margin-top:8px;background:#f0f7f4;color:#2d6a4f;border:1.5px solid #95d5b2;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer">🔌 測試後端連線</button>
+    <div id="connTestResult" style="font-size:11px;margin-top:8px;text-align:left;white-space:pre-wrap;word-break:break-all;display:none;background:#f8f8f8;border-radius:8px;padding:8px;max-height:200px;overflow-y:auto"></div>
     <div id="loginErr" style="font-size:12px;color:var(--rd);margin-top:8px;text-align:center"></div>
   </div>
 </div>
@@ -907,7 +909,7 @@ async function apiPost(body){
   try{
     const r=await fetch(API,{
       method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      headers:{'Content-Type':'application/json;charset=utf-8'},
       body:JSON.stringify({...body,email:ST.email,token:ST.token})
     });
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
@@ -960,6 +962,19 @@ function toggleSb(){
 }
 
 // ── 登入 ──
+async function testConnection(){
+  const el=$('connTestResult');
+  el.style.display='block';
+  el.textContent='🔄 測試中...';
+  try{
+    const r=await fetch(API+'?action=ping');
+    if(!r.ok){el.textContent='❌ HTTP '+r.status+' (Worker未啟動或網址錯誤)';return;}
+    const d=await r.json();
+    el.textContent=JSON.stringify(d,null,2);
+  }catch(e){
+    el.textContent='❌ 無法連線：'+e.message+'\n\n可能原因：\n1. Worker 尚未部署\n2. Worker 網址錯誤\n3. CORS 設定問題';
+  }
+}
 async function doLogin(){
   const email=$('loginEmail').value.trim();
   if(!email){$('loginErr').textContent='請填寫 Email';return;}
@@ -1370,7 +1385,7 @@ async function loadAllData(){
   const checkinPage=$('page-checkin');
   if(checkinPage&&checkinPage.classList.contains('active')) fillCheckinSesFilter();
   // 載入管理員清單供指派用
-  api({action:'getStaff'}).then(list=>{ ST.staffList=list||[]; });
+  api({action:'getStaff',email:ST.email,token:ST.token}).then(list=>{ ST.staffList=list||[]; });
 }
 
 function filterRegsBySes(sesId){
@@ -1937,6 +1952,7 @@ async function saveSession(btn){
     const region=$('sm_region').value;
     const dates=getDateSlots();
     if(!name){toast('請填寫場次名稱');return;}
+    if(!eventId){toast('請先選擇所屬活動（若無活動請先在「活動管理」新增）');return;}
     const body={
       action:id?'updateSession':'createSession',id,eventId,name,
       type:$('sm_type').value,region,dates,venue,

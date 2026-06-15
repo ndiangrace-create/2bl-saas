@@ -8,33 +8,19 @@
 <title>兔彼樂共創村 · To love To beloved</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a0a2e; touch-action: none; }
 
-  html, body {
-    width: 100%; height: 100%;
-    overflow: hidden;
-    background: #1a0a2e;
-    touch-action: none;
-  }
+  #scene { position: fixed; inset: 0; overflow: hidden; }
 
-  #scene {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
+  /* 手機版：圖片填滿寬度，可上下滾動看全圖 */
   #village-img {
-    position: absolute;
     display: block;
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
   }
 
-  #hotspots {
-    position: absolute;
-  }
+  #hotspots { position: absolute; top: 0; left: 0; }
 
   .hotspot {
     position: absolute;
@@ -44,10 +30,7 @@
     transition: background 0.15s, transform 0.15s;
   }
   .hotspot:hover { background: rgba(255,255,255,0.15); }
-  .hotspot:active {
-    background: rgba(255,255,255,0.28);
-    transform: scale(0.97);
-  }
+  .hotspot:active { background: rgba(255,255,255,0.28); transform: scale(0.97); }
 
   #loading {
     position: fixed; inset: 0;
@@ -73,6 +56,13 @@
     border: 1px solid rgba(255,255,255,0.18);
   }
   #tip.show { opacity: 1; }
+
+  /* 電腦版專屬 */
+  @media (min-width: 768px) {
+    #scene { display: flex; align-items: center; justify-content: center; }
+    #village-img { position: absolute; }
+    #hotspots { position: absolute; }
+  }
 </style>
 </head>
 <body>
@@ -84,33 +74,35 @@
 </div>
 <script>
 const IMG_W = 2052, IMG_H = 4325;
-const IMG_ASPECT = IMG_W / IMG_H; // 約 0.4748（直式圖）
+const IMG_ASPECT = IMG_W / IMG_H;
 
 const hotspots = [
-  { id:'collab',   label:'合作洽詢',         url:'#collab',   x:2,  y:14, w:36, h:14 },
-  { id:'event',    label:'辦活動找我們',      url:'#event',    x:52, y:12, w:44, h:13 },
-  { id:'design',   label:'設計找我們',        url:'#design',   x:0,  y:20, w:18, h:5  },
-  { id:'mapinfo',  label:'全台市集資訊',      url:'#mapinfo',  x:2,  y:24, w:30, h:11 },
-  { id:'giftshop', label:'禮物店',            url:'#giftshop', x:60, y:20, w:38, h:14 },
-  { id:'market',   label:'市集報名',          url:'#market',   x:0,  y:34, w:36, h:13 },
-  { id:'activity', label:'報名活動・手作體驗', url:'#activity', x:48, y:34, w:44, h:12 },
-  { id:'consign',  label:'通路寄賣',          url:'#consign',  x:56, y:43, w:43, h:17 },
-  { id:'member',   label:'會員中心',          url:'#member',   x:0,  y:83, w:30, h:8  },
-  { id:'line',     label:'官方LINE',          url:'https://lin.ee/Xpiib15', x:64, y:83, w:36, h:8 },
+  { id:'collab',   label:'合作洽詢',          url:'#collab',   x:2,  y:14, w:36, h:14 },
+  { id:'event',    label:'辦活動找我們',       url:'#event',    x:52, y:12, w:44, h:13 },
+  { id:'design',   label:'設計找我們',         url:'#design',   x:0,  y:20, w:18, h:5  },
+  { id:'mapinfo',  label:'全台市集資訊',       url:'#mapinfo',  x:2,  y:24, w:30, h:11 },
+  { id:'giftshop', label:'禮物店',             url:'#giftshop', x:60, y:20, w:38, h:14 },
+  { id:'market',   label:'市集報名',           url:'#market',   x:0,  y:34, w:36, h:13 },
+  { id:'activity', label:'報名活動・手作體驗',  url:'#activity', x:48, y:34, w:44, h:12 },
+  { id:'consign',  label:'通路寄賣',           url:'#consign',  x:56, y:43, w:43, h:17 },
+  { id:'member',   label:'會員中心',           url:'#member',   x:0,  y:83, w:30, h:8  },
+  { id:'line',     label:'官方LINE',           url:'https://lin.ee/Xpiib15', x:64, y:83, w:36, h:8 },
 ];
 
 const moonHotspot = {
-  id:'moon', url:'https://ndiangrace-create.github.io/tuibile/admin.html',
+  url: 'https://ndiangrace-create.github.io/tuibile/admin.html',
   x:28, y:22, w:26, h:16
 };
 
-const img = document.getElementById('village-img');
+const img        = document.getElementById('village-img');
+const scene      = document.getElementById('scene');
 const hotspotsDiv = document.getElementById('hotspots');
-const tip = document.getElementById('tip');
-let tipTimer = null;
-let moonTimer = null;
+const tip        = document.getElementById('tip');
+let tipTimer = null, moonTimer = null;
 
-function getSize() {
+function isMobile() { return window.innerWidth < 768; }
+
+function getVP() {
   if (window.visualViewport) return { w: window.visualViewport.width, h: window.visualViewport.height };
   return { w: window.innerWidth, h: window.innerHeight };
 }
@@ -124,47 +116,58 @@ function showTip(text) {
 }
 
 function update() {
-  const { w: vw, h: vh } = getSize();
+  const { w: vw, h: vh } = getVP();
+  let rw, rh, left, top;
 
-  // ── 版面計算 ──────────────────────────────────────
-  // 手機版（直式，螢幕比圖片窄）：以高度填滿，圖片置中
-  // 電腦版（橫式，螢幕比圖片寬）：以高度填滿，圖片置中，兩側留深色背景
-  // 無論哪種，圖片都以高度為基準，絕不裁切
+  if (isMobile()) {
+    // ── 手機版：寬度填滿，高度自然延伸，可以上下滑動 ──
+    rw   = vw;
+    rh   = vw / IMG_ASPECT;
+    left = 0;
+    top  = 0;
 
-  let rw, rh;
+    // scene 可以滾動
+    scene.style.overflow    = 'auto';
+    scene.style.display     = 'block';
+    scene.style.alignItems  = '';
+    scene.style.justifyContent = '';
 
-  // 永遠以高度填滿螢幕
-  rh = vh;
-  rw = rh * IMG_ASPECT;
+    img.style.position  = 'relative';
+    img.style.width     = rw + 'px';
+    img.style.height    = rh + 'px';
+    img.style.left      = '0';
+    img.style.top       = '0';
 
-  // 電腦版保護：圖片寬度最大不超過螢幕寬度的 60%
-  // 避免在超寬螢幕上圖片變得過大而失真
-  const MAX_W = vw * 0.6;
-  if (rw > MAX_W && vw > 900) {
-    // 超寬螢幕：以最大寬度限制
-    // 但若手機（vw<=600）則不限制，讓圖片盡量大
+    hotspotsDiv.style.position = 'absolute';
+    hotspotsDiv.style.width    = rw + 'px';
+    hotspotsDiv.style.height   = rh + 'px';
+    hotspotsDiv.style.left     = '0';
+    hotspotsDiv.style.top      = '0';
+
+  } else {
+    // ── 電腦版：圖片以高度填滿，置中，兩側留深色背景 ──
+    rh   = vh;
+    rw   = rh * IMG_ASPECT;
+    left = (vw - rw) / 2;
+    top  = 0;
+
+    scene.style.overflow       = 'hidden';
+    scene.style.display        = 'block';
+    scene.style.alignItems     = '';
+    scene.style.justifyContent = '';
+
+    img.style.position  = 'absolute';
+    img.style.width     = rw + 'px';
+    img.style.height    = rh + 'px';
+    img.style.left      = left + 'px';
+    img.style.top       = top + 'px';
+
+    hotspotsDiv.style.position = 'absolute';
+    hotspotsDiv.style.width    = rw + 'px';
+    hotspotsDiv.style.height   = rh + 'px';
+    hotspotsDiv.style.left     = left + 'px';
+    hotspotsDiv.style.top      = top + 'px';
   }
-
-  // 手機版：圖片寬度若超過螢幕寬，改以寬度為準
-  if (vw <= 600 && rw > vw) {
-    rw = vw;
-    rh = rw / IMG_ASPECT;
-  }
-
-  const left = (vw - rw) / 2;
-  const top  = (vh - rh) / 2;
-
-  img.style.width     = rw + 'px';
-  img.style.height    = rh + 'px';
-  img.style.left      = left + 'px';
-  img.style.top       = top  + 'px';
-  img.style.transform = 'none';
-
-  hotspotsDiv.style.width     = rw + 'px';
-  hotspotsDiv.style.height    = rh + 'px';
-  hotspotsDiv.style.left      = left + 'px';
-  hotspotsDiv.style.top       = top  + 'px';
-  hotspotsDiv.style.transform = 'none';
 
   hotspotsDiv.innerHTML = '';
 
@@ -176,7 +179,6 @@ function update() {
     el.style.top    = (hs.y / 100 * rh) + 'px';
     el.style.width  = (hs.w / 100 * rw) + 'px';
     el.style.height = (hs.h / 100 * rh) + 'px';
-
     el.addEventListener('mouseenter', () => { tip.textContent = hs.label; tip.classList.add('show'); });
     el.addEventListener('mouseleave', () => tip.classList.remove('show'));
     el.addEventListener('click', () => {
@@ -189,27 +191,25 @@ function update() {
     hotspotsDiv.appendChild(el);
   });
 
-  // 月亮：長按3秒進後台
+  // 月亮長按3秒
   const moon = document.createElement('div');
   moon.className = 'hotspot';
   moon.style.left   = (moonHotspot.x / 100 * rw) + 'px';
   moon.style.top    = (moonHotspot.y / 100 * rh) + 'px';
   moon.style.width  = (moonHotspot.w / 100 * rw) + 'px';
   moon.style.height = (moonHotspot.h / 100 * rh) + 'px';
-
   moon.addEventListener('touchstart', () => {
     moon.style.background = 'rgba(180,140,255,0.12)';
     moonTimer = setTimeout(() => { window.location.href = moonHotspot.url; }, 3000);
   }, { passive: true });
-  moon.addEventListener('touchend', () => { clearTimeout(moonTimer); moon.style.background = ''; });
-  moon.addEventListener('touchmove', () => { clearTimeout(moonTimer); moon.style.background = ''; });
-  moon.addEventListener('mousedown', () => {
+  moon.addEventListener('touchend',   () => { clearTimeout(moonTimer); moon.style.background = ''; });
+  moon.addEventListener('touchmove',  () => { clearTimeout(moonTimer); moon.style.background = ''; });
+  moon.addEventListener('mousedown',  () => {
     moon.style.background = 'rgba(180,140,255,0.12)';
     moonTimer = setTimeout(() => { window.location.href = moonHotspot.url; }, 3000);
   });
   moon.addEventListener('mouseup',    () => { clearTimeout(moonTimer); moon.style.background = ''; });
   moon.addEventListener('mouseleave', () => { clearTimeout(moonTimer); moon.style.background = ''; });
-
   hotspotsDiv.appendChild(moon);
 }
 
