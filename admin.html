@@ -730,7 +730,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 
     <!-- 報名表模組 -->
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
-      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">報名表欄位</div>
+      <div style="font-size:12px;font-weight:700;color:var(--md);margin-bottom:6px">報名表欄位</div><div style="font-size:13px;color:#666;margin-bottom:8px;line-height:1.5">會員基本資料、品牌資料、社群連結與照片會自動帶入；本區只設定「本場次需要額外填寫」的欄位。</div>
       <div class="mod-grid" id="modGrid"></div>
     </div>
 
@@ -925,19 +925,16 @@ const EQUIP_LIST = [
   {k:'燈',icon:'💡',price:50},{k:'陽傘',icon:'☂️',price:450},
 ];
 const MOD_DEFS = [
-  {k:'brand',label:'品牌/攤商資料'},{k:'sell_item',label:'本次販售商品'},
-  {k:'sell_link',label:'商品連結'},{k:'photo',label:'出攤照片'},
-  {k:'adult',label:'大人人數'},{k:'child',label:'小孩人數'},
-  {k:'diet',label:'飲食需求'},{k:'act_name',label:'活動名稱'},
-  {k:'act_content',label:'活動內容'},{k:'act_fee',label:'材料費'},
-  {k:'collab_social',label:'社群連結'},{k:'collab_price',label:'報價條件'},
+  {k:'sell_item',label:'本次販售商品'},
+  {k:'adult',label:'大人人數'},
+  {k:'child',label:'小孩人數'},
   {k:'remark',label:'備註欄位'},
 ];
 const MOD_PRESETS = {
-  '市集場次': {brand:1,sell_item:0,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
-  '活動報名': {brand:0,sell_item:0,sell_link:0,photo:0,adult:1,child:1,diet:1,act_name:1,act_content:1,act_fee:1,collab_social:0,collab_price:0,remark:1},
-  '合作申請': {brand:1,sell_item:0,sell_link:0,photo:0,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:1,collab_price:1,remark:1},
-  '通路寄賣': {brand:1,sell_item:1,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
+  '市集場次': {sell_item:1, adult:0, child:0, remark:1},
+  '活動報名': {sell_item:0, adult:1, child:1, remark:1},
+  '合作申請': {sell_item:0, adult:0, child:0, remark:1},
+  '通路寄賣': {sell_item:1, adult:0, child:0, remark:1},
 };
 
 let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],currentReg:null,sdData:[],inlineFinanceSesId:'',inlineFinanceCache:{}};
@@ -1346,16 +1343,16 @@ function fmtOverviewDateRangeText(s){
   const days=['日','一','二','三','四','五','六'];
   let dates=[];
   if(Array.isArray(s?.dates)) dates=s.dates.map(d=>d&&(d.date||d)).filter(Boolean);
-  if(!dates.length && s?.date) dates=String(s.date).split(/[\/、,，\s]+/).filter(Boolean);
+  if(!dates.length && s?.date) dates=String(s.date).split(/[\\/、,，\s]+/).filter(Boolean);
   const fmt=(v)=>{
     const str=String(v||'').trim();
     const m=str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
     if(m){const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));return `${Number(m[2])}/${Number(m[3])}(${days[d.getDay()]})`;}
-    const m2=str.match(/^(\d{1,2})[\/\-](\d{1,2})/); if(m2) return `${Number(m2[1])}/${Number(m2[2])}`;
+    const m2=str.match(/^(\d{1,2})[\\/\-](\d{1,2})/); if(m2) return `${Number(m2[1])}/${Number(m2[2])}`;
     return str;
   };
-  if(dates.length>=2){
-    return `<span style="display:inline-block;line-height:1.35">${fmt(dates[0])}<br><span style="font-size:.88em;color:#666">至 ${fmt(dates[dates.length-1])}</span></span>`;
+  if(dates.length>3){
+    return `<span style="display:inline-block;line-height:1.35">${fmt(dates[0])}～<br>${fmt(dates[dates.length-1])}</span>`;
   }
   return dates.map(fmt).join('<br>');
 }
@@ -1762,6 +1759,26 @@ function openSesModal(){
   fillAssignStaff([]);
   openModal('sesModal');
 }
+
+function addDefaultAddonOptions(){
+  const list=$('addonsList');
+  if(!list) return;
+  if((list.textContent||'').includes('小白一條龍') || (list.textContent||'').includes('快拍123')) return;
+  try{
+    addAddon({name:'小白一條龍', price:2680, desc:''});
+    addAddon({name:'快拍123', price:800, desc:''});
+  }catch(e){
+    try{ addAddon(); addAddon(); }catch(err){}
+    const inputs=[...list.querySelectorAll('input')];
+    const textInputs=inputs.filter(i=>i.type==='text');
+    const numInputs=inputs.filter(i=>i.type==='number');
+    if(textInputs[0]) textInputs[0].value='小白一條龍';
+    if(numInputs[0]) numInputs[0].value=2680;
+    if(textInputs[1]) textInputs[1].value='快拍123';
+    if(numInputs[1]) numInputs[1].value=800;
+  }
+}
+
 function resetSesModal(){
   $('sm_id').value='';$('sm_name').value='';$('sm_venue').value='';
   $('sm_region').value='';$('sm_fee').value=0;$('sm_deposit').value=0;
@@ -1778,7 +1795,9 @@ function resetSesModal(){
   $('customFieldsList').innerHTML='';
   $('addonsList').innerHTML='';
   addDateSlot(); // 預設一個日期欄
-  updateModPresets();buildEquipDefs({});
+  updateModPresets();
+  addDefaultAddonOptions();
+  buildEquipDefs({});
 }
 
 function fillAssignStaff(){}
@@ -1897,6 +1916,12 @@ function addAddon(data={}){
     <button onclick="document.getElementById('addon_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
   `;
   $('addonsList').appendChild(div);
+  if(def && typeof def==='object'){
+    const textInputs=[...div.querySelectorAll('input[type=text]')];
+    const numInputs=[...div.querySelectorAll('input[type=number]')];
+    if(textInputs[0]) textInputs[0].value=def.name||'';
+    if(numInputs[0]) numInputs[0].value=def.price||0;
+  }
 }
 function getAddons(){
   const addons=[];
