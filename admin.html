@@ -1210,34 +1210,23 @@ async function quickRefund(regId, deposit, btn){
 
 // ── 總覽 ──
 function renderOverviewCards(){
-  // 活動橫向卡片；總覽預設一定顯示，不讓未綁活動的場次被藏起來
+  // 活動橫向卡片：只顯示真正活動，不顯示「全部場次」或「未分類活動」
   const row=$('eventCardRow');
   const events=(ST.events||[]).filter(ev=>String(ev.id)!=='0' && String(ev.title||'')!=='未分類活動');
   if(row){
-    const allCard=`
-      <div onclick="ST.activeEventId=null;renderOverviewCards()" style="
-        width:120px;flex-shrink:0;background:#fff;border-radius:12px;
-        box-shadow:var(--sh);overflow:hidden;cursor:pointer;
-        border:2px solid ${!ST.activeEventId?'var(--g)':'transparent'}">
-        <div style="width:120px;height:80px;background:linear-gradient(135deg,#d8f3dc,#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:30px">📋</div>
-        <div style="padding:6px 8px">
-          <div style="font-size:12px;font-weight:900;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
-          <div style="font-size:10px;color:var(--md)"></div>
-        </div>
-      </div>`;
     const eventCards=events.map(ev=>`
       <div onclick="filterOverviewBySes('${ev.id}')" style="
         width:120px;flex-shrink:0;background:#fff;border-radius:12px;
         box-shadow:var(--sh);overflow:hidden;cursor:pointer;
         border:2px solid ${ST.activeEventId===ev.id?'var(--g)':'transparent'}">
-        ${thumbHtml(ev.cover,120,0).replace('width:120px;height:120px','width:120px;height:80px')}
+        ${thumbHtml(ev.cover,120,0)}
         <div style="padding:6px 8px">
           <div style="font-size:12px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${ev.title}</div>
           <div style="font-size:10px;color:var(--md)">${ev.region||''}</div>
           <button onclick="event.stopPropagation();openEventModal('${ev.id}')" style="margin-top:5px;width:100%;border:1px solid #d8e7dd;background:#f7faf8;color:var(--g);border-radius:7px;padding:5px 4px;font-size:11px;font-weight:800;cursor:pointer">編輯活動圖</button>
         </div>
       </div>`).join('');
-    row.innerHTML=allCard+eventCards;
+    row.innerHTML=eventCards || '<div style="color:#aaa;font-size:13px;padding:10px">尚未建立活動分類</div>';
   }
   renderOverviewSessions();
 }
