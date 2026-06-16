@@ -379,6 +379,7 @@ textarea{min-height:72px;resize:vertical}
         <div class="form-hero-placeholder">🎪</div>
       </div>
       <div class="form-wrap">
+        <div id="formError" style="display:none;background:#fff0f0;border:1.5px solid #f87171;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:13px;font-weight:600;color:#c0392b"></div>
         <div id="dynForm"></div>
         <div class="fee-box" id="feeBox" style="display:none">
           <div class="fee-row"><span>報名費</span><span id="feeBase">NT$0</span></div>
@@ -1180,6 +1181,8 @@ async function submitReg(ev){
   if(ev && ev.preventDefault) ev.preventDefault();
   const btn=$('submitBtn');
   if(ST.__submitting){ toast('報名送出中，請稍候…'); return false; }
+  const showFormError=(msg)=>{const el=$('formError');if(el){el.style.display='block';el.innerHTML='❌ 錯誤：'+msg+'<br><span style="font-size:11px;font-weight:400;color:#666">（截圖此錯誤訊息，方便排查）</span>';}};
+  const hideFormError=()=>{const el=$('formError');if(el)el.style.display='none';};
   const restoreBtn=()=>{ ST.__submitting=false; if(btn && btn.style.display!=='none'){ btn.disabled=false; btn.textContent='送出報名'; } };
   try{
     const s=ST.currentSession;
@@ -1216,7 +1219,8 @@ async function submitReg(ev){
     };
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
-    if(res.error){ toast('❌ '+res.error, 4200); restoreBtn(); return false; }
+    if(res.error){ toast('❌ '+res.error, 8000); showFormError(res.error); restoreBtn(); return false; }
+    hideFormError();
     ST.memberEmail=email;
     try{ const updatedMember=await api({action:'getMember',email}); if(updatedMember&&!updatedMember.error) ST.member=updatedMember; }catch(e){}
     const dynForm=$('dynForm'); const feeBox=$('feeBox');
