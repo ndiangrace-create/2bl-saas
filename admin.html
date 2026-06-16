@@ -2438,26 +2438,34 @@ async function openRegDetail(regId){
   const ses=(ST.sdData||[]).find(s=>s.id===reg.sessionId)||{};
   const ev=(ST.events||[]).find(e=>e.id===reg.eventId)||{};
   let equipStr='';
-  try{const eq=JSON.parse(reg.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+  try{const eq=typeof reg.equip==='string'?JSON.parse(reg.equip||'{}'):(reg.equip||{});equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
   let customStr='';
-  try{const cf=typeof reg.customFields==='string'?JSON.parse(reg.customFields||'[]'):(reg.customFields||[]);if(Array.isArray(cf))customStr=cf.filter(x=>x.value).map(x=>`<div><strong>${x.label||''}：</strong>${x.value||''}</div>`).join('');else customStr=Object.entries(cf).map(([k,v])=>`<div><strong>${k}：</strong>${v}</div>`).join('');}catch(e){}
+  try{
+    const rawCf=typeof reg.customFields==='string'?JSON.parse(reg.customFields||'[]'):(reg.customFields||[]);
+    if(Array.isArray(rawCf)) customStr=rawCf.filter(x=>x&&x.value).map(x=>`<div><strong>${x.label||''}：</strong>${x.value||''}</div>`).join('');
+    else customStr=Object.entries(rawCf).map(([k,v])=>`<div><strong>${k}：</strong>${v}</div>`).join('');
+  }catch(e){}
+  const datesStr=(Array.isArray(reg.selectedDates)&&reg.selectedDates.length)?reg.selectedDates.join('、'):'';
   $('regDetail').innerHTML=`
     <div style="font-size:13px;line-height:2">
       <div><strong>活動：</strong>${ev.title||''}</div>
       <div><strong>場次：</strong>${ses.name||''}</div>
-      <div><strong>品牌：</strong>${reg.brand||''}</div>
+      <hr style="border:none;border-top:1px solid #eee;margin:6px 0">
       <div><strong>姓名：</strong>${reg.name||''}</div>
       <div><strong>手機：</strong>${reg.phone||''}</div>
       <div><strong>Email：</strong>${reg.email||''}</div>
-      ${reg.fb?`<div><strong>FB：</strong><a href="${reg.fb}" target="_blank">${reg.fb}</a></div>`:''}
-      ${reg.ig?`<div><strong>IG：</strong><a href="${reg.ig}" target="_blank">${reg.ig}</a></div>`:''}
+      <div><strong>品牌：</strong>${reg.brand||'（未填 / 從會員帶入）'}
+        ${reg.fb?` <a href="${reg.fb}" target="_blank" style="background:#1877F2;color:#fff;padding:1px 6px;border-radius:4px;font-size:11px;text-decoration:none">FB</a>`:''}
+        ${reg.ig?` <a href="${reg.ig}" target="_blank" style="background:#C13584;color:#fff;padding:1px 6px;border-radius:4px;font-size:11px;text-decoration:none">IG</a>`:''}
+      </div>
+      <hr style="border:none;border-top:1px solid #eee;margin:6px 0">
       <div><strong>攤位數：</strong>${reg.stallCount||1} 攤</div>
-      ${equipStr?`<div><strong>設備：</strong>${equipStr}</div>`:''}
-      <div><strong>品牌介紹：</strong>${reg.brandIntro||'-'}</div>
-      <div><strong>販售類別：</strong>${reg.category||'-'}</div>
-      <div><strong>商品說明：</strong>${reg.products||'-'}</div>
-      ${reg.productLink?`<div><strong>商品連結：</strong><a href="${reg.productLink}" target="_blank">🔗</a></div>`:''}
+      ${datesStr?`<div><strong>報名日期：</strong>${datesStr}</div>`:''}
+      ${reg.products?`<div><strong>本次販售商品：</strong>${reg.products}</div>`:''}
+      ${equipStr?`<div><strong>加購設備：</strong>${equipStr}</div>`:''}
       ${customStr}
+      ${reg.adminNote?`<div><strong>備註：</strong>${reg.adminNote}</div>`:''}
+      <hr style="border:none;border-top:1px solid #eee;margin:6px 0">
       <div><strong>審核狀態：</strong>${reg.status||'待審核'}</div>
       <div><strong>付款狀態：</strong>${reg.payStatus||'未繳費'}</div>
       <div><strong>報名時間：</strong>${(reg.createdAt||'').slice(0,16)}</div>
@@ -3050,7 +3058,7 @@ async function openSesDetail(sesId){
   ST._sesRegSesName=s.name||sesId;
   ST._sesRegRegs=null;
   try{
-    const regs=await apiPost({action:'getRegsBySession',sessionId:sesId,email:ST.email,token:ST.token});
+    const regs=await apiPost({action:'getRegsBySession',sessionId:sesId});
     ST._sesRegRegs=Array.isArray(regs)?regs:[];
     renderSesRegList();
   }catch(e){
@@ -3545,7 +3553,7 @@ async function toggleInlineFinance(sesId, sesName){
   ST.inlineFinanceCache[sesId]='<div style="padding:18px;text-align:center;color:#777">財報載入中…</div>';
   renderOverviewSessions();
   try{
-    const regsResult = await apiPost({action:'getRegsBySession', sessionId:sesId, email:ST.email, token:ST.token});
+    const regsResult = await apiPost({action:'getRegsBySession', sessionId:sesId});
     if(!regsResult || regsResult.error) throw new Error('regs api error');
     let finItems=[];
     try{
@@ -3574,7 +3582,7 @@ function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
   const equip={};
   (regs||[]).forEach(r=>{
     try{
-      const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
+      const obj=JSON.parse(r.equip||'{}')||{};
       Object.entries(obj).forEach(([k,v])=>{
         const qty=Number(v)||0;
         if(qty>0) equip[k]=(equip[k]||0)+qty;
