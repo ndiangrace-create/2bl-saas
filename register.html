@@ -1091,7 +1091,11 @@ function openRegFormModal(){
   if(!modal) return;
   // 生成表單內容
   if(ST.currentSession){
-    showEmailStep(ST.currentSession);
+    if(ST.member && ST.memberEmail){
+      renderDynFormFull(ST.currentSession, false);
+    } else {
+      showEmailStep(ST.currentSession);
+    }
   }
   modal.classList.add('show');
   // 推入 history，讓返回鍵可以關閉 modal
@@ -1186,8 +1190,12 @@ async function openSession(sessionId){
   const titleEl=$('formBackTitle');
   if(titleEl) titleEl.textContent=s.name||'報名表';
   openRegFormModal();
-  // 先顯示 Email 查詢步驟
-  showEmailStep(s);
+  // 已登入 → 直接帶入資料進報名表；未登入 → 顯示 Email 查詢步驟
+  if(ST.member && ST.memberEmail){
+    renderDynFormFull(s, false);
+  } else {
+    showEmailStep(s);
+  }
 }
 
 function renderDynForm(s){
