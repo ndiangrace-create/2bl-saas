@@ -931,11 +931,18 @@ function renderDynFormFull(s, isNew=false){
   html+=`<label>Email *</label><input type="email" id="f_email" value="${esc(email)}" placeholder="your@email.com" inputmode="email" readonly style="background:#f8f8f8;color:var(--md)"><div class="err" id="e_email"></div>`;
   html+=`</div></div>`;
   // ── 品牌資料（老朋友顯示，新朋友必填）──
+  const vFb=V.fb||V.fb_url||'';
+  const vIg=V.ig||V.ig_url||'';
+  const socialHtml=(vFb||vIg)?`<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+    ${vFb?`<a href="${vFb}" target="_blank" rel="noopener" style="background:#1877F2;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:700">📘 FB</a>`:''}
+    ${vIg?`<a href="${vIg}" target="_blank" rel="noopener" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:700">📸 IG</a>`:''}
+  </div>`:'';
   html+=`<div class="fcard">
     <div class="fcard-t">🏷️ 品牌資料${isNew?' *（請填寫）':' <span style="font-size:11px;font-weight:400;color:var(--lt)">（可修改）</span>'}</div>
     <div class="fcard-body">`;
   html+=`<label>品牌名稱${isNew?' *':''}</label><input type="text" id="f_brand" value="${esc(V.brand||V.brand_name||'')}" placeholder="您的品牌或攤位名稱">`;
   html+=`<label>品牌介紹</label><textarea id="f_brandIntro" rows="2" placeholder="簡短介紹您的品牌…">${esc(V.brandIntro||V.brand_intro||'')}</textarea>`;
+  if(socialHtml) html+=socialHtml;
   html+=`</div></div>`;
   html+=renderDynFormBody(s);
   $('dynForm').innerHTML=html;
@@ -1010,6 +1017,29 @@ function renderDynFormBody(s){
     });
     html+=`</div></div>`;
   }
+  // 設備加購（後台 equip 設定，有開放才顯示）
+  const equipDefs=Object.entries(s.equip||{}).filter(([k,v])=>v&&(v.open===true||v.open==='true'));
+  if(equipDefs.length>0){
+    html+=`<div class="fcard"><div class="fcard-t">🪑 設備加購（選填）</div><div class="fcard-body">`;
+    equipDefs.forEach(([k,v])=>{
+      const incl=Number(v.incl)||0;
+      const price=Number(v.price)||0;
+      const stalls=ST.stallCount||1;
+      const inclTotal=incl*stalls;
+      html+=`<div class="equip-row">
+        <div class="equip-info">
+          <div class="equip-name">${esc(k)}</div>
+          <div class="equip-price">NT$ ${price}/件${inclTotal>0?` ・已含 ${inclTotal} 件/攤`:''}${price>0?'，超過才計費':''}</div>
+        </div>
+        <div class="equip-ctrl">
+          <button class="eq-btn" type="button" onclick="adjEquip('${k}',-1)">−</button>
+          <div class="eq-num" id="eq_num_${k}">0</div>
+          <button class="eq-btn" type="button" onclick="adjEquip('${k}',1)">＋</button>
+        </div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
   // 加購
   const addons=(s.addons||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.open===true||a.open==='true');
   if(addons.length>0){
@@ -1036,18 +1066,50 @@ function renderDynFormBody(s){
       <input type="radio" name="f_invoiceType" value="公司／機關" onchange="toggleInvoiceType()"> 公司／機關
     </label>
   </div>`;
-  html+=`<div id="personalInvoiceArea">
-    <label>手機載具（選填）</label>
-    <input type="text" id="f_invoiceCarrier" placeholder="/ABC-1234">
-    <label>收據寄送 Email（選填，空白用報名 Email）</label>
-    <input type="email" id="f_personalInvoiceEmail" placeholder="your@email.com" inputmode="email">
-  </div>`;
-  html+=`<div id="companyInvoiceArea" style="display:none">
-    <label>統一編號 *</label><input type="text" id="f_taxId" placeholder="12345678" inputmode="numeric" maxlength="8">
-    <label>公司抬頭 *</label><input type="text" id="f_invoiceTitle" placeholder="公司名稱">
-    <label>發票 Email *</label><input type="email" id="f_invoiceEmail" placeholder="invoice@company.com" inputmode="email">
-  </div>`;
+  {
+    const VM=ST.member||{};
+    const vCarrier=VM.invoiceCarrier||VM.invoice_carrier||'';
+    const vTaxId=VM.taxId||VM.tax_id||'';
+    const vCompany=VM.company||'';
+    const vInvEmail=VM.invoiceEmail||VM.invoice_email||'';
+    const vInvType=vTaxId?'公司／機關':'個人';
+    html+=`<div style="display:flex;gap:16px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer">
+        <input type="radio" name="f_invoiceType" value="個人" ${vInvType==='個人'?'checked':''} onchange="toggleInvoiceType()"> 個人
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer">
+        <input type="radio" name="f_invoiceType" value="公司／機關" ${vInvType!=='個人'?'checked':''} onchange="toggleInvoiceType()"> 公司／機關
+      </label>
+    </div>`;
+    html+=`<div id="personalInvoiceArea" style="${vInvType!=='個人'?'display:none':''}">
+      <label>手機載具（選填）</label>
+      <input type="text" id="f_invoiceCarrier" placeholder="/ABC-1234" value="${vCarrier.replace(/"/g,'&quot;')}">
+      <label>收據寄送 Email（選填，空白用報名 Email）</label>
+      <input type="email" id="f_personalInvoiceEmail" placeholder="your@email.com" inputmode="email">
+    </div>`;
+    html+=`<div id="companyInvoiceArea" style="${vInvType!=='個人'?'':'display:none'}">
+      <label>統一編號 *</label><input type="text" id="f_taxId" placeholder="12345678" inputmode="numeric" maxlength="8" value="${vTaxId.replace(/"/g,'&quot;')}">
+      <label>公司抬頭 *</label><input type="text" id="f_invoiceTitle" placeholder="公司名稱" value="${vCompany.replace(/"/g,'&quot;')}">
+      <label>發票 Email *</label><input type="email" id="f_invoiceEmail" placeholder="invoice@company.com" inputmode="email" value="${vInvEmail.replace(/"/g,'&quot;')}">
+    </div>`;
+  }
   html+=`</div></div>`;
+  // 攤位數 / 份數（費用正上方，選完即看到總計）
+  {
+    const sType=s.type||'市集場次';
+    const isMkt=sType==='市集場次'||sType==='通路寄賣';
+    const isEvent=sType==='活動報名';
+    const isCollab=sType==='合作申請';
+    if(!isCollab){
+      const stallLabel=isMkt?'攤位數':isEvent?'報名份數':'數量';
+      const stallIcon=isMkt?'🎪':isEvent?'🎟️':'📦';
+      const stallUnit=isMkt?'攤':isEvent?'份':'份';
+      const maxN=isMkt?3:5;
+      html+=`<div class="fcard"><div class="fcard-t">${stallIcon} ${stallLabel}</div><div class="fcard-body"><div class="stall-picker">`;
+      [1,2,3,...(maxN>3?[4,5]:[])].slice(0,maxN).forEach(n=>{html+=`<div class="stall-opt ${n===1?'on':''}" onclick="selectStall(this,${n})">${n} ${stallUnit}</div>`;});
+      html+=`</div></div></div>`;
+    }
+  }
   return html;
 }
 
@@ -1190,12 +1252,49 @@ async function openSession(sessionId){
   const titleEl=$('formBackTitle');
   if(titleEl) titleEl.textContent=s.name||'報名表';
   openRegFormModal();
-  // 已登入 → 直接帶入資料進報名表；未登入 → 顯示 Email 查詢步驟
+  // 已登入 → 先查重複報名
   if(ST.member && ST.memberEmail){
-    renderDynFormFull(s, false);
+    // 查詢是否已報名此場次
+    const myRegs=await api({action:'getMyRegs',email:ST.memberEmail});
+    const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
+    if(dup){
+      // 已報名 → 顯示提示
+      showAlreadyRegistered(s,dup);
+    } else {
+      renderDynFormFull(s, false);
+    }
   } else {
     showEmailStep(s);
   }
+}
+
+function showAlreadyRegistered(s,reg){
+  const dynEl=$('dynForm');
+  const submitBtn=$('submitBtn');
+  if(submitBtn) submitBtn.style.display='none';
+  const feeBox=$('feeBox'); if(feeBox) feeBox.style.display='none';
+  if(!dynEl) return;
+  const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',已取消:'#aaa'}[reg.status]||'#555';
+  dynEl.innerHTML=`
+    <div class="fcard" style="border:2px solid var(--yl)">
+      <div class="fcard-t" style="background:#fffaed;color:#92400e">✋ 您已報名此場次</div>
+      <div class="fcard-body">
+        <div style="font-size:14px;color:var(--md);margin-bottom:8px">
+          場次：<strong>${esc(s.name||'')}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#f9f9f9;border-radius:10px;padding:10px 14px;margin-bottom:12px">
+          <span style="font-size:13px">狀態</span>
+          <span style="font-size:13px;font-weight:800;color:${statusColor}">${reg.status||'待審核'}</span>
+        </div>
+        <div style="font-size:12px;color:var(--lt);line-height:1.7;margin-bottom:14px">
+          如需修改品牌介紹等資料，請至「我的紀錄」查看。<br>
+          如需取消，請聯繫主辦單位。
+        </div>
+        <button class="btn-submit" type="button" onclick="goMemberPage();closeRegFormModal()">
+          📋 查看我的報名紀錄
+        </button>
+      </div>
+    </div>`;
 }
 
 function renderDynForm(s){
@@ -1221,23 +1320,6 @@ function renderDynForm(s){
       </label>`;
     });
     html+=`</div></div>`;
-  }
-
-  // 攤位數 / 份數（依 type 顯示）
-  {
-    const sType=s.type||'市集場次';
-    const isMkt=sType==='市集場次'||sType==='通路寄賣';
-    const isEvent=sType==='活動報名';
-    const isCollab=sType==='合作申請';
-    if(!isCollab){
-      const stallLabel=isMkt?'攤位數':isEvent?'報名份數':'數量';
-      const stallIcon=isMkt?'🎪':isEvent?'🎟️':'📦';
-      const stallUnit=isMkt?'攤':isEvent?'份':'份';
-      const maxN=isMkt?3:5;
-      html+=`<div class="fcard"><div class="fcard-t">${stallIcon} ${stallLabel}</div><div class="fcard-body"><div class="stall-picker">`;
-      [1,2,3,...(maxN>3?[4,5]:[])].slice(0,maxN).forEach(n=>{html+=`<div class="stall-opt ${n===1?'on':''}" onclick="selectStall(this,${n})">${n} ${stallUnit}</div>`;});
-      html+=`</div></div></div>`;
-    }
   }
 
   // 本次販售商品
