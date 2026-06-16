@@ -7,6 +7,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>兔彼樂共創活動 — 報名系統</title>
+<!-- full-chain-fix-20260616 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/logo.jpg">
@@ -387,7 +388,7 @@ textarea{min-height:72px;resize:vertical}
         </div>
       </div>
       <div class="submit-area" style="padding:0 16px 40px">
-        <button class="btn-submit" id="submitBtn" onclick="submitReg()">送出報名</button>
+        <button class="btn-submit" id="submitBtn" type="button" onclick="submitReg(event)">送出報名</button>
       </div>
     </div>
   </div>
@@ -588,10 +589,17 @@ async function api(params){
 }
 async function apiPost(body){
   try{
-    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
-    if(!r.ok){ toast&&toast('⚠️ 連線失敗'); return {error:'fail'}; }
-    return await r.json();
-  }catch(e){ toast&&toast('⚠️ 網路錯誤'); return {error:'fail'}; }
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json;charset=utf-8'},body:JSON.stringify(body)});
+    const txt=await r.text();
+    let data={};
+    try{ data=txt?JSON.parse(txt):{}; }catch(e){ data={error:'後端回傳格式錯誤'}; }
+    if(!r.ok){ toast('⚠️ 連線失敗'); return data.error?data:{error:'連線失敗'}; }
+    return data;
+  }catch(e){
+    console.error('[apiPost error]', e);
+    toast('⚠️ 網路錯誤');
+    return {error:'網路錯誤，請稍後再試'};
+  }
 }
 function openModal(id){const el=$(id);if(el)el.classList.add('show');}
 function closeModal(id){const el=$(id);if(el)el.classList.remove('show');}
@@ -1156,13 +1164,14 @@ function showSubmitError(msg){
 }
 
 // ── 送出報名 ──
-async function submitReg(){
+async function submitReg(ev){
+  if(ev && ev.preventDefault) ev.preventDefault();
   const btn=$('submitBtn');
-  const restoreBtn=()=>{ if(btn && btn.style.display!=='none'){ btn.disabled=false; btn.textContent='送出報名'; } };
+  if(ST.__submitting){ toast('報名送出中，請稍候…'); return false; }
+  const restoreBtn=()=>{ ST.__submitting=false; if(btn && btn.style.display!=='none'){ btn.disabled=false; btn.textContent='送出報名'; } };
   try{
     const s=ST.currentSession;
-    if(!s || !s.id){ toast('❌ 找不到目前場次，請關閉報名表後重新點選場次'); return; }
-
+    if(!s || !s.id){ toast('❌ 找不到目前場次，請關閉報名表後重新點選場次'); return false; }
     const email=($('f_email')?.value||'').trim();
     const name=($('f_name')?.value||'').trim();
     const phone=($('f_phone')?.value||'').trim();
@@ -1170,81 +1179,53 @@ async function submitReg(){
     if(!name){ const e=$('e_name'); if(e)e.textContent='請填寫姓名'; ok=false; } else { const e=$('e_name'); if(e)e.textContent=''; }
     if(!phone||!/^09\d{8}$/.test(phone)){ const e=$('e_phone'); if(e)e.textContent='請填寫正確手機'; ok=false; } else { const e=$('e_phone'); if(e)e.textContent=''; }
     if(!email||!/\S+@\S+\.\S+/.test(email)){ const e=$('e_email'); if(e)e.textContent='請填寫正確 Email'; ok=false; } else { const e=$('e_email'); if(e)e.textContent=''; }
-    if(!ok){ toast('請確認必填欄位'); return; }
-
-    if(s.dates && s.dates.length>1){
-      const checkedDates=(s.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked);
-      if(!checkedDates.length){ toast('請至少選擇一個參加日期'); return; }
+    if(!ok){ toast('請確認必填欄位'); return false; }
+    let selectedDates=[];
+    if(Array.isArray(s.dates) && s.dates.length>1){
+      selectedDates=s.dates.filter((_,i)=>document.getElementById('dp_'+i)?.checked).map(d=>d.date).filter(Boolean);
+      if(!selectedDates.length){ toast('請至少選擇一個參加日期'); return false; }
+    }else if(Array.isArray(s.dates) && s.dates.length===1 && s.dates[0]?.date){
+      selectedDates=[s.dates[0].date];
     }
-
     const invoiceType=document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人';
     if(invoiceType==='公司／機關'){
       const tax=($('f_taxId')?.value||'').trim();
       const title=($('f_invoiceTitle')?.value||'').trim();
-      if(!/^\d{8}$/.test(tax)){ toast('請填寫正確 8 碼統一編號'); return; }
-      if(!title){ toast('請填寫公司抬頭'); return; }
+      if(!/^\d{8}$/.test(tax)){ toast('請填寫正確 8 碼統一編號'); return false; }
+      if(!title){ toast('請填寫公司抬頭'); return false; }
     }
-
+    ST.__submitting=true;
     if(btn){ btn.disabled=true; btn.textContent='送出中…'; }
     const M=ST.member||{};
     const body={
-      action:'register', sessionId:s.id, email, name, phone,
-      stallCount:ST.stallCount||1,
-      invoiceType,
-      invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),
-      taxId:($('f_taxId')?.value||'').trim(),
-      invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),
-      invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),
-      selectedDates:(s.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked).map(d=>d.date),
-      brand:M.brand||M.brand_name||'',
-      brandIntro:M.brandIntro||M.brand_intro||'',
-      sellItem:($('f_sellItem')?.value||'').trim(),
-      sellLink:M.sellLink||M.sell_link||'',
-      photo:M.photo||M.photo_url||'',
-      equip:{...(ST.equipQty||{})},
-      addonQty:{...(ST.addonQty||{})},
-      fb:M.fb||M.fb_url||'',
-      ig:M.ig||M.ig_url||'',
-      remark:($('f_remark')?.value||'').trim(),
-      stallNumber:ST.selectedStall||'',
-      customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+      action:'register',sessionId:s.id,email,name,phone,stallCount:ST.stallCount||1,invoiceType,
+      invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),taxId:($('f_taxId')?.value||'').trim(),invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),selectedDates,
+      brand:M.brand||M.brand_name||'',brandIntro:M.brandIntro||M.brand_intro||'',sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     };
-
     const res=await apiPost(body);
-    if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return; }
-    if(res.error){ toast('❌ '+res.error); restoreBtn(); return; }
-
+    if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
+    if(res.error){ toast('❌ '+res.error, 4200); restoreBtn(); return false; }
     ST.memberEmail=email;
     try{ const updatedMember=await api({action:'getMember',email}); if(updatedMember&&!updatedMember.error) ST.member=updatedMember; }catch(e){}
-
     const dynForm=$('dynForm'); const feeBox=$('feeBox');
-    if(dynForm) dynForm.style.display='none';
-    if(feeBox) feeBox.style.display='none';
-    if(btn) btn.style.display='none';
-
+    if(dynForm) dynForm.style.display='none'; if(feeBox) feeBox.style.display='none'; if(btn) btn.style.display='none';
     const modalInner=$('regFormModal')?.querySelector('.modal-box');
     if(modalInner){
       const old=modalInner.querySelector('.success-screen'); if(old) old.remove();
-      const div=document.createElement('div');
-      div.className='success-screen';
-      div.style.cssText='text-align:center;padding:48px 20px';
-      div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div>
-        <div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div>
-        <div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div>
-        <div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div>
-        <div style="font-size:12px;color:var(--lt)">3 秒後自動返回...</div>`;
-      modalInner.appendChild(div);
-      modalInner.scrollTo(0,9999);
-    }else alert('報名成功！');
-
+      const div=document.createElement('div'); div.className='success-screen'; div.style.cssText='text-align:center;padding:48px 20px';
+      div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div><div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div><div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div><div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div><div style="font-size:12px;color:var(--lt)">3 秒後自動返回...</div>`;
+      modalInner.querySelector('.modal-body')?.appendChild(div) || modalInner.appendChild(div);
+      modalInner.querySelector('.modal-body')?.scrollTo(0,9999) || modalInner.scrollTo(0,9999);
+    }else{ alert('報名成功！'); }
+    ST.__submitting=false;
     setTimeout(()=>{ closeRegFormModal(); window.scrollTo(0,0); },3000);
+    return false;
   }catch(e){
     console.error('[submitReg fatal]', e);
-    toast('❌ 報名送出失敗：'+(e && e.message ? e.message : String(e)),5000);
-    restoreBtn();
+    toast('❌ 報名送出失敗：'+(e && e.message ? e.message : String(e)), 4200);
+    restoreBtn(); return false;
   }
 }
-
 
 // ── 會員 ──
 async function memberLogin(){
@@ -1612,17 +1593,6 @@ applySiteConfig();
 loadHome();
 
 
-// 送出按鈕保險綁定：避免 inline onclick 未觸發時完全沒反應
-setTimeout(()=>{
-  const btn=document.getElementById('submitBtn');
-  if(btn && !btn.__submitBound){
-    btn.__submitBound=true;
-    btn.addEventListener('click', function(e){
-      e.preventDefault();
-      if(typeof submitReg==='function') submitReg();
-    });
-  }
-}, 500);
 
 // ── 電腦版滑鼠拖曳橫向滑動 ──
 function enableDragScroll(){

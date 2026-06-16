@@ -7,6 +7,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>兔彼樂後台管理</title>
+<!-- full-chain-fix-20260616 -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -2127,7 +2128,7 @@ async function saveSession(btn){
       stallList = Array.from(new Set(stallList.concat(typedStalls.split(/[,，\n\r]/).map(x=>x.trim()).filter(Boolean))));
     }
 
-    let invoiceTax = {enabled:true,rate:5,stall:true,equip:true,addon:true,extra:false};
+    let invoiceTax = {enabled:true,rate:5,stall:true,equip:false,addon:false,extra:false};
     try{ invoiceTax = getInvoiceTaxJson(); }catch(e){ console.warn('[getInvoiceTaxJson failed]', e); }
 
     const body={
