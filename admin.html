@@ -2440,7 +2440,7 @@ async function openRegDetail(regId){
   let equipStr='';
   try{const eq=JSON.parse(reg.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
   let customStr='';
-  try{const cf=JSON.parse(reg.customFields||'{}');customStr=Object.entries(cf).map(([k,v])=>`<div><strong>${k}：</strong>${v}</div>`).join('');}catch(e){}
+  try{const cf=typeof reg.customFields==='string'?JSON.parse(reg.customFields||'[]'):(reg.customFields||[]);if(Array.isArray(cf))customStr=cf.filter(x=>x.value).map(x=>`<div><strong>${x.label||''}：</strong>${x.value||''}</div>`).join('');else customStr=Object.entries(cf).map(([k,v])=>`<div><strong>${k}：</strong>${v}</div>`).join('');}catch(e){}
   $('regDetail').innerHTML=`
     <div style="font-size:13px;line-height:2">
       <div><strong>活動：</strong>${ev.title||''}</div>
@@ -3050,7 +3050,7 @@ async function openSesDetail(sesId){
   ST._sesRegSesName=s.name||sesId;
   ST._sesRegRegs=null;
   try{
-    const regs=await apiPost({action:'getRegsBySession',sessionId:sesId});
+    const regs=await apiPost({action:'getRegsBySession',sessionId:sesId,email:ST.email,token:ST.token});
     ST._sesRegRegs=Array.isArray(regs)?regs:[];
     renderSesRegList();
   }catch(e){
@@ -3545,7 +3545,7 @@ async function toggleInlineFinance(sesId, sesName){
   ST.inlineFinanceCache[sesId]='<div style="padding:18px;text-align:center;color:#777">財報載入中…</div>';
   renderOverviewSessions();
   try{
-    const regsResult = await apiPost({action:'getRegsBySession', sessionId:sesId});
+    const regsResult = await apiPost({action:'getRegsBySession', sessionId:sesId, email:ST.email, token:ST.token});
     if(!regsResult || regsResult.error) throw new Error('regs api error');
     let finItems=[];
     try{
@@ -3574,7 +3574,7 @@ function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
   const equip={};
   (regs||[]).forEach(r=>{
     try{
-      const obj=JSON.parse(r.equip||'{}')||{};
+      const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
       Object.entries(obj).forEach(([k,v])=>{
         const qty=Number(v)||0;
         if(qty>0) equip[k]=(equip[k]||0)+qty;
