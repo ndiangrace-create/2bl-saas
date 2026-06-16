@@ -374,7 +374,7 @@ textarea{min-height:72px;resize:vertical}
       <button onclick="shareCurrentSession()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 0 4px 8px;line-height:1;color:var(--md)" title="分享">🔗</button>
     </div>
     <!-- 可捲動內容區 -->
-    <div class="reg-form-scroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
       <div class="form-hero" id="formHero">
         <div class="form-hero-placeholder">🎪</div>
       </div>
@@ -566,17 +566,6 @@ async function applySiteConfig(){
 
 const API = 'https://tobeloved-api.ndiangrace.workers.dev';
 const LINE_URL = 'https://lin.ee/Xpiib15';
-const API_TIMEOUT_MS = 20000;
-
-async function fetchWithTimeout(url, options={}, timeoutMs=API_TIMEOUT_MS){
-  const ctrl=new AbortController();
-  const timer=setTimeout(()=>ctrl.abort(), timeoutMs);
-  try{
-    return await fetch(url,{...options,signal:ctrl.signal});
-  }finally{
-    clearTimeout(timer);
-  }
-}
 
 const EQUIP_LIST_DEFS = {
   '桌':{icon:'🪵',price:350},'椅子':{icon:'🪑',price:20},
@@ -595,19 +584,12 @@ function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  try{
-    const r=await fetchWithTimeout(API+'?'+qs);
-    if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'連線失敗'};}
-    return await r.json();
-  }catch(e){
-    const msg=(e&&e.name==='AbortError')?'連線逾時':'網路連線失敗';
-    toast&&toast('⚠️ '+msg);
-    return {error:msg};
-  }
+  try{ const r=await fetch(API+'?'+qs); if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'fail'};} return await r.json(); }
+  catch(e){ toast&&toast('⚠️ 網路連線失敗'); return {error:'fail'}; }
 }
 async function apiPost(body){
   try{
-    const r=await fetchWithTimeout(API,{method:'POST',headers:{'Content-Type':'application/json;charset=utf-8'},body:JSON.stringify(body)});
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json;charset=utf-8'},body:JSON.stringify(body)});
     const txt=await r.text();
     let data={};
     try{ data=txt?JSON.parse(txt):{}; }catch(e){ data={error:'後端回傳格式錯誤'}; }
@@ -615,9 +597,8 @@ async function apiPost(body){
     return data;
   }catch(e){
     console.error('[apiPost error]', e);
-    const msg=(e&&e.name==='AbortError')?'連線逾時，請稍後再試':'網路錯誤，請稍後再試';
-    toast('⚠️ '+msg);
-    return {error:msg};
+    toast('⚠️ 網路錯誤');
+    return {error:'網路錯誤，請稍後再試'};
   }
 }
 function openModal(id){const el=$(id);if(el)el.classList.add('show');}
@@ -872,55 +853,9 @@ function buildFormHero(s, cover){
 
 
 // ── 報名表 Modal 開關 ──
-function resetRegFormUi(){
-  const modal=$('regFormModal');
-  if(modal) modal.querySelectorAll('.success-screen').forEach(el=>el.remove());
-  const formHero=$('formHero');
-  const dynForm=$('dynForm');
-  const feeBox=$('feeBox');
-  const btn=$('submitBtn');
-  if(formHero) formHero.style.display='block';
-  if(dynForm) dynForm.style.display='block';
-  if(feeBox) feeBox.style.display='none';
-  if(btn){
-    btn.disabled=false;
-    btn.textContent='送出報名';
-    btn.style.display='block';
-    const area=btn.closest('.submit-area');
-    if(area) area.style.display='block';
-  }
-  ST.__submitting=false;
-}
-
-function showRegSuccessScreen(email){
-  const modal=$('regFormModal');
-  const scroll=modal?.querySelector('.reg-form-scroll');
-  const formHero=$('formHero');
-  const dynForm=$('dynForm');
-  const feeBox=$('feeBox');
-  const btn=$('submitBtn');
-  if(!scroll){ alert('報名成功！'); return; }
-  scroll.querySelectorAll('.success-screen').forEach(el=>el.remove());
-  if(formHero) formHero.style.display='none';
-  if(dynForm) dynForm.style.display='none';
-  if(feeBox) feeBox.style.display='none';
-  if(btn){
-    btn.style.display='none';
-    const area=btn.closest('.submit-area');
-    if(area) area.style.display='none';
-  }
-  const div=document.createElement('div');
-  div.className='success-screen';
-  div.style.cssText='text-align:center;padding:56px 20px 48px;min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center';
-  div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div><div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div><div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div><div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div><div style="font-size:12px;color:var(--lt)">3 秒後自動返回...</div>`;
-  scroll.insertBefore(div, scroll.firstChild);
-  scroll.scrollTop=0;
-}
-
 function openRegFormModal(){
   const modal=$('regFormModal');
   if(!modal) return;
-  resetRegFormUi();
   // 生成表單內容
   if(ST.currentSession){
     renderDynForm(ST.currentSession);
@@ -939,7 +874,6 @@ function closeRegFormModal(){
   const modal=$('regFormModal');
   if(!modal) return;
   modal.classList.remove('show');
-  resetRegFormUi();
   ST.currentSession=null;
   // 清空表單
   const dynForm=$('dynForm');
@@ -953,7 +887,6 @@ window.addEventListener('popstate', function(e){
   const modal=$('regFormModal');
   if(modal && modal.classList.contains('show')){
     modal.classList.remove('show');
-    resetRegFormUi();
     ST.currentSession=null;
     return;
   }
@@ -1107,11 +1040,7 @@ function renderDynForm(s){
     html+=`</div></div>`;
   }
 
-  const dynForm=$('dynForm');
-  if(dynForm){
-    dynForm.style.display='block';
-    dynForm.innerHTML=html;
-  }
+  $('dynForm').innerHTML=html;
 }
 
 function selectStall(el,n){
@@ -1288,13 +1217,19 @@ async function submitReg(ev){
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
     if(res.error){ toast('❌ '+res.error, 4200); restoreBtn(); return false; }
-    if(res.success!==true){ toast('❌ 後端回傳異常，請到會員專區確認是否成功', 4200); restoreBtn(); return false; }
     ST.memberEmail=email;
-    showRegSuccessScreen(email);
+    try{ const updatedMember=await api({action:'getMember',email}); if(updatedMember&&!updatedMember.error) ST.member=updatedMember; }catch(e){}
+    const dynForm=$('dynForm'); const feeBox=$('feeBox');
+    if(dynForm) dynForm.style.display='none'; if(feeBox) feeBox.style.display='none'; if(btn) btn.style.display='none';
+    const modalInner=$('regFormModal')?.querySelector('.modal-box');
+    if(modalInner){
+      const old=modalInner.querySelector('.success-screen'); if(old) old.remove();
+      const div=document.createElement('div'); div.className='success-screen'; div.style.cssText='text-align:center;padding:48px 20px';
+      div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div><div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div><div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div><div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div><div style="font-size:12px;color:var(--lt)">3 秒後自動返回...</div>`;
+      modalInner.querySelector('.modal-body')?.appendChild(div) || modalInner.appendChild(div);
+      modalInner.querySelector('.modal-body')?.scrollTo(0,9999) || modalInner.scrollTo(0,9999);
+    }else{ alert('報名成功！'); }
     ST.__submitting=false;
-    api({action:'getMember',email}).then(updatedMember=>{
-      if(updatedMember&&!updatedMember.error) ST.member=updatedMember;
-    }).catch(()=>{});
     setTimeout(()=>{ closeRegFormModal(); window.scrollTo(0,0); },3000);
     return false;
   }catch(e){
@@ -1668,6 +1603,24 @@ function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 // v1780560027
 applySiteConfig();
 loadHome();
+// ── URL 深連結：?member=1&pay=REG_xxx ──
+(async()=>{
+  const _p = new URLSearchParams(window.location.search);
+  if(_p.get('member')==='1'){
+    const _payRegId = _p.get('pay');
+    if(_payRegId) window._pendingPayRegId = _payRegId;
+    // 等頁面載入後切換到會員中心
+    setTimeout(()=>{
+      const memberBtns=document.querySelectorAll('[onclick*="tab-member"],[data-tab="member"]');
+      if(memberBtns.length) memberBtns[0].click();
+      else {
+        // 嘗試直接顯示 member login
+        const ml=$('memberLoginArea');
+        if(ml) ml.scrollIntoView({behavior:'smooth'});
+      }
+    }, 800);
+  }
+})();
 
 
 
