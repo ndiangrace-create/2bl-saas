@@ -746,7 +746,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
     <!-- 加購選項 -->
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:700;color:var(--md)">加購選項（可無限新增）</div>
+        <div style="font-size:12px;font-weight:700;color:var(--md)">加購項目（後台勾選開放後，前台才會顯示）</div>
         <button class="btn btn-g btn-xs" onclick="addAddon()" type="button">＋ 新增加購</button>
       </div>
       <div id="addonsList"></div>
@@ -925,19 +925,16 @@ const EQUIP_LIST = [
   {k:'燈',icon:'💡',price:50},{k:'陽傘',icon:'☂️',price:450},
 ];
 const MOD_DEFS = [
-  {k:'brand',label:'品牌/攤商資料'},{k:'sell_item',label:'本次販售商品'},
-  {k:'sell_link',label:'商品連結'},{k:'photo',label:'出攤照片'},
-  {k:'adult',label:'大人人數'},{k:'child',label:'小孩人數'},
-  {k:'diet',label:'飲食需求'},{k:'act_name',label:'活動名稱'},
-  {k:'act_content',label:'活動內容'},{k:'act_fee',label:'材料費'},
-  {k:'collab_social',label:'社群連結'},{k:'collab_price',label:'報價條件'},
+  {k:'sell_item',label:'本次販售商品'},
+  {k:'adult',label:'大人人數'},
+  {k:'child',label:'小孩人數'},
   {k:'remark',label:'備註欄位'},
 ];
 const MOD_PRESETS = {
-  '市集場次': {brand:1,sell_item:0,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
-  '活動報名': {brand:0,sell_item:0,sell_link:0,photo:0,adult:1,child:1,diet:1,act_name:1,act_content:1,act_fee:1,collab_social:0,collab_price:0,remark:1},
-  '合作申請': {brand:1,sell_item:0,sell_link:0,photo:0,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:1,collab_price:1,remark:1},
-  '通路寄賣': {brand:1,sell_item:1,sell_link:1,photo:1,adult:0,child:0,diet:0,act_name:0,act_content:0,act_fee:0,collab_social:0,collab_price:0,remark:1},
+  '市集場次': {sell_item:1, adult:0, child:0, remark:1},
+  '活動報名': {sell_item:0, adult:1, child:1, remark:1},
+  '合作申請': {sell_item:0, adult:0, child:0, remark:1},
+  '通路寄賣': {sell_item:1, adult:0, child:0, remark:1},
 };
 
 let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],currentReg:null,sdData:[],inlineFinanceSesId:'',inlineFinanceCache:{}};
@@ -1695,6 +1692,7 @@ async function deleteEvent(id,name){
 
 // ── 場次 modal ──
 function buildModGrid(mods){
+  mods=mods||{};
   $('modGrid').innerHTML=MOD_DEFS.map(d=>`
     <label class="mod-item ${mods[d.k]?'on':''}" id="modwrap_${d.k}">
       <input type="checkbox" id="mod_${d.k}" ${mods[d.k]?'checked':''} onchange="this.closest('.mod-item').classList.toggle('on',this.checked)">
@@ -1910,13 +1908,22 @@ function addAddon(data={}){
   const idx=addonIdx++;
   const div=document.createElement('div');
   div.id='addon_'+idx;
-  div.style='display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap';
+  div.style='display:grid;grid-template-columns:auto 1fr 110px auto;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;background:#fafafa;border:1px solid #eee;border-radius:10px;padding:8px';
   div.innerHTML=`
-    <input type="text" id="addon_name_${idx}" value="${data.name||''}" placeholder="加購名稱" style="flex:2;min-width:100px;padding:7px;border:1.5px solid #d0e8d8;border-radius:7px;font-size:13px">
-    <input type="number" id="addon_price_${idx}" value="${data.price||0}" placeholder="單價" style="width:80px;padding:7px;border:1.5px solid #d0e8d8;border-radius:7px;font-size:13px" inputmode="numeric">
-    <button onclick="document.getElementById('addon_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;font-size:13px;font-weight:800;color:var(--g);white-space:nowrap">
+      <input type="checkbox" id="addon_open_${idx}" ${data.open===true?'checked':''} style="width:18px;height:18px;accent-color:var(--g)"> 開放
+    </label>
+    <input type="text" id="addon_name_${idx}" value="${escAttr(data.name||'')}" placeholder="加購名稱" style="min-width:120px;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:15px">
+    <input type="number" id="addon_price_${idx}" value="${Number(data.price)||0}" placeholder="單價" style="width:100%;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:15px" inputmode="numeric">
+    <button onclick="document.getElementById('addon_${idx}').remove()" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800">✕</button>
   `;
   $('addonsList').appendChild(div);
+}
+function addDefaultAddonOptions(){
+  const list=$('addonsList'); if(!list) return;
+  const txt=list.textContent||'';
+  if(!txt.includes('小白一條龍')) addAddon({name:'小白一條龍',price:2680,open:false});
+  if(!txt.includes('快拍123')) addAddon({name:'快拍123',price:800,open:false});
 }
 function getAddons(){
   const addons=[];
@@ -1924,7 +1931,11 @@ function getAddons(){
     const idx=el.id.replace('addon_name_','');
     const name=$('addon_name_'+idx)?.value?.trim();
     if(!name)return;
-    addons.push({name,price:Number($('addon_price_'+idx)?.value)||0});
+    addons.push({
+      name,
+      price:Number($('addon_price_'+idx)?.value)||0,
+      open:!!$('addon_open_'+idx)?.checked
+    });
   });
   return addons;
 }
@@ -1934,8 +1945,8 @@ function getInvoiceTaxJson(){
     enabled: $('sm_invoiceEnabled') ? !!$('sm_invoiceEnabled').checked : true,
     rate: Number($('sm_invoiceRate')?.value)||5,
     stall: $('sm_tax_stall') ? !!$('sm_tax_stall').checked : true,
-    equip: $('sm_tax_equip') ? !!$('sm_tax_equip').checked : true,
-    addon: $('sm_tax_addon') ? !!$('sm_tax_addon').checked : true,
+    equip: $('sm_tax_equip') ? !!$('sm_tax_equip').checked : false,
+    addon: $('sm_tax_addon') ? !!$('sm_tax_addon').checked : false,
     extra: $('sm_tax_extra') ? !!$('sm_tax_extra').checked : false
   };
 }
@@ -1947,8 +1958,8 @@ function setInvoiceTaxChecks(data){
   if($('sm_invoiceEnabled')) $('sm_invoiceEnabled').checked = obj.enabled!==false;
   if($('sm_invoiceRate')) $('sm_invoiceRate').value = Number(obj.rate)||5;
   if($('sm_tax_stall')) $('sm_tax_stall').checked = obj.stall!==false;
-  if($('sm_tax_equip')) $('sm_tax_equip').checked = obj.equip!==false;
-  if($('sm_tax_addon')) $('sm_tax_addon').checked = obj.addon!==false;
+  if($('sm_tax_equip')) $('sm_tax_equip').checked = obj.equip===true;
+  if($('sm_tax_addon')) $('sm_tax_addon').checked = obj.addon===true;
   if($('sm_tax_extra')) $('sm_tax_extra').checked = !!obj.extra;
 }
 function invoiceTaxItemLabels(tax){
@@ -2012,6 +2023,7 @@ async function editSes(id){
   // 加購
   $('addonsList').innerHTML='';addonIdx=0;
   (s.addons||[]).forEach(a=>addAddon(a));
+  if(!(s.addons||[]).length) addDefaultAddonOptions();
   buildModGrid(s.modules||{});
   buildEquipDefs(s.equip||{});
   setInvoiceTaxChecks(s.invoiceTax||s.invoiceTaxJson||s['發票含稅JSON']||{});
@@ -2148,9 +2160,9 @@ async function saveSession(btn){
       status:'報名中'
     };
 
-    console.log('[saveSession body]', body);
+    
     const res = await apiPost(body);
-    console.log('[saveSession response]', res);
+    
 
     if(!res){ showFail('後端沒有回傳資料'); return; }
     if(res.error){ showFail(res.error); return; }
