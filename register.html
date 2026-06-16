@@ -239,6 +239,15 @@ textarea{min-height:72px;resize:vertical}
   .tag{font-size:13px;padding:4px 12px}
   .session-fee{font-size:17px}
   .session-slots{font-size:13px}
+  /* 報名表 Modal：電腦版置中，不要從下滑入 */
+  .modal-overlay{align-items:center;padding:20px}
+  .modal-overlay .modal-box{transform:translateY(0);border-radius:16px;max-height:88vh}
+  #regFormModal .modal-box{max-width:600px;margin:0 auto;border-radius:16px;max-height:88vh}
+  /* Hero 圖電腦版：縮成橫條，場次名稱馬上看到 */
+  .form-hero-img{aspect-ratio:unset;height:120px;object-fit:cover}
+  .form-hero-placeholder{height:80px;font-size:36px}
+  .form-hero-title{font-size:16px}
+  .form-hero-meta{font-size:11px}
   /* 報名表 */
   .form-wrap{padding:20px 48px 28px}
   .fcard-t{font-size:14px;padding:14px 18px 10px}
@@ -819,6 +828,212 @@ function renderAllSessions(){
   el.innerHTML=list.map(s=>renderSessionCard(s)).join('');
 }
 
+// ── Email 查詢步驟（報名前先帶入會員資料）──
+function showEmailStep(s){
+  const dynEl=$('dynForm');
+  const submitBtn=$('submitBtn');
+  if(submitBtn) submitBtn.style.display='none';
+  const feeBox=$('feeBox');
+  if(feeBox) feeBox.style.display='none';
+  if(!dynEl) return;
+  // 場次說明簡介
+  const fee=s.fee||0;
+  const dep=s.deposit||0;
+  const feeStr=fee>0?`攤位費 NT$${fee}　`:'';
+  const depStr=dep>0?`保證金 NT$${dep}`:'';
+  const feeHint=(feeStr||depStr)?`<div style="font-size:12px;color:var(--g);margin-top:6px;font-weight:600">${feeStr}${depStr}</div>`:'';
+  dynEl.innerHTML=`
+    <div class="fcard" style="border:2px solid var(--g)">
+      <div class="fcard-t" style="background:var(--gp)">🔍 先查詢您的資料</div>
+      <div class="fcard-body">
+        <div style="font-size:13px;color:var(--md);margin-bottom:12px;line-height:1.6">
+          輸入 Email 查詢：<br>
+          ・老朋友 → 自動帶入品牌資料<br>
+          ・新朋友 → 填寫後存入會員檔案，下次報名自動帶入
+        </div>
+        <label>Email *</label>
+        <input type="email" id="step1Email" placeholder="your@email.com" inputmode="email"
+          value="${esc(ST.memberEmail||ST.member?.email||'')}"
+          onkeydown="if(event.key==='Enter')checkMemberStep()">
+        <div id="step1Err" class="err"></div>
+        <div id="step1Status" style="display:none;margin-top:10px;padding:10px 12px;border-radius:10px;font-size:13px;font-weight:600"></div>
+        ${feeHint}
+        <button class="btn-submit" type="button" onclick="checkMemberStep()" style="margin-top:14px">
+          查詢 / 繼續 →
+        </button>
+      </div>
+    </div>`;
+}
+
+async function checkMemberStep(){
+  const emailEl=$('step1Email');
+  const errEl=$('step1Err');
+  const statusEl=$('step1Status');
+  const email=(emailEl?.value||'').trim();
+  if(!email||!/\S+@\S+\.\S+/.test(email)){
+    if(errEl) errEl.textContent='請填寫正確 Email';
+    return;
+  }
+  if(errEl) errEl.textContent='';
+  if(emailEl) emailEl.disabled=true;
+  const checkBtn=document.querySelector('#dynForm .btn-submit');
+  if(checkBtn){ checkBtn.disabled=true; checkBtn.textContent='查詢中…'; }
+  ST.memberEmail=email;
+  const member=await api({action:'getMember',email});
+  if(emailEl) emailEl.disabled=false;
+  if(member&&!member.error&&(member.name||member.brand)){
+    ST.member=member;
+    if(statusEl){
+      statusEl.style.display='block';
+      statusEl.style.background='var(--gp)';
+      statusEl.style.color='var(--gd)';
+      statusEl.textContent='✅ 歡迎回來！已帶入您的品牌資料';
+    }
+    setTimeout(()=>{ renderDynFormFull(ST.currentSession); },600);
+  } else {
+    ST.member=null;
+    if(statusEl){
+      statusEl.style.display='block';
+      statusEl.style.background='#f3f0ff';
+      statusEl.style.color='#5b21b6';
+      statusEl.textContent='👋 新朋友！請填寫品牌資料（存入會員檔案，下次自動帶入）';
+    }
+    setTimeout(()=>{ renderDynFormFull(ST.currentSession,true); },600);
+  }
+}
+
+// 完整報名表（Email 查詢後才顯示）
+function renderDynFormFull(s, isNew=false){
+  const V=ST.member||{};
+  const email=ST.memberEmail||V.email||'';
+  let html='';
+  // ── 報名人基本資料 ──
+  html+=`<div class="fcard"><div class="fcard-t">👤 報名人資料</div><div class="fcard-body">`;
+  html+=`<label>姓名 *</label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="請填寫姓名"><div class="err" id="e_name"></div>`;
+  html+=`<label>手機 *</label><input type="tel" id="f_phone" value="${esc(V.phone||'')}" placeholder="0912345678" inputmode="tel"><div class="err" id="e_phone"></div>`;
+  html+=`<label>Email *</label><input type="email" id="f_email" value="${esc(email)}" placeholder="your@email.com" inputmode="email" readonly style="background:#f8f8f8;color:var(--md)"><div class="err" id="e_email"></div>`;
+  html+=`</div></div>`;
+  // ── 品牌資料（老朋友顯示，新朋友必填）──
+  html+=`<div class="fcard">
+    <div class="fcard-t">🏷️ 品牌資料${isNew?' *（請填寫）':' <span style="font-size:11px;font-weight:400;color:var(--lt)">（可修改）</span>'}</div>
+    <div class="fcard-body">`;
+  html+=`<label>品牌名稱${isNew?' *':''}</label><input type="text" id="f_brand" value="${esc(V.brand||V.brand_name||'')}" placeholder="您的品牌或攤位名稱">`;
+  html+=`<label>品牌介紹</label><textarea id="f_brandIntro" rows="2" placeholder="簡短介紹您的品牌…">${esc(V.brandIntro||V.brand_intro||'')}</textarea>`;
+  html+=`</div></div>`;
+  html+=renderDynFormBody(s);
+  $('dynForm').innerHTML=html;
+  const submitBtn=$('submitBtn');
+  if(submitBtn) submitBtn.style.display='block';
+  updateFee();
+  // 捲動到表單頂部
+  const inner=document.querySelector('#regFormModal [style*="overflow-y:auto"]');
+  if(inner) setTimeout(()=>inner.scrollTo(0,0),100);
+}
+
+// 報名表主體（日期/攤位/商品/加購等）
+function renderDynFormBody(s){
+  const mods=s.modules||{};
+  let html='';
+  // 日期選擇
+  if(s.dates && s.dates.length>1){
+    html+=`<div class="fcard"><div class="fcard-t">📅 選擇參加日期</div><div class="fcard-body">`;
+    s.dates.forEach((d,i)=>{
+      html+=`<label style="display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer;font-size:14px;color:var(--dk)">
+        <input type="checkbox" id="dp_${i}" checked onchange="updateFee()" style="width:18px;height:18px;accent-color:var(--g)">
+        <span>${d.date||''} ${d.start||''}${d.end?'–'+d.end:''}${d.fee?`　NT$${d.fee}`:''}</span>
+      </label>`;
+    });
+    html+=`</div></div>`;
+  }
+  // 攤位數
+  {
+    const sType=s.type||'市集場次';
+    const isMkt=sType==='市集場次'||sType==='通路寄賣';
+    const isEvent=sType==='活動報名';
+    const isCollab=sType==='合作申請';
+    if(!isCollab){
+      const stallLabel=isMkt?'攤位數':isEvent?'報名份數':'數量';
+      const stallIcon=isMkt?'🎪':isEvent?'🎟️':'📦';
+      const stallUnit=isMkt?'攤':isEvent?'份':'份';
+      const maxN=isMkt?3:5;
+      html+=`<div class="fcard"><div class="fcard-t">${stallIcon} ${stallLabel}</div><div class="fcard-body"><div class="stall-picker">`;
+      [1,2,3,...(maxN>3?[4,5]:[])].slice(0,maxN).forEach(n=>{html+=`<div class="stall-opt ${n===1?'on':''}" onclick="selectStall(this,${n})">${n} ${stallUnit}</div>`;});
+      html+=`</div></div></div>`;
+    }
+  }
+  // 本次販售商品
+  if(mods.sell_item){
+    html+=`<div class="fcard"><div class="fcard-t">🛍️ 本次販售商品</div><div class="fcard-body">`;
+    html+=`<input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物">`;
+    html+=`<div class="err" id="e_sellItem"></div>`;
+    html+=`</div></div>`;
+  }
+  // 大人小孩
+  if(mods.adult||mods.child){
+    html+=`<div class="fcard"><div class="fcard-t">👨‍👩‍👧 人數</div><div class="fcard-body">`;
+    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">`;
+    if(mods.adult) html+=`<div><label>大人人數 *</label><input type="number" id="f_adult" value="1" min="0" inputmode="numeric"></div>`;
+    if(mods.child) html+=`<div><label>小孩人數</label><input type="number" id="f_child" value="0" min="0" inputmode="numeric" oninput="toggleChildAge(this.value)"></div>`;
+    html+=`</div><div id="childAgeArea" style="display:none"><label>小孩年齡（可選填）</label><input type="text" id="f_childAge" placeholder="例：5,8,10"></div>`;
+    html+=`</div></div>`;
+  }
+  // 備註
+  if(mods.remark){
+    html+=`<div class="fcard"><div class="fcard-t">📝 備註</div><div class="fcard-body"><textarea id="f_remark" placeholder="本次報名補充說明…"></textarea></div></div>`;
+  }
+  // 自訂欄位
+  if(s.customFields && s.customFields.length){
+    html+=`<div class="fcard"><div class="fcard-t">📌 其他資料</div><div class="fcard-body">`;
+    s.customFields.forEach((cf,i)=>{
+      html+=`<label>${cf.label}${cf.required?' *':''}</label>`;
+      if(cf.type==='textarea') html+=`<textarea id="cf_${i}" placeholder="${cf.label}"></textarea>`;
+      else if(cf.type==='select') html+=`<select id="cf_${i}"><option value="">請選擇</option>${(cf.options||'').split(',').map(o=>`<option>${o.trim()}</option>`).join('')}</select>`;
+      else if(cf.type==='url') html+=`<input type="url" id="cf_${i}" placeholder="https://...">`;
+      else html+=`<input type="text" id="cf_${i}" placeholder="${cf.label}">`;
+    });
+    html+=`</div></div>`;
+  }
+  // 加購
+  const addons=(s.addons||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.open===true||a.open==='true');
+  if(addons.length>0){
+    html+=`<div class="fcard"><div class="fcard-t">🛒 加購項目（選填）</div><div class="fcard-body">`;
+    addons.forEach((a)=>{
+      html+=`<div class="equip-row">
+        <div class="equip-info"><div class="equip-name">${esc(a.name||'')}</div><div class="equip-price">NT$ ${Number(a.price)||0}/件</div></div>
+        <div class="equip-ctrl">
+          <button class="eq-btn" type="button" onclick="adjAddon(${a._idx},-1)">−</button>
+          <div class="eq-num" id="addon_num_${a._idx}">0</div>
+          <button class="eq-btn" type="button" onclick="adjAddon(${a._idx},1)">＋</button>
+        </div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
+  // 發票
+  html+=`<div class="fcard"><div class="fcard-t">🧾 發票設定</div><div class="fcard-body">`;
+  html+=`<div style="display:flex;gap:16px;margin-bottom:10px">
+    <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer">
+      <input type="radio" name="f_invoiceType" value="個人" checked onchange="toggleInvoiceType()"> 個人
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer">
+      <input type="radio" name="f_invoiceType" value="公司／機關" onchange="toggleInvoiceType()"> 公司／機關
+    </label>
+  </div>`;
+  html+=`<div id="personalInvoiceArea">
+    <label>手機載具（選填）</label>
+    <input type="text" id="f_invoiceCarrier" placeholder="/ABC-1234">
+    <label>收據寄送 Email（選填，空白用報名 Email）</label>
+    <input type="email" id="f_personalInvoiceEmail" placeholder="your@email.com" inputmode="email">
+  </div>`;
+  html+=`<div id="companyInvoiceArea" style="display:none">
+    <label>統一編號 *</label><input type="text" id="f_taxId" placeholder="12345678" inputmode="numeric" maxlength="8">
+    <label>公司抬頭 *</label><input type="text" id="f_invoiceTitle" placeholder="公司名稱">
+    <label>發票 Email *</label><input type="email" id="f_invoiceEmail" placeholder="invoice@company.com" inputmode="email">
+  </div>`;
+  html+=`</div></div>`;
+  return html;
+}
+
 async function openSessionDirect(sessionId){
   const s=ST.allSessionsData&&ST.allSessionsData.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
   if(!s||s.error)return;
@@ -859,8 +1074,7 @@ function openRegFormModal(){
   if(!modal) return;
   // 生成表單內容
   if(ST.currentSession){
-    renderDynForm(ST.currentSession);
-    updateFee();
+    showEmailStep(ST.currentSession);
   }
   modal.classList.add('show');
   // 推入 history，讓返回鍵可以關閉 modal
@@ -876,6 +1090,13 @@ function closeRegFormModal(){
   if(!modal) return;
   modal.classList.remove('show');
   ST.currentSession=null;
+  // 重設 dynForm 避免下次打開舊內容殘留
+  const dynEl=$('dynForm');
+  if(dynEl) dynEl.innerHTML='';
+  const submitBtn=$('submitBtn');
+  if(submitBtn) submitBtn.style.display='none';
+  const feeBox=$('feeBox');
+  if(feeBox) feeBox.style.display='none';
   // 清空表單
   const dynForm=$('dynForm');
   if(dynForm) dynForm.innerHTML='';
@@ -933,8 +1154,9 @@ function shareCurrentSession(){
 }
 
 async function openSession(sessionId){
-  const s=ST.sessions.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
-  if(!s||s.error)return;
+  // 永遠即時抓最新資料（避免費用/加購快取問題）
+  const s = await api({action:'getSession',id:sessionId});
+  if(!s||s.error){ toast('場次資料讀取失敗，請重試'); return; }
   ST.currentSession=s; ST.equipQty={}; ST.addonQty={}; ST.stallCount=1;
   const evt=ST.events.find(e=>e.id===s.eventId);
   const cover=s.cover||evt?.cover||'';
@@ -942,8 +1164,8 @@ async function openSession(sessionId){
   const titleEl=$('formBackTitle');
   if(titleEl) titleEl.textContent=s.name||'報名表';
   openRegFormModal();
-  renderDynForm(s);
-  updateFee();
+  // 先顯示 Email 查詢步驟
+  showEmailStep(s);
 }
 
 function renderDynForm(s){
@@ -1044,6 +1266,12 @@ function renderDynForm(s){
   $('dynForm').innerHTML=html;
 }
 
+function toggleInvoiceType(){
+  const type=document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人';
+  const pa=$('personalInvoiceArea'), ca=$('companyInvoiceArea');
+  if(pa) pa.style.display=type==='個人'?'block':'none';
+  if(ca) ca.style.display=type!=='個人'?'block':'none';
+}
 function selectStall(el,n){
   ST.stallCount=n;
   document.querySelectorAll('.stall-opt').forEach(x=>x.classList.remove('on'));
@@ -1194,6 +1422,10 @@ async function submitReg(ev){
     if(!name){ const e=$('e_name'); if(e)e.textContent='請填寫姓名'; ok=false; } else { const e=$('e_name'); if(e)e.textContent=''; }
     if(!phone||!/^09\d{8}$/.test(phone)){ const e=$('e_phone'); if(e)e.textContent='請填寫正確手機'; ok=false; } else { const e=$('e_phone'); if(e)e.textContent=''; }
     if(!email||!/\S+@\S+\.\S+/.test(email)){ const e=$('e_email'); if(e)e.textContent='請填寫正確 Email'; ok=false; } else { const e=$('e_email'); if(e)e.textContent=''; }
+    // 若是新朋友，品牌名稱為必填
+    const brandVal=($('f_brand')?.value||'').trim();
+    const isNewU=!ST.member;
+    if(isNewU && !brandVal){ toast('新朋友請填寫品牌名稱'); $('f_brand')?.focus(); return false; }
     if(!ok){ toast('請確認必填欄位'); return false; }
     let selectedDates=[];
     if(Array.isArray(s.dates) && s.dates.length>1){
@@ -1215,7 +1447,7 @@ async function submitReg(ev){
     const body={
       action:'register',sessionId:s.id,email,name,phone,stallCount:ST.stallCount||1,invoiceType,
       invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),taxId:($('f_taxId')?.value||'').trim(),invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),selectedDates,
-      brand:M.brand||M.brand_name||'',brandIntro:M.brandIntro||M.brand_intro||'',sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     };
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
