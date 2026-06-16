@@ -970,10 +970,22 @@ function renderDynForm(s){
     html+=`</div></div>`;
   }
 
-  // 攤位數
-  html+=`<div class="fcard"><div class="fcard-t">🎪 攤位數</div><div class="fcard-body"><div class="stall-picker">`;
-  [1,2,3].forEach(n=>{html+=`<div class="stall-opt ${n===1?'on':''}" onclick="selectStall(this,${n})">${n} 攤</div>`;});
-  html+=`</div></div></div>`;
+  // 攤位數 / 份數（依 type 顯示）
+  {
+    const sType=s.type||'市集場次';
+    const isMkt=sType==='市集場次'||sType==='通路寄賣';
+    const isEvent=sType==='活動報名';
+    const isCollab=sType==='合作申請';
+    if(!isCollab){
+      const stallLabel=isMkt?'攤位數':isEvent?'報名份數':'數量';
+      const stallIcon=isMkt?'🎪':isEvent?'🎟️':'📦';
+      const stallUnit=isMkt?'攤':isEvent?'份':'份';
+      const maxN=isMkt?3:5;
+      html+=`<div class="fcard"><div class="fcard-t">${stallIcon} ${stallLabel}</div><div class="fcard-body"><div class="stall-picker">`;
+      [1,2,3,...(maxN>3?[4,5]:[])].slice(0,maxN).forEach(n=>{html+=`<div class="stall-opt ${n===1?'on':''}" onclick="selectStall(this,${n})">${n} ${stallUnit}</div>`;});
+      html+=`</div></div></div>`;
+    }
+  }
 
   // 本次販售商品
   if(mods.sell_item){
@@ -1012,7 +1024,7 @@ function renderDynForm(s){
   }
 
   // 加購項目：只有後台勾選 open 才顯示
-  const addons=(s.addons||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.open===true);
+  const addons=(s.addons||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.open===true||a.open==='true');
   if(addons.length>0){
     html+=`<div class="fcard"><div class="fcard-t">🛒 加購項目（選填）</div><div class="fcard-body">`;
     addons.forEach((a)=>{
