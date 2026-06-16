@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/logo.jpg">
 <link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/logo.jpg">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="兔彼樂報名">
 <meta name="theme-color" content="#3a7d5c">
@@ -1295,68 +1296,106 @@ function updateFee(){
   $('feeBox').style.display=total>0?'block':'none';
 }
 
+
+function safeSetText(id, text){
+  const el=$(id);
+  if(el) el.textContent=text||'';
+}
+function safeValue(id){
+  const el=$(id);
+  return el ? String(el.value||'').trim() : '';
+}
+function showSubmitError(msg){
+  try{ toast('❌ '+msg, 3500); }catch(e){ alert('❌ '+msg); }
+}
+
 // ── 送出報名 ──
 async function submitReg(){
   const btn=$('submitBtn');
-  const s=ST.currentSession;
-  const email=$('f_email')?.value.trim();
-  const name=$('f_name')?.value.trim();
-  const phone=$('f_phone')?.value.trim();
-  let ok=true;
-  if(!name){$('e_name').textContent='請填寫姓名';ok=false;}else $('e_name').textContent='';
-  if(!phone||!/^09\d{8}$/.test(phone)){$('e_phone').textContent='請填寫正確手機';ok=false;}else $('e_phone').textContent='';
-  if(!email||!/\S+@\S+\.\S+/.test(email)){$('e_email').textContent='請填寫正確 Email';ok=false;}else $('e_email').textContent='';
-  if(!ok){toast('請確認必填欄位');return;}
-  // 多日場次：至少勾選一天
-  if(ST.currentSession && ST.currentSession.dates && ST.currentSession.dates.length>1){
-    const checkedDates=(ST.currentSession.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked);
-    if(!checkedDates.length){toast('請至少選擇一個參加日期');return;}
-  }
-  btn.disabled=true;btn.textContent='送出中…';
-  const invoiceType=document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人';
-  if(invoiceType==='公司／機關'){
-    const tax=$('f_taxId')?.value.trim()||'';
-    const title=$('f_invoiceTitle')?.value.trim()||'';
-    if(!/^\d{8}$/.test(tax)){toast('請填寫正確 8 碼統一編號');btn.disabled=false;btn.textContent='送出報名';return;}
-    if(!title){toast('請填寫公司抬頭');btn.disabled=false;btn.textContent='送出報名';return;}
-  }
-  const body={
-    action:'register', sessionId:s.id, email, name, phone,
-    stallCount:ST.stallCount||1,
-    invoiceType:document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人',
-    invoiceCarrier:$('f_invoiceCarrier')?.value.trim()||'',
-    taxId:$('f_taxId')?.value.trim()||'',
-    invoiceTitle:$('f_invoiceTitle')?.value.trim()||'',
-    invoiceEmail:($('f_invoiceEmail')?.value.trim()||$('f_personalInvoiceEmail')?.value.trim()||email),
-    selectedDates:(ST.currentSession?.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked).map(d=>d.date),
-    brand:$('f_brand')?.value.trim()||'',
-    brandIntro:$('f_brandIntro')?.value.trim()||'',
-    sellItem:$('f_sellItem')?.value.trim()||'',
-    sellLink:$('f_sellLink')?.value.trim()||'',
-    photo:$('f_photo')?.value.trim()||'',
-    equip:{...ST.equipQty},
-    addonQty:{...ST.addonQty},
-    fb:$('f_fb')?.value.trim()||'',
-    ig:$('f_ig')?.value.trim()||'',
-    remark:$('f_remark')?.value.trim()||'',
-    stallNumber:ST.selectedStall||'',
-    customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
-  };
   try{
+    const s=ST.currentSession;
+    if(!s || !s.id){
+      showSubmitError('找不到目前場次，請關閉報名表後重新點選場次');
+      return;
+    }
+
+    const email=safeValue('f_email');
+    const name=safeValue('f_name');
+    const phone=safeValue('f_phone');
+    let ok=true;
+
+    if(!name){ safeSetText('e_name','請填寫姓名'); ok=false; } else safeSetText('e_name','');
+    if(!phone||!/^09\d{8}$/.test(phone)){ safeSetText('e_phone','請填寫正確手機'); ok=false; } else safeSetText('e_phone','');
+    if(!email||!/\S+@\S+\.\S+/.test(email)){ safeSetText('e_email','請填寫正確 Email'); ok=false; } else safeSetText('e_email','');
+    if(!ok){ showSubmitError('請確認必填欄位'); return; }
+
+    if(s.dates && s.dates.length>1){
+      const checkedDates=(s.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked);
+      if(!checkedDates.length){
+        showSubmitError('請至少選擇一個參加日期');
+        return;
+      }
+    }
+
+    const invoiceType=document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人';
+    if(invoiceType==='公司／機關'){
+      const tax=safeValue('f_taxId');
+      const title=safeValue('f_invoiceTitle');
+      if(!/^\d{8}$/.test(tax)){ showSubmitError('請填寫正確 8 碼統一編號'); return; }
+      if(!title){ showSubmitError('請填寫公司抬頭'); return; }
+    }
+
+    if(btn){ btn.disabled=true; btn.textContent='送出中…'; }
+
+    const body={
+      action:'register',
+      sessionId:s.id,
+      email,
+      name,
+      phone,
+      stallCount:ST.stallCount||1,
+      invoiceType,
+      invoiceCarrier:safeValue('f_invoiceCarrier'),
+      taxId:safeValue('f_taxId'),
+      invoiceTitle:safeValue('f_invoiceTitle'),
+      invoiceEmail:(safeValue('f_invoiceEmail')||safeValue('f_personalInvoiceEmail')||email),
+      selectedDates:(s.dates||[]).filter((_,i)=>document.getElementById('dp_'+i)?.checked).map(d=>d.date),
+      brand:safeValue('f_brand'),
+      brandIntro:safeValue('f_brandIntro'),
+      sellItem:safeValue('f_sellItem'),
+      sellLink:safeValue('f_sellLink'),
+      photo:safeValue('f_photo'),
+      equip:{...(ST.equipQty||{})},
+      addonQty:{...(ST.addonQty||{})},
+      fb:safeValue('f_fb'),
+      ig:safeValue('f_ig'),
+      remark:safeValue('f_remark'),
+      stallNumber:ST.selectedStall||'',
+      customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+    };
+
+    console.log('[submitReg body]', body);
     const res=await apiPost(body);
-    if(res.error){toast('❌ '+res.error);btn.disabled=false;btn.textContent='送出報名';return;}
-    // 更新會員資料
+    console.log('[submitReg response]', res);
+
+    if(!res){ showSubmitError('後端沒有回傳資料'); return; }
+    if(res.error){ showSubmitError(res.error); return; }
+
     ST.memberEmail=email;
-    const updatedMember=await api({action:'getMember',email});
-    if(updatedMember&&!updatedMember.error) ST.member=updatedMember;
+    try{
+      const updatedMember=await api({action:'getMember',email});
+      if(updatedMember&&!updatedMember.error) ST.member=updatedMember;
+    }catch(e){}
+
     const paidRegId = res.regId || res.id || '';
     const paidAmount = res.totalAmount || res.total || 0;
-    // 顯示報名成功畫面
+
     const dynForm=$('dynForm');
     const feeBox=$('feeBox');
     if(dynForm) dynForm.style.display='none';
     if(feeBox) feeBox.style.display='none';
     if(btn) btn.style.display='none';
+
     const modalInner=$('regFormModal')?.querySelector('.modal-box');
     if(modalInner){
       const old=modalInner.querySelector('.success-screen');
@@ -1368,18 +1407,29 @@ async function submitReg(){
         <div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div>
         <div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div>
         <div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div>
-        ${paidRegId&&paidAmount>0?`<div style="background:#fff3cd;border-radius:10px;padding:12px;font-size:13px;color:#856404;margin-bottom:16px">💳 請於 48 小時內完成繳費<br><strong>NT$ ${paidAmount}</strong></div>`:''}
+        ${paidRegId&&paidAmount>0?`<div style="background:#fff3cd;border-radius:10px;padding:12px;font-size:13px;color:#856404;margin-bottom:16px">💳 請於錄取後完成繳費<br><strong>NT$ ${paidAmount}</strong></div>`:''}
         <div style="font-size:12px;color:var(--lt)">3 秒後自動返回...</div>`;
-      modalInner.querySelector('.modal-body')?.appendChild(div) || modalInner.appendChild(div);
-      modalInner.querySelector('.modal-body')?.scrollTo(0,9999) || modalInner.scrollTo(0,9999);
+      modalInner.appendChild(div);
+      modalInner.scrollTo(0,9999);
+    }else{
+      alert('報名成功！');
     }
+
     setTimeout(()=>{
       closeRegFormModal();
       window.scrollTo(0,0);
       if(paidRegId&&paidAmount>0) showPayPage(paidRegId,s.name||'',paidAmount);
     },3000);
-  }catch(e){toast('網路錯誤，請重試');}
-  btn.disabled=false;btn.textContent='送出報名';
+
+  }catch(e){
+    console.error('[submitReg fatal]', e);
+    showSubmitError(e && e.message ? e.message : String(e));
+  }finally{
+    if(btn && btn.style.display!=='none'){
+      btn.disabled=false;
+      btn.textContent='送出報名';
+    }
+  }
 }
 
 // ── 會員 ──
@@ -1746,6 +1796,19 @@ function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 // v1780560027
 applySiteConfig();
 loadHome();
+
+
+// 送出按鈕保險綁定：避免 inline onclick 未觸發時完全沒反應
+setTimeout(()=>{
+  const btn=document.getElementById('submitBtn');
+  if(btn && !btn.__submitBound){
+    btn.__submitBound=true;
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      if(typeof submitReg==='function') submitReg();
+    });
+  }
+}, 500);
 
 // ── 電腦版滑鼠拖曳橫向滑動 ──
 function enableDragScroll(){
