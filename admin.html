@@ -453,6 +453,18 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
   </div>
   <div style="font-size:11px;color:var(--lt)">空白則使用預設文字。</div>
 
+
+  <!-- ✉️ 寄信診斷 -->
+  <div style="margin-top:24px;padding-top:16px;border-top:2px solid var(--gp)">
+    <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:12px">✉️ 信件系統診斷</div>
+    <div style="font-size:13px;color:var(--md);margin-bottom:10px">輸入你自己的 Email，按「測試寄信」，看看信件系統是否正常運作。</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input type="email" id="testEmailAddr" placeholder="輸入你的 Email" style="flex:1;padding:9px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:13px">
+      <button onclick="testSendEmail()" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">📨 測試寄信</button>
+    </div>
+    <div id="testEmailResult" style="display:none;border-radius:10px;padding:12px 14px;font-size:13px;margin-top:4px"></div>
+  </div>
+
 </div>
 
 </div><!-- /main -->
@@ -1006,6 +1018,37 @@ function toggleSb(){
 }
 
 // ── 登入 ──
+
+async function testSendEmail(){
+  const addr = ($('testEmailAddr')?.value||'').trim();
+  const resEl = $('testEmailResult');
+  if(!addr||!addr.includes('@')){ alert('請輸入有效 Email'); return; }
+  if(!resEl) return;
+  resEl.style.display='block';
+  resEl.style.background='#f8f8f8';
+  resEl.style.color='#555';
+  resEl.textContent='⏳ 測試寄信中...';
+  try{
+    const res = await apiPost({action:'testEmail', to:addr, email:adminEmail, token:adminToken});
+    if(res.ok){
+      resEl.style.background='#d4edda';
+      resEl.style.color='#155724';
+      resEl.textContent='✅ 寄信成功！請去 '+ addr +' 的信箱確認（含垃圾信件夾）';
+    } else {
+      resEl.style.background='#f8d7da';
+      resEl.style.color='#721c24';
+      resEl.innerHTML='❌ 寄信失敗：<br><strong>'+(res.error||JSON.stringify(res))+'</strong><br><br>'
+        +'常見原因：<br>'
+        +'・Cloudflare Workers 環境變數 <strong>RESEND_KEY</strong> 未設定<br>'
+        +'・Resend 寄件 domain <strong>tuibile.com</strong> 未驗證<br>'
+        +'（截圖這個畫面傳給開發者）';
+    }
+  }catch(e){
+    resEl.style.background='#f8d7da';
+    resEl.style.color='#721c24';
+    resEl.textContent='❌ 網路錯誤：'+e.message;
+  }
+}
 
 async function doLogin(){
   const email=$('loginEmail').value.trim();
