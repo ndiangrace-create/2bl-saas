@@ -1741,14 +1741,14 @@ function renderMyRegs(regs){
   ST.regs = Array.isArray(regs) ? regs : [];
   const el=$('myRegsList');
   if(!el) return;
-  if(!regs||!regs.length){
+  if(!ST.regs.length){
     el.innerHTML='<div style="color:#aaa;font-size:16px;text-align:center;padding:20px">目前無報名紀錄</div>';
+    handlePendingPayLink(ST.regs);
     return;
   }
   const statusColor={'待審核':'#f5a623','已錄取':'#2d6a4f','不錄取':'#d94f4f','已取消':'#aaa','已報到':'#1a7f5a'};
-  el.innerHTML=regs.map(r=>{
+  el.innerHTML=ST.regs.map(r=>{
     const color=statusColor[r.status]||'#888';
-    const canCancel=['待審核','已錄取'].includes(r.status)&&r.payStatus!=='已繳費';
     return `<div onclick="openRegDetail('${r.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${color}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div style="font-size:20px;font-weight:800;color:var(--dk);flex:1;margin-right:8px">${r.sessionName||r.sesName||'場次'}</div>
@@ -1758,6 +1758,21 @@ function renderMyRegs(regs){
       <div style="font-size:16px;color:var(--lt);margin-top:4px">${r.payStatus||''}</div>
     </div>`;
   }).join('');
+  handlePendingPayLink(ST.regs);
+}
+
+function isPaidText(v){ return String(v||'').indexOf('已繳費')>=0; }
+function canPayReg(reg){ return reg && reg.status==='已錄取' && Number(reg.total||0)>0 && !isPaidText(reg.payStatus) && reg.payStatus!=='免費'; }
+function handlePendingPayLink(regs){
+  const regId = window._pendingPayRegId || '';
+  if(!regId) return;
+  const reg = (Array.isArray(regs)?regs:[]).find(r=>String(r.id)===String(regId));
+  if(!reg) return;
+  window._pendingPayRegId = '';
+  setTimeout(()=>{
+    if(canPayReg(reg)) showPayPage(reg.id, reg.sessionName||reg.sesName||'場次', Number(reg.total||0));
+    else openRegDetail(reg.id);
+  }, 300);
 }
 
 function openRegDetail(regId){
@@ -1766,6 +1781,7 @@ function openRegDetail(regId){
   const statusColor={'待審核':'#f5a623','已錄取':'#2d6a4f','不錄取':'#d94f4f','已取消':'#aaa','已報到':'#1a7f5a'};
   const color=statusColor[reg.status]||'#888';
   const canCancel=['待審核','已錄取'].includes(reg.status)&&reg.payStatus!=='已繳費';
+  const canPay = canPayReg(reg);
   const modal=document.createElement('div');
   modal.id='regDetailModal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:flex-end;justify-content:center';
@@ -1794,6 +1810,7 @@ function openRegDetail(regId){
       </div>
     </div>
     <div style="font-size:15px;color:var(--lt);margin-bottom:14px">報名編號：${reg.id}</div>
+    ${canPay?`<button onclick="document.getElementById('regDetailModal').remove();showPayPage('${reg.id}',this.dataset.ses,'${Number(reg.total||0)}');" data-ses="${(reg.sessionName||reg.sesName||'場次').replace(/"/g,'&quot;')}" style="width:100%;background:var(--g);color:#fff;border:none;padding:12px;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:8px">前往繳費</button>`:''}
     ${canCancel?`<button onclick="cancelMyReg('${reg.id}',this.dataset.ses);document.getElementById('regDetailModal').remove();" data-ses="${(reg.sessionName||reg.sesName||'').replace(/"/g,'&quot;')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">取消報名</button>`:''}
     <button onclick="document.getElementById('regDetailModal').remove()" style="width:100%;background:#f0f0f0;color:#888;border:none;padding:12px;border-radius:10px;font-size:14px;cursor:pointer">關閉</button>
   </div>`;
@@ -2124,15 +2141,11 @@ loadHome();
   if(_p.get('member')==='1'){
     const _payRegId = _p.get('pay');
     if(_payRegId) window._pendingPayRegId = _payRegId;
-    // 等頁面載入後切換到會員中心
+    // 信件按鈕進來時，直接切到會員中心；若本機已登入，會自動載入紀錄並開啟付款。
     setTimeout(()=>{
-      const memberBtns=document.querySelectorAll('[onclick*="tab-member"],[data-tab="member"]');
-      if(memberBtns.length) memberBtns[0].click();
-      else {
-        // 嘗試直接顯示 member login
-        const ml=$('memberLoginArea');
-        if(ml) ml.scrollIntoView({behavior:'smooth'});
-      }
+      goMemberPage();
+      const ml=$('memberLoginArea');
+      if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
     }, 800);
   }
 })();
