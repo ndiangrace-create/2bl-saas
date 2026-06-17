@@ -28,8 +28,8 @@
   --line:#06C755;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{min-height:100vh;overflow-x:hidden;font-size:19px;padding-bottom:80px}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--wh);color:var(--dk);padding-bottom:80px}
+html,body{min-height:100vh;overflow-x:hidden;font-size:19px;padding-bottom:66px}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--wh);color:var(--dk);padding-bottom:66px}
 
 /* ── 圖片 ── */
 img{display:block;max-width:100%}
@@ -178,13 +178,13 @@ textarea{min-height:72px;resize:vertical}
 .badge-no{background:var(--rdp);color:var(--rd)}
 
 /* ── 底部固定三按鈕 ── */
-.bottom-fixed{position:fixed;bottom:0;left:0;right:0;width:100%;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
-.bot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:13px 6px;border-radius:14px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;border:none;transition:all .15s}
+.bottom-fixed{position:fixed;bottom:0;left:0;right:0;width:100%;z-index:100;background:var(--wh);border-top:1px solid #ece8e0;padding:7px 10px calc(7px + env(safe-area-inset-bottom));display:flex;gap:8px}
+.bot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:0;padding:9px 4px;border-radius:13px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;line-height:1.2;min-height:48px}
 .bot-btn:active{transform:scale(.96)}
 .bot-line{background:#BFD1C4;color:#2d4a35;box-shadow:0 2px 8px rgba(100,160,120,.2);font-weight:800}
 .bot-member{background:#EED1CC;color:#6b2d2d;box-shadow:0 2px 8px rgba(200,120,110,.15);font-weight:800}
 .bot-profile{background:#B3CAD8;color:#1a3a4a;box-shadow:0 2px 8px rgba(80,130,160,.15);font-weight:800}
-.bot-icon{font-size:16px}
+.bot-icon{display:none}
 
 /* ── Toast ── */
 .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(30,30,26,.85);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
@@ -266,8 +266,8 @@ textarea{min-height:72px;resize:vertical}
   /* 會員頁 */
   .member-wrap{padding:28px 48px}
   /* 底部按鈕 */
-  .bot-btn{font-size:18px;padding:14px 8px}
-  .bot-icon{font-size:18px}
+  .bot-btn{font-size:17px;padding:10px 8px;min-height:48px}
+  .bot-icon{display:none}
   /* 資訊帶 */
   .info-band{font-size:14px;padding:14px 48px}
   /* 電腦版整體寬度：全寬 */
@@ -301,7 +301,7 @@ textarea{min-height:72px;resize:vertical}
 
   <!-- 說明帶 -->
   <div class="info-band" id="siteInfoBand">
-    加入會員後，資料填一次就好、下次報名自動帶入。（記得加入手機桌面喔 📲）<br>
+    加入會員後，資料填一次就好、下次報名自動帶入。（記得加入手機桌面喔）<br>
     <strong>兔彼樂共創活動 期待與您的每場相遇 🌿</strong>
   </div>
 
@@ -556,16 +556,16 @@ textarea{min-height:72px;resize:vertical}
 
 <div class="bottom-fixed">
   <button class="bot-btn" onclick="navTo('home')" style="background:#F4E8C0;color:#5a4a1a;font-weight:800">
-    <span class="bot-icon">🏠</span>首頁
+    首頁
   </button>
   <button class="bot-btn bot-line" onclick="openLine()">
-    <span class="bot-icon">💬</span>官方 LINE
+    LINE
   </button>
   <button class="bot-btn bot-member" onclick="goMemberPage()">
-    <span class="bot-icon">📋</span><span id="botMemberLabel">我的紀錄</span>
+    <span id="botMemberLabel">我的紀錄</span>
   </button>
   <button class="bot-btn bot-profile" onclick="window.open('https://www.facebook.com/groups/1210942742382927','_blank')">
-    <span class="bot-icon">🗺️</span>全台市集
+    全台市集
   </button>
 </div>
 
