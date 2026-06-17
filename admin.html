@@ -337,11 +337,11 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 <div id="page-regs" class="tab-page">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
     <div class="page-title" id="regsTitle" style="margin:0;flex:1">報名審核</div>
-    <button id="regsBackBtn" class="btn btn-s btn-sm" style="display:none" onclick="ST._filterSesId=null;ST._showAllRegStatus=false;this.style.display='none';renderRegs()">返回全部</button>
+    <button id="regsBackBtn" class="btn btn-s btn-sm" style="display:none" onclick="backToOverview()">← 回總覽</button>
   </div>
-  <select id="regSesFilter" onchange="ST._filterSesId=null;renderRegs()" style="width:100%;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;margin-bottom:8px;background:#fff"><option value="">所有場次</option></select>
+  <select id="regSesFilter" onchange="ST._filterSesId=null;ST._showAllRegStatus=false;$('regsTitle').textContent='報名審核';$('regsBackBtn').style.display='none';renderRegs()" style="width:100%;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;margin-bottom:8px;background:#fff"><option value="">所有場次</option></select>
   <!-- 搜尋 -->
-  <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email" oninput="ST._filterSesId=null;renderRegs()" style="margin-bottom:10px">
+  <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email/手機" oninput="renderRegs()" style="margin-bottom:10px">
   <div id="regCount" style="font-size:12px;color:var(--md);margin-bottom:8px"></div>
   <!-- 批次操作工具列 -->
   <div style="display:flex;align-items:center;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
@@ -1071,6 +1071,7 @@ function initAdmin(name,role){
   $('adminPage').style.display='block';
   $('staffName').textContent=name||ST.email;
   if(role==='superadmin') $('nav-staff').style.display='flex';
+  initAdminHistory();
   loadAllData();
 }
 
@@ -1364,6 +1365,23 @@ function renderOverviewSessions(){
 }
 
 
+function getActiveAdminPage(){
+  const p=document.querySelector('.tab-page.active');
+  if(!p||!p.id) return 'overview';
+  return p.id.replace('page-','')||'overview';
+}
+function initAdminHistory(){
+  if(window.__adminHistoryReady || !window.history) return;
+  window.__adminHistoryReady=true;
+  history.replaceState({adminPage:getActiveAdminPage()}, '', location.href);
+  window.addEventListener('popstate', function(e){
+    if(e.state && e.state.adminPage){
+      goPage(e.state.adminPage, {skipHistory:true});
+    }
+  });
+}
+
+
 function shortSesType(type){
   const t=String(type||'').trim();
   if(t.includes('寄賣')) return '寄賣';
@@ -1432,7 +1450,7 @@ function renderOverviewSessionsFn(){
     return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff">
       <td style="padding:8px 6px">${thumbHtml(cover,36,6)}</td>
       <td style="padding:8px 6px;font-size:16px;color:#333;white-space:nowrap;font-weight:800">${shortSesType(s.type)}</td>
-      <td style="padding:8px 6px;min-width:260px;max-width:360px"><span onclick="openSesDetail('${s.id}')" style="font-size:18px;font-weight:900;cursor:pointer;color:#1D9E75;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${s.name||''}</span><div style="font-size:11px;color:${statusLabel==='報名中'?'#1D9E75':statusLabel==='封存'?'#888':'#BA7517'}">${statusLabel}</div></td>
+      <td style="padding:8px 6px;min-width:260px;max-width:360px"><span style="font-size:18px;font-weight:900;color:#1D9E75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${s.name||''}</span><div style="font-size:11px;color:${statusLabel==='報名中'?'#1D9E75':statusLabel==='封存'?'#888':'#BA7517'}">${statusLabel}</div></td>
       <td style="padding:8px 6px;text-align:center;font-size:13px;color:#555;white-space:nowrap">${fmtOverviewDateRangeText(s)}</td>
       <td style="padding:8px 6px;text-align:center"><span onclick="goToSesRegs('${s.id}')" style="color:#1D9E75;font-weight:900;cursor:pointer;font-size:17px">${s.total||0}</span></td>
       <td style="padding:8px 6px;text-align:center"><span onclick="goToSesPending('${s.id}')" style="color:#BA7517;font-weight:900;cursor:pointer;font-size:17px">${s.pending||0}</span></td>
@@ -1490,13 +1508,18 @@ function toggleMoreMenu(){
 // 點其他地方關閉設定選單
 
 
-function goPage(name){
+function goPage(name, opts){
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
   const page=$('page-'+name);
   if(page) page.classList.add('active');
   const tab=$('atab-'+name);
   if(tab) tab.classList.add('active');
+  // 後台內部上一頁：讓瀏覽器/手機返回鍵先回到系統上一頁，不直接跳出網站
+  const skipHistory=opts&&opts.skipHistory;
+  if(!skipHistory && window.__adminHistoryReady && window.history){
+    history.pushState({adminPage:name}, '', location.href);
+  }
   // 初始化
   ST._showAllRegStatus=false;
   if(!['regs'].includes(name)) ST._filterSesId=null;
@@ -2267,13 +2290,45 @@ async function loadRegs(){
   ST.regs=list;
   renderRegs();
 }
+function formatEquipText(equip){
+  let obj=equip||{};
+  if(typeof obj==='string'){
+    try{obj=JSON.parse(obj||'{}');}catch(e){obj={};}
+  }
+  const items=Object.entries(obj||{}).filter(([k,v])=>Number(v)>0);
+  return items.length?items.map(([k,v])=>`${k}×${v}`).join('、'):'無';
+}
+function formatAddonText(r, ses){
+  const qtyRaw=r.addonQty||r.addonQtyJson||r.addon_qty_json||{};
+  let qty=qtyRaw;
+  if(typeof qty==='string'){
+    try{qty=JSON.parse(qty||'{}');}catch(e){qty={};}
+  }
+  const defs=(ses&&Array.isArray(ses.addons))?ses.addons:[];
+  const lines=[];
+  Object.entries(qty||{}).forEach(([idx,val])=>{
+    const n=Number(val)||0;
+    if(n<=0) return;
+    const def=defs[Number(idx)]||{};
+    lines.push(`${def.name||('加購'+(Number(idx)+1))}×${n}`);
+  });
+  if(lines.length) return lines.join('、');
+  const amt=Number(r.addonAmount||r.addon_amount||0)||0;
+  return amt>0?`加購金額 NT$${amt.toLocaleString()}`:'無';
+}
+function formatSocialLinks(r){
+  const links=[];
+  if(r.fb) links.push(`<a href="${escAttr(r.fb)}" target="_blank" style="background:#1877F2;color:#fff;padding:3px 8px;border-radius:7px;font-size:12px;text-decoration:none;font-weight:800">粉專</a>`);
+  if(r.ig) links.push(`<a href="${escAttr(r.ig)}" target="_blank" style="background:#dc2743;color:#fff;padding:3px 8px;border-radius:7px;font-size:12px;text-decoration:none;font-weight:800">IG</a>`);
+  return links.length?links.join(' '):'未填';
+}
 function renderRegs(){
   const kw=($('regSearch')?.value||'').toLowerCase();
   const sesId=ST._filterSesId||$('regSesFilter')?.value||'';
   if(ST._filterSesId){const s=$('regSesFilter');if(s&&s.value!==ST._filterSesId)s.value=ST._filterSesId;}
   let list=(ST.allRegs||[]).filter(r=>{
-    const matchKw=!kw||(r.brand||'').toLowerCase().includes(kw)||(r.name||'').toLowerCase().includes(kw)||(r.email||'').toLowerCase().includes(kw);
-    const matchSes=!sesId||(r.sessionId===sesId);
+    const matchKw=!kw||[r.brand,r.name,r.email,r.phone,r.fb,r.ig].some(v=>(v||'').toLowerCase().includes(kw));
+    const matchSes=!sesId||(String(r.sessionId)===String(sesId));
     const statusFilter=ST._filterStatusFilter||'';
     const matchStatus=ST._showAllRegStatus?true:(statusFilter?r.status===statusFilter:r.status==='待審核');
     return matchKw&&matchSes&&matchStatus;
@@ -2286,41 +2341,46 @@ function renderRegs(){
   const el=$('regsCardList');
   if(!el) return;
   if(!list.length){el.innerHTML='<div style="color:#aaa;text-align:center;padding:24px">無報名資料</div>';return;}
-  el.innerHTML=list.map(r=>{
-    const ses=(ST.sdData||[]).find(s=>s.id===r.sessionId)||{};
-    const ev=(ST.events||[]).find(e=>e.id===r.eventId)||{};
-    // 設備字串
-    let equipStr='';
-    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
-    // 狀態顏色
-    const statusBg={待審核:'#fff3cd',已錄取:'#d4edda',不錄取:'#f8d7da',備取:'#e2e3ff'}[r.status]||'#f0f0f0';
-    const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',備取:'#383d8a'}[r.status]||'#666';
-    return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh)">
-      <!-- 第一行：checkbox + 狀態、活動名、場次名 -->
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <input type="checkbox" class="reg-chk" data-id="${r.id}" style="width:15px;height:15px;accent-color:var(--g);flex-shrink:0;cursor:pointer">
-        <span style="background:${statusBg};color:${statusColor};padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0">${r.status||'待審核'}</span>
-        ${ev.title?`<span style="background:var(--gp);color:var(--g);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0">${ev.title}</span>`:''}
-        <span style="font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ses.name||r.sessionId}</span>
+  el.innerHTML=list.map((r,idx)=>{
+    const ses=(ST.sdData||[]).find(s=>String(s.id)===String(r.sessionId))||{};
+    const ev=(ST.events||[]).find(e=>String(e.id)===String(r.eventId))||{};
+    const equipStr=formatEquipText(r.equip);
+    const addonStr=formatAddonText(r,ses);
+    const amount=Number(r.amount||r.totalAmount||r.total||0)||0;
+    const statusBg={待審核:'#fff3cd',已錄取:'#d4edda',不錄取:'#f8d7da',備取:'#e2e3ff',已取消:'#eee'}[r.status]||'#f0f0f0';
+    const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',備取:'#383d8a',已取消:'#777'}[r.status]||'#666';
+    const pay=r.payStatus||'未繳費';
+    const paidOk=String(pay).includes('已繳費')||String(pay).includes('免費');
+    const dateHtml=ses.id?fmtOverviewDateRangeText(ses):'';
+    return `<div style="background:#fff;border:1px solid #e6efe9;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh)">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
+        <input type="checkbox" class="reg-chk" data-id="${escAttr(r.id)}" style="width:16px;height:16px;accent-color:var(--g);flex-shrink:0;margin-top:3px;cursor:pointer">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:18px;font-weight:900;color:var(--dk);line-height:1.35">${escAttr(ses.name||r.sessionName||'未命名場次')}</div>
+          <div style="font-size:12px;color:#777;margin-top:2px">${ev.title?escAttr(ev.title)+' ｜ ':''}${dateHtml||'日期未設定'}</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+          <span style="background:${statusBg};color:${statusColor};padding:3px 8px;border-radius:20px;font-size:12px;font-weight:800">${escAttr(r.status||'待審核')}</span>
+          <span style="background:${paidOk?'#e6f9f0':'#fff3cd'};color:${paidOk?'#1D9E75':'#856404'};padding:3px 8px;border-radius:20px;font-size:12px;font-weight:800">${escAttr(pay)}</span>
+        </div>
       </div>
-      <!-- 第二行：品牌、FB、IG、報名日期 -->
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <span style="font-size:14px;font-weight:700">${r.brand||r.name}</span>
-        ${r.fb?`<a href="${r.fb}" target="_blank" style="background:#1877F2;color:#fff;padding:2px 7px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:700">FB 🔗</a>`:''}
-        ${r.ig?`<a href="${r.ig}" target="_blank" style="background:linear-gradient(135deg,#f09433,#dc2743);color:#fff;padding:2px 7px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:700">IG 🔗</a>`:''}
-        <span style="font-size:11px;color:#aaa;margin-left:auto">${(r.createdAt||'').slice(0,10)}</span>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(90px,1fr));gap:8px;margin-bottom:10px">
+        <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">租幾攤</div><div style="font-size:16px;font-weight:900">${Number(r.stallCount||1)||1} 攤</div></div>
+        <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">設備</div><div style="font-size:13px;font-weight:800;line-height:1.45">${escAttr(equipStr)}</div></div>
+        <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">加購</div><div style="font-size:13px;font-weight:800;line-height:1.45">${escAttr(addonStr)}</div></div>
+        <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">總計繳費金額</div><div style="font-size:16px;font-weight:900;color:#1D9E75">NT$${amount.toLocaleString()}</div></div>
       </div>
-      <!-- 第三行：攤位數、設備 -->
-      <div style="font-size:12px;color:var(--md);margin-bottom:10px">
-        攤位 ${r.stallCount||1} 攤
-        ${equipStr?`　${equipStr}`:''}
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(90px,1fr));gap:8px;font-size:13px;color:#333;line-height:1.5;margin-bottom:12px">
+        <div><div style="font-size:11px;color:#999">品牌編號</div><strong>${escAttr(r.brand||'-')}</strong></div>
+        <div><div style="font-size:11px;color:#999">姓名</div><strong>${escAttr(r.name||'-')}</strong></div>
+        <div><div style="font-size:11px;color:#999">電話</div><strong>${escAttr(r.phone||'-')}</strong></div>
+        <div style="grid-column:span 2"><div style="font-size:11px;color:#999">粉專 / IG</div>${formatSocialLinks(r)}</div>
       </div>
-      <!-- 操作按鈕 -->
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${r.status!=='已錄取'?`<button onclick="quickApprove('${r.id}')" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">錄取</button>`:''}
-        ${r.status!=='不錄取'?`<button onclick="quickReject('${r.id}')" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">不錄取</button>`:''}
-        ${r.status!=='備取'?`<button onclick="quickWaitlist('${r.id}')" style="background:#e2e3ff;color:#383d8a;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">備取</button>`:''}
-        <button onclick="openRegDetail('${r.id}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">明細 🔗</button>
+        ${r.status!=='已錄取'?`<button onclick="quickApprove('${esc(r.id)}')" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">錄取</button>`:''}
+        ${r.status!=='不錄取'?`<button onclick="quickReject('${esc(r.id)}')" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">不錄取</button>`:''}
+        ${r.status!=='備取'?`<button onclick="quickWaitlist('${esc(r.id)}')" style="background:#e2e3ff;color:#383d8a;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">備取</button>`:''}
+        <button onclick="openRegDetail('${esc(r.id)}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">明細</button>
       </div>
     </div>`;
   }).join('');
@@ -3172,12 +3232,21 @@ async function sesRegDownload(){
 }
 
 // 報名數 → 該場次全部報名（不分狀態）
-function goToSesRegs(sesId){
+async function goToSesRegs(sesId){
+  const ses=(ST.sdData||[]).find(s=>String(s.id)===String(sesId))||{};
   ST._filterSesId=sesId;
   ST._showAllRegStatus=true;  // 顯示全部狀態
   goPage('regs');
   const sel=$('regSesFilter');
   if(sel) sel.value=sesId;
+  const title=$('regsTitle');
+  if(title) title.textContent='報名名單：'+(ses.name||'本場次');
+  const backBtn=$('regsBackBtn');
+  if(backBtn) backBtn.style.display='inline-flex';
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=true;
+  // 重新抓全資料，讓粉專/IG、攤位數、加購、金額用最新資料
+  try{ await loadAllRegs(); }catch(e){ console.warn('報名資料重新載入失敗，使用目前快取', e); }
   ST._filterSesId=sesId;
   ST._showAllRegStatus=true;
   renderRegs();
