@@ -209,7 +209,7 @@ textarea{min-height:72px;resize:vertical}
 
 /* ── 電腦版（768px以上）── */
 @media(min-width:768px){
-  html,body{font-size:16px}
+  html,body{font-size:19px}
   /* 頁面容器電腦版加寬 */
   .page{max-width:none!important;width:100%!important;margin:0!important}
   .bottom-fixed{max-width:none!important;width:100%!important}
@@ -1588,7 +1588,7 @@ async function submitReg(ev){
     const phone=($('f_phone')?.value||'').trim();
     let ok=true;
     if(!name){ const e=$('e_name'); if(e)e.textContent='請填寫姓名'; ok=false; } else { const e=$('e_name'); if(e)e.textContent=''; }
-    if(!phone||!/^09\d{8}$/.test(phone)){ const e=$('e_phone'); if(e)e.textContent='請填寫正確手機'; ok=false; } else { const e=$('e_phone'); if(e)e.textContent=''; }
+    if(phone){ const e=$('e_phone'); if(e)e.textContent=''; } // 手機選填，不強制格式
     if(!email||!/\S+@\S+\.\S+/.test(email)){ const e=$('e_email'); if(e)e.textContent='請填寫正確 Email'; ok=false; } else { const e=$('e_email'); if(e)e.textContent=''; }
     // 若是新朋友，品牌名稱為必填
     const brandVal=($('f_brand')?.value||'').trim();
