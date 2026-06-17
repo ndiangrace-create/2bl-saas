@@ -781,16 +781,8 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
     <div class="modal-title">報名詳情</div>
     <div id="regDetail"></div>
     <label style="margin-top:14px">管理員備註</label>
-    <div style="display:flex;gap:6px;align-items:flex-end">
-      <textarea id="regNote" placeholder="備註（不寄給報名者）" style="flex:1"></textarea>
-      <button class="btn btn-g btn-xs" onclick="saveRegNote()" style="height:38px;white-space:nowrap">儲存備註</button>
-    </div>
-    <div style="margin-top:10px;display:flex;gap:6px;align-items:center">
-      <label style="font-size:13px;white-space:nowrap;margin:0">攤位號碼</label>
-      <input type="text" id="regStallInput" placeholder="例：A1、B2" style="flex:1;padding:8px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:14px">
-      <button class="btn btn-g btn-xs" onclick="assignStall()" style="white-space:nowrap">指派</button>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+    <textarea id="regNote" placeholder="備註（不寄給報名者）"></textarea>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">
       <button class="btn btn-g btn-sm" onclick="approveReg()">✓ 核准</button>
       <button class="btn btn-r btn-sm" onclick="rejectReg()">✗ 拒絕</button>
       <button class="btn btn-b btn-sm" onclick="confirmPay()">💰 確認付款</button>
@@ -890,7 +882,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
         <option value="">全部狀態</option>
         <option value="待審核">待審核</option>
         <option value="已錄取">已錄取</option>
-
+        <option value="備取">備取</option>
         <option value="不錄取">不錄取</option>
         <option value="已取消">已取消</option>
       </select>
@@ -1115,9 +1107,9 @@ async function loadCheckinRegs(){
 function updateCheckinStats(){
   const total=ST_checkinRegs.length;
   const checked=ST_checkinRegs.filter(r=>r.checkin==='已報到').length;
-  const cleared=ST_checkinRegs.filter(r=>r.clearStatus==='已撤場').length;
+  const cleared=ST_checkinRegs.filter(r=>r.clearStatus==='已清場').length;
   const depositTotal=ST_checkinRegs.reduce((sum,r)=>sum+(r.deposit||0),0);
-  const refunded=ST_checkinRegs.filter(r=>r.depositRefunded==='已退押金').length;
+  const refunded=ST_checkinRegs.filter(r=>(r.depositRefunded==='已退押金'||r.depositRefunded==='已退')).length;
   $('checkinStats').innerHTML=`
     <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)">
       <div style="font-size:24px;font-weight:900;color:var(--g)">${checked}</div>
@@ -1165,8 +1157,8 @@ function filterCheckinList(){
   if(!list.length){$('checkinList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px">無符合資料</div>';return;}
   $('checkinList').innerHTML=list.map(r=>{
     const checked=r.checkin==='已報到';
-    const cleared=r.clearStatus==='已撤場';
-    const refunded=r.depositRefunded==='已退押金';
+    const cleared=r.clearStatus==='已清場';
+    const refunded=(r.depositRefunded==='已退押金'||r.depositRefunded==='已退');
     // 設備字串
     let equipStr='';
     try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
@@ -1197,7 +1189,7 @@ function filterCheckinList(){
           background:${cleared?'#fdecea':'#f0f0f0'};
           color:${cleared?'var(--rd)':'var(--md)'};
           border:none;border-radius:10px;padding:12px 8px;font-size:14px;font-weight:700;cursor:pointer">
-          ${cleared?'✓ 已撤場':'撤場'}
+          ${cleared?'✓ 已清場':'撤場'}
         </button>
         <button onclick="quickRefund('${r.id}',${r.deposit||0},this)" style="
           background:${refunded?'#e8f0fe':'#f0f0f0'};
@@ -1227,16 +1219,14 @@ async function quickCheckin(regId, btn, undo){
 }
 
 async function quickClear(regId, btn){
-  const reg=ST_checkinRegs.find(r=>r.id===regId);
-  const dep=Number(reg?.deposit||0);
-  const refundToo=dep>0&&confirm('同時退還押金 NT$'+dep+'？\n（取消 = 只撤場，不退押金）');
   if(btn){btn.disabled=true;btn.textContent='處理中…';}
   try{
-    const res=await apiPost({action:'markClear',regId,refunded:refundToo});
+    const res=await apiPost({action:'markClear',regId});
     if(res.error){toast('❌ '+res.error);return;}
-    if(reg){reg.clearStatus='已撤場';if(refundToo)reg.depositRefunded='已退押金';}
+    const reg=ST_checkinRegs.find(r=>r.id===regId);
+    if(reg) reg.clearStatus='已清場';
     filterCheckinList();
-    toast(refundToo?'✅ 已撤場，押金已退':'✅ 已撤場');
+    toast('✅ 已清場');
     await loadCheckinRegs();
   }finally{
     if(btn){btn.disabled=false;}
@@ -2272,8 +2262,8 @@ function renderRegs(){
     let equipStr='';
     try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
     // 狀態顏色
-    const statusBg={待審核:'#fff3cd',已錄取:'#d4edda',不錄取:'#f8d7da'}[r.status]||'#f0f0f0';
-    const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24'}[r.status]||'#666';
+    const statusBg={待審核:'#fff3cd',已錄取:'#d4edda',不錄取:'#f8d7da',備取:'#e2e3ff'}[r.status]||'#f0f0f0';
+    const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',備取:'#383d8a'}[r.status]||'#666';
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh)">
       <!-- 第一行：checkbox + 狀態、活動名、場次名 -->
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
@@ -2298,7 +2288,7 @@ function renderRegs(){
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${r.status!=='已錄取'?`<button onclick="quickApprove('${r.id}')" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">錄取</button>`:''}
         ${r.status!=='不錄取'?`<button onclick="quickReject('${r.id}')" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">不錄取</button>`:''}
-        
+        ${r.status!=='備取'?`<button onclick="quickWaitlist('${r.id}')" style="background:#e2e3ff;color:#383d8a;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">備取</button>`:''}
         <button onclick="openRegDetail('${r.id}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">明細 🔗</button>
       </div>
     </div>`;
@@ -2337,24 +2327,6 @@ async function saveStallConfig(){
   toast('✅ 攤位清單已儲存（'+lines.length+' 個）');
   $('stallConfigPreview').textContent='已設定 '+lines.length+' 個攤位：'+lines.slice(0,5).join('、')+(lines.length>5?'...':'');
   closeModal('stallModal');
-}
-async function assignStall(){
-  if(!ST.currentReg)return;
-  const stallNo=($('regStallInput')?.value||'').trim();
-  const res=await apiPost({action:'updateRegStatus',regId:ST.currentReg.id,status:ST.currentReg.status||'待審核',stallNumber:stallNo});
-  if(res.error){toast('❌ '+res.error);return;}
-  ST.currentReg.stallNo=stallNo;
-  toast('✅ 攤位號碼已指派');
-  await loadAllRegs();
-}
-async function saveRegNote(){
-  if(!ST.currentReg)return;
-  const note=($('regNote')?.value||'').trim();
-  const res=await apiPost({action:'updateRegStatus',regId:ST.currentReg.id,status:ST.currentReg.status||'待審核',adminNote:note});
-  if(res.error){toast('❌ '+res.error);return;}
-  ST.currentReg.adminNote=note;
-  toast('✅ 備註已儲存');
-  await loadAllRegs();
 }
 async function saveFastPass(){
   if(!ST.currentReg)return;
@@ -2453,12 +2425,9 @@ async function batchCheckin(){
   await loadAllRegs();
 }
 async function quickWaitlist(regId){
-  const reg=(ST.allRegs||[]).find(r=>r.id===regId);
-  if(!reg)return;
-  const note=(reg.adminNote||'')+' [備取候補]';
-  const res=await apiPost({action:'updateRegStatus',regId,status:reg.status||'待審核',adminNote:note.trim()});
+  const res=await apiPost({action:'approveReg',regId,status:'備取'});
   if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已在備註標記備取候補');
+  toast('已設為備取');
   await loadAllRegs(); renderRegs();
 }
 
@@ -2503,8 +2472,6 @@ async function openRegDetail(regId){
     </div>`;
   const regNoteEl=$('regNote');
   if(regNoteEl) regNoteEl.value=reg.adminNote||'';
-  const stallInput=$('regStallInput');
-  if(stallInput) stallInput.value=reg.stallNo||'';
   const fpChk=$('fastPassChk');
   if(fpChk) fpChk.checked=!!(reg.fastPass);
   openModal('regModal');
@@ -2582,7 +2549,7 @@ async function sendSingleNotify(){
 // ── 繳費管理 ──
 function isPaidText(v){
   const s=String(v||'').trim();
-  return s==='已繳費' || s==='已繳費 ✓' || s==='已付款' || s==='付款完成';
+  return s.indexOf('已繳費')>=0 || s==='已付款' || s==='付款完成';
 }
 function isPendingPayText(v){
   const s=String(v||'').trim();
@@ -3120,7 +3087,7 @@ function renderSesRegList(){
     return;
   }
   const statusColor={
-    '待審核':'#7c5ccc','已錄取':'#1D9E75',
+    '待審核':'#7c5ccc','已錄取':'#1D9E75','備取':'#D97706',
     '不錄取':'#E53E3E','已取消':'#aaa'
   };
   el.innerHTML=list.map((r,i)=>{
@@ -3257,7 +3224,7 @@ async function downloadSesData(sesId,sesName){
   }
   const totalReceived=paidRegs.reduce((sum,r)=>sum+payAmount(r),0);
   const depositTotal=paidRegs.reduce((sum,r)=>sum+depAmount(r),0);
-  const refundedTotal=paidRegs.filter(r=>clean(r.depositRefunded).includes('已退押金')).reduce((sum,r)=>sum+depAmount(r),0);
+  const refundedTotal=paidRegs.filter(r=>clean(r.depositRefunded).includes('已退')).reduce((sum,r)=>sum+depAmount(r),0);
   const businessIncome=Math.max(0,totalReceived-depositTotal);
   const equipmentIncome=paidRegs.reduce((sum,r)=>sum+equipChargeAmount(r),0);
   const activityIncome=Math.max(0,businessIncome-equipmentIncome);
@@ -3336,7 +3303,7 @@ async function downloadSesData(sesId,sesName){
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const csv='場次資訊\n'+toCSV(['欄位','內容'],infoRows)
     +'\n\n財報摘要（該場次最新資料）\n'+toCSV(['項目','金額/數量','備註'],summaryRows)
-    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已撤場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
+    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
     +'\n\n設備明細（全部報名，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipAllRows)
     +'\n\n設備明細（已錄取/已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipApprovedRows)
     +'\n\n設備明細（已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipPaidRows)
@@ -3405,7 +3372,7 @@ async function loadFinanceData(){
     },0);
   }
   const depositTotal=paidRegs.reduce((sum,r)=>sum+finRegDeposit(r),0);
-  const refundedTotal=paidRegs.filter(r=>String(r.depositRefunded||'').includes('已退押金')).reduce((sum,r)=>sum+finRegDeposit(r),0);
+  const refundedTotal=paidRegs.filter(r=>String(r.depositRefunded||'').includes('已退')).reduce((sum,r)=>sum+finRegDeposit(r),0);
   const depositLeft=depositTotal-refundedTotal;
   const businessIncome=Math.max(0,totalReceived-depositTotal);
   const equipmentIncome=paidRegs.reduce((sum,r)=>sum+finEquipCharge(r),0);
