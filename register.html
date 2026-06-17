@@ -650,8 +650,8 @@ function navTo(tab, opts={}){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   window.scrollTo(0,0);
-  // 返回首頁時清除 portal 背景
-  if(tab==='home'){const pp=$('pagePortal');if(pp)pp.style.background='';}  
+  // 返回首頁時清除 portal 和 body 背景
+  if(tab==='home'){const pp=$('pagePortal');if(pp)pp.style.background='';document.body.style.background='var(--wh)';}  
   if(!opts.noPush){
     history.pushState({page:tab}, '', location.href);
   }
@@ -731,8 +731,10 @@ async function filterCat(type, el){
   if(list) list.innerHTML = '<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中…</div>';
   // 根據類別設定頁面背景色
   const _catBgMap={'市集報名':'#F2EEED','體驗活動':'#F4EBE4','通路寄賣':'#EAE0D7','合作洽詢':'#EBEBE9'};
+  const _catBg=_catBgMap[type]||'';
   const _portalPageEl=$('pagePortal');
-  if(_portalPageEl) _portalPageEl.style.background=_catBgMap[type]||'';
+  if(_portalPageEl) _portalPageEl.style.background=_catBg;
+  document.body.style.background=_catBg||'var(--wh)';
   navTo('portal');
   window.scrollTo(0,0);
   // 載入場次
@@ -779,8 +781,11 @@ async function openEvent(eventId){
   // 根據活動名稱設定頁面背景色
   const _evtBgMap={'耶市集':'#E6F1ED','幻日祭':'#EBE2E5'};
   const _evtBg=evt?Object.entries(_evtBgMap).find(([k])=>(evt.title||'').includes(k)):null;
+  // 設定全頁底色（含 body，確保空白區域也有底色）
+  const _bg=_evtBg?_evtBg[1]:'';
   const _portalPage=$('pagePortal');
-  if(_portalPage) _portalPage.style.background=_evtBg?_evtBg[1]:'';
+  if(_portalPage) _portalPage.style.background=_bg;
+  document.body.style.background=_bg||'var(--wh)';
   navTo('portal');
   const sessions=await api({action:'getSessions',eventId});
   ST.sessions=Array.isArray(sessions)?sessions:[];
@@ -1025,7 +1030,7 @@ function renderDynFormFull(s, isNew=false){
     // 全報優惠提示（全選日期時顯示）
     if(s.fee>0){
       html+=`<div id="fullPkgHint" style="display:none;background:linear-gradient(135deg,#d4edda,#c3e6cb);border-radius:10px;padding:10px 14px;margin-top:8px;font-size:14px;font-weight:700;color:#155724">
-        🎉 全程參加優惠價 NT$${s.fee*1} / 攤（單日各 NT$${(s.dates||[]).reduce((s,d)=>s+(Number(d.fee)||0),0)} 元，全報省 NT$${(s.dates||[]).reduce((s,d)=>s+(Number(d.fee)||0),0)-(s.fee||0)} 元）
+        🎉 全程參加優惠價 NT$${s.fee*1} / 攤（全報省 NT$${(s.dates||[]).reduce((acc,d)=>acc+(Number(d.fee)||0),0)-(s.fee||0)} 元）
       </div>`;
     }
     html+=`</div></div>`;
@@ -1543,11 +1548,17 @@ async function submitReg(ev){
   if(ST.__submitting){ toast('報名送出中，請稍候…'); return false; }
   const showFormError=(msg)=>{const el=$('formError');if(el){el.style.display='block';el.innerHTML='❌ 錯誤：'+msg+'<br><span style="font-size:14px;font-weight:400;color:#666">（截圖此錯誤訊息，方便排查）</span>';}};
   const hideFormError=()=>{const el=$('formError');if(el)el.style.display='none';};
-  const restoreBtn=()=>{ ST.__submitting=false; if(btn && btn.style.display!=='none'){ btn.disabled=false; btn.textContent='送出報名'; } };
+  const restoreBtn=()=>{ ST.__submitting=false; if(btn){ btn.disabled=false; btn.textContent='送出報名'; btn.style.opacity='1'; } };
+  // 按下按鈕立刻給回饋，確認 onclick 有觸發
+  if(btn){ btn.textContent='確認中…'; btn.style.opacity='.7'; }
   try{
     const s=ST.currentSession;
-    if(!s || !s.id){ toast('❌ 找不到目前場次，請關閉報名表後重新點選場次'); return false; }
-    const email=($('f_email')?.value||'').trim();
+    if(!s || !s.id){
+      showFormError('找不到場次資料，請關閉後重新點選場次');
+      toast('❌ 找不到場次資料');
+      restoreBtn(); return false;
+    }
+    const email=($('f_email')?.value||ST.memberEmail||'').trim();
     const name=($('f_name')?.value||'').trim();
     const phone=($('f_phone')?.value||'').trim();
     let ok=true;
@@ -1602,7 +1613,9 @@ async function submitReg(ev){
     return false;
   }catch(e){
     console.error('[submitReg fatal]', e);
-    toast('❌ 報名送出失敗：'+(e && e.message ? e.message : String(e)), 4200);
+    const errMsg='報名送出失敗：'+(e && e.message ? e.message : String(e));
+    showFormError(errMsg);
+    toast('❌ '+errMsg, 8000);
     restoreBtn(); return false;
   }
 }
