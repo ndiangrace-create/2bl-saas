@@ -68,12 +68,12 @@ img{display:block;max-width:100%}
 .cats-section{padding:20px 16px 4px}
 .cats-title{font-size:15px;font-weight:700;color:var(--md);letter-spacing:.08em;text-align:center;margin-bottom:16px}
 .cats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.cat-btn{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:18px 6px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent;overflow:hidden;min-height:0}
+.cat-btn{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:20px 8px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent;overflow:hidden;min-height:0}
 .cat-btn:active{transform:scale(.95)}
 .cat-btn.active{border-color:var(--g);background:var(--gp)}
 .cat-btn img{width:64px;height:64px;object-fit:contain}
 .cat-btn .cat-emoji{font-size:32px;line-height:1}
-.cat-name{font-size:15px;font-weight:700;color:var(--dk);text-align:center;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.cat-name{font-size:17px;font-weight:700;color:var(--dk);text-align:center;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
 .cat-sub{font-size:15px;color:var(--md);text-align:center;line-height:1.3}
 
 /* ── 主題活動 ── */
@@ -94,9 +94,9 @@ img{display:block;max-width:100%}
 .event-status-tag{position:absolute;top:8px;left:8px;background:var(--g);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px}
 .event-status-tag.closed{background:#ccc}
 .event-info{padding:10px 10px 12px}
-.event-name{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.event-meta{font-size:10px;color:var(--md);line-height:1.5}
-.event-more{font-size:10px;color:var(--g);font-weight:700;margin-top:6px}
+.event-name{font-size:17px;font-weight:800;line-height:1.4;margin-bottom:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.event-meta{font-size:13px;color:var(--md);line-height:1.5}
+.event-more{font-size:14px;color:var(--g);font-weight:700;margin-top:6px}
 
 /* ── 場次頁 ── */
 .page{display:none;padding-bottom:100px;width:100%}
@@ -228,10 +228,10 @@ textarea{min-height:72px;resize:vertical}
   /* 活動卡片電腦版加大 */
   .events-section{padding:28px 48px 12px}
   .section-title{font-size:24px}
-  .event-card{width:260px}
-  .event-name{font-size:16px}
-  .event-meta{font-size:12px}
-  .event-more{font-size:12px}
+  .event-card{width:280px}
+  .event-name{font-size:20px}
+  .event-meta{font-size:15px}
+  .event-more{font-size:15px}
   .event-status-tag{font-size:11px}
   /* 場次卡片 */
   .session-card-inner{padding:18px 20px}
@@ -650,6 +650,8 @@ function navTo(tab, opts={}){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   window.scrollTo(0,0);
+  // 返回首頁時清除 portal 背景
+  if(tab==='home'){const pp=$('pagePortal');if(pp)pp.style.background='';}  
   if(!opts.noPush){
     history.pushState({page:tab}, '', location.href);
   }
@@ -727,6 +729,10 @@ async function filterCat(type, el){
   if(title) title.textContent = type;
   const list = $('portalSessionList');
   if(list) list.innerHTML = '<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中…</div>';
+  // 根據類別設定頁面背景色
+  const _catBgMap={'市集報名':'#F2EEED','體驗活動':'#F4EBE4','通路寄賣':'#EAE0D7','合作洽詢':'#EBEBE9'};
+  const _portalPageEl=$('pagePortal');
+  if(_portalPageEl) _portalPageEl.style.background=_catBgMap[type]||'';
   navTo('portal');
   window.scrollTo(0,0);
   // 載入場次
@@ -770,6 +776,11 @@ async function openEvent(eventId){
   if(title) title.textContent=evt?evt.title:'場次列表';
   const list=$('portalSessionList');
   if(list) list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
+  // 根據活動名稱設定頁面背景色
+  const _evtBgMap={'耶市集':'#E6F1ED','幻日祭':'#EBE2E5'};
+  const _evtBg=evt?Object.entries(_evtBgMap).find(([k])=>(evt.title||'').includes(k)):null;
+  const _portalPage=$('pagePortal');
+  if(_portalPage) _portalPage.style.background=_evtBg?_evtBg[1]:'';
   navTo('portal');
   const sessions=await api({action:'getSessions',eventId});
   ST.sessions=Array.isArray(sessions)?sessions:[];
