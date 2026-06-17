@@ -1812,14 +1812,32 @@ async function doSubmitCancel(){
   const regId=ST._pendingCancelRegId;
   if(!regId)return;
   const btn=$('cancelSubmitBtn');
-  btn.disabled=true;btn.textContent='處理中…';
-  const res=await apiPost({action:'cancelReg',regId,email:ST.member?.email||ST.memberEmail||''});
-  closeModal('cancelModal');
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已取消報名');
-  if(ST.memberEmail){
-    const regs=await api({action:'getMyRegs',email:ST.memberEmail});
-    renderMyRegs(regs||[]);
+  if(btn){btn.disabled=true;btn.textContent='處理中…';}
+  try{
+    const res=await apiPost({action:'cancelReg',regId,email:ST.member?.email||ST.memberEmail||''});
+    if(res.error){toast('❌ '+res.error);return;}
+    closeModal('cancelModal');
+    toast('✅ 已取消報名');
+
+    // 先在畫面上立即改狀態，避免等待 getMyRegs 時看起來卡住。
+    const list=Array.isArray(ST.regs)?ST.regs:[];
+    const target=list.find(r=>r.id===regId);
+    if(target){
+      target.status='已取消';
+      target.reviewStatus='已取消';
+    }
+    renderMyRegs(list);
+    ST._pendingCancelRegId='';
+    ST._pendingCancelSesName='';
+
+    // 背景重新抓一次最新資料，不阻塞畫面。
+    if(ST.memberEmail){
+      api({action:'getMyRegs',email:ST.memberEmail}).then(regs=>{
+        if(Array.isArray(regs)) renderMyRegs(regs);
+      }).catch(e=>console.warn('[cancel refresh failed]',e));
+    }
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='我已了解，送出取消申請';}
   }
 }
 
