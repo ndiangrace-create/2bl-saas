@@ -1029,7 +1029,7 @@ async function testSendEmail(){
   resEl.style.color='#555';
   resEl.textContent='⏳ 測試寄信中...';
   try{
-    const res = await apiPost({action:'testEmail', to:addr, email:adminEmail, token:adminToken});
+    const res = await apiPost({action:'testEmail', to:addr, email:ST.email, token:ST.token});
     if(res.ok){
       resEl.style.background='#d4edda';
       resEl.style.color='#155724';
