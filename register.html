@@ -663,6 +663,13 @@ function goMemberPage(){
   const memberArea=$('memberArea');
   if(!loginArea||!memberArea) return;
   if(!ST.memberEmail){
+    // 再嘗試從 localStorage 讀一次
+    try{
+      const saved=localStorage.getItem('tb_member');
+      if(saved){const d=JSON.parse(saved);if(d&&d.email){ST.memberEmail=d.email;ST.member=d.member||null;}}
+    }catch(e){}
+  }
+  if(!ST.memberEmail){
     loginArea.style.display='block';
     memberArea.style.display='none';
   } else {
@@ -1210,30 +1217,28 @@ function closeRegFormModal(){
 
 // 返回鍵攔截：如果報名 modal 是開著的，關掉它；否則讓瀏覽器正常返回
 window.addEventListener('popstate', function(e){
-  const state = e.state || {};
+  // Layer 3：報名詳情 Modal
+  const regDM=document.getElementById('regDetailModal');
+  if(regDM){ regDM.remove(); return; }
   // Layer 2：報名表 Modal 開著 → 關閉 Modal
   const modal=$('regFormModal');
   if(modal && modal.classList.contains('show')){
-    modal.classList.remove('show');
-    ST.currentSession=null;
+    closeRegFormModal();
     return;
   }
-  // Layer 1：在 pagePortal → 回 pageHome
-  const portal=$('pagePortal');
-  if(portal && portal.classList.contains('active')){
+  // Layer 1：在非首頁 → 回首頁（不讓 browser 離開 app）
+  const isHome=$('pageHome')?.classList.contains('active');
+  if(!isHome){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     $('pageHome').classList.add('active');
+    const pp=$('pagePortal'); if(pp) pp.style.background='';
+    document.body.style.background='var(--wh)';
     window.scrollTo(0,0);
+    // 重新 push home state 避免再按返回直接離開
+    history.pushState({page:'home'}, '', location.href);
     return;
   }
-  // Layer 1：在 pageMember → 回 pageHome
-  const member=$('pageMember');
-  if(member && member.classList.contains('active')){
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    $('pageHome').classList.add('active');
-    window.scrollTo(0,0);
-    return;
-  }
+  // 已在首頁 → 讓 browser 正常處理（回上一頁或離開）
 });
 
 // 分享當前場次
@@ -1657,9 +1662,19 @@ async function memberLogin(){
   }
   renderMyRegs(regs||[]);
   restoreBtn();
+  // 持久化登入狀態到 localStorage
+  try {
+    localStorage.setItem('tb_member', JSON.stringify({
+      email: email,
+      member: member||null,
+      savedAt: Date.now()
+    }));
+  } catch(e){}
 }
 
 function memberLogout(){
+  try { localStorage.removeItem('tb_member'); } catch(e){}
+  ST.memberEmail=''; ST.member=null;
   ST.member=null;ST.memberEmail=null;
   $('loginEmail').value='';
   $('memberLoginArea').style.display='block';
@@ -1983,6 +1998,8 @@ async function saveMemberEdit(){
   // 更新本地 member 資料
   ST.member={...ST.member,...body};
   fillMemberCard(ST.member);
+  // 更新 localStorage
+  try { localStorage.setItem('tb_member', JSON.stringify({email:ST.memberEmail,member:ST.member,savedAt:Date.now()})); } catch(e){}
   $('memberName').textContent=body.name||ST.memberEmail;
   // 顯示成功訊息後關閉 Modal
   const msg=$('saveSuccessMsg');
@@ -2010,6 +2027,23 @@ function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
 // ── 初始化 ──
 // v1780560027
+// 從 localStorage 還原登入狀態（session 不過期，永久保留）
+(function restoreLogin(){
+  try {
+    const saved = localStorage.getItem('tb_member');
+    if(saved){
+      const d = JSON.parse(saved);
+      if(d && d.email){
+        ST.memberEmail = d.email;
+        ST.member = d.member||null;
+        // 更新底部按鈕
+        const lbl=$('botMemberLabel');
+        if(lbl) lbl.textContent='會員登出';
+        console.log('[register] 已還原登入:', d.email);
+      }
+    }
+  } catch(e){}
+})();
 applySiteConfig();
 loadHome();
 // ── URL 深連結：?member=1&pay=REG_xxx ──
