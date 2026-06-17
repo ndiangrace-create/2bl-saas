@@ -362,6 +362,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
       <div id="regDetailBody"></div>
       <div class="modal-actions">
         <button class="btn btn-s" onclick="closeModal('regDetailModal')" style="flex:1">關閉</button>
+        <button class="btn btn-b" onclick="resendRegConfirm()" style="flex:1">📨 重寄確認信</button>
       </div>
     </div>
   </div>
@@ -2985,6 +2986,17 @@ async function saveStaff(){
   });
 }
 
+
+async function resendRegConfirm(){
+  const reg=ST.currentReg;
+  if(!reg){toast('找不到報名資料');return;}
+  const btn=document.querySelector('#regDetailModal .btn-b');
+  if(btn){btn.disabled=true;btn.textContent='寄送中...';}
+  const res=await apiPost({action:'resendRegConfirm',regId:reg.id,email:ST.email,token:ST.token});
+  if(btn){btn.disabled=false;btn.textContent='📨 重寄確認信';}
+  if(res.ok||res.success) toast('✅ 確認信已重寄至 '+reg.email);
+  else toast('❌ '+(res.error||'寄信失敗'));
+}
 
 async function resendStaffInvite(email){
   if(!confirm('重新寄送後台邀請通知給 '+email+'？'))return;
