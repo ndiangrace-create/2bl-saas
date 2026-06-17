@@ -61,7 +61,7 @@ img{display:block;max-width:100%}
 .htag{background:#fff;border:1.5px solid #d4f0e0;color:var(--g);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px}
 
 /* ── 說明帶 ── */
-.info-band{background:var(--gp);padding:12px 16px;font-size:15px;color:var(--g);line-height:1.6;text-align:center}
+.info-band{background:#D4E3DD;padding:12px 16px;font-size:15px;color:var(--g);line-height:1.6;text-align:center}
 .info-band strong{font-weight:700}
 
 /* ── 分類按鈕 ── */
@@ -321,7 +321,7 @@ textarea{min-height:72px;resize:vertical}
   </div>
 
   <!-- 依類型選擇報名 腰帶 -->
-  <div style="background:linear-gradient(135deg,var(--g),var(--gl));padding:12px 16px;text-align:center;margin:8px 0 0">
+  <div style="background:#82ABA3;padding:12px 16px;text-align:center;margin:8px 0 0">
     <div style="color:#fff;font-size:15px;font-weight:700;letter-spacing:2px">依類型選擇報名</div>
   </div>
 
@@ -619,7 +619,7 @@ async function api(params){
   try{ const r=await fetch(API+'?'+qs); if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'fail'};} return await r.json(); }
   catch(e){ toast&&toast('⚠️ 網路連線失敗'); return {error:'fail'}; }
 }
-async function apiPost(body, timeoutMs=25000){
+async function apiPost(body, timeoutMs=15000){
   const ctrl = new AbortController();
   const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
   try{
@@ -633,7 +633,7 @@ async function apiPost(body, timeoutMs=25000){
     console.error('[apiPost error]', e);
     if(e && e.name==='AbortError'){
       toast('⚠️ 送出逾時，請稍後查詢我的紀錄');
-      return {error:'送出逾時，系統可能仍在處理。請稍後到「我的紀錄」確認，或聯繫官方 LINE。'};
+      return {error:'送出逾時：後端沒有在 15 秒內回應。系統可能仍在處理，請先到「我的紀錄」確認是否已出現報名；若沒有，請截圖此畫面給官方 LINE。'};
     }
     toast('⚠️ 網路錯誤');
     return {error:'網路錯誤，請稍後再試'};
@@ -1571,7 +1571,7 @@ async function submitReg(ev){
   if(ev && ev.preventDefault) ev.preventDefault();
   const btn=$('submitBtn');
   if(ST.__submitting){ toast('報名送出中，請稍候…'); return false; }
-  const showFormError=(msg)=>{const el=$('formError');if(el){el.style.display='block';el.innerHTML='❌ 錯誤：'+msg+'<br><span style="font-size:14px;font-weight:400;color:#666">（截圖此錯誤訊息，方便排查）</span>';}};
+  const showFormError=(msg)=>{const el=$('formError');if(el){el.style.display='block';el.innerHTML='❌ 錯誤：'+msg+'<br><span style="font-size:14px;font-weight:400;color:#666">（截圖此錯誤訊息，方便排查）</span>'; try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}}};
   const hideFormError=()=>{const el=$('formError');if(el)el.style.display='none';};
   const restoreBtn=()=>{ ST.__submitting=false; if(btn){ btn.disabled=false; btn.textContent='送出報名'; btn.style.opacity='1'; } };
   // 按下按鈕立刻給回饋，確認 onclick 有觸發
