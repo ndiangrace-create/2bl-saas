@@ -1076,13 +1076,13 @@ function renderDynFormFull(s, isNew=false){
 
       // 設備加購
       if(equipDefs.length>0){
-        html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）</div>`;
+        html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）請填寫總數量</div>`;
         equipDefs.forEach(([k,v])=>{
           const incl=Number(v.incl)||0;
           const price=Number(v.price)||0;
           html+=`<div class="equip-row">
-            <div class="equip-info"><div class="equip-name" style="font-size:15px">${esc(k)}</div>
-            <div class="equip-price">NT$ ${price}/件${incl>0?' ・含 '+incl+' 件/攤，超才計費':''}</div></div>
+            <div class="equip-info"><div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
+            <div class="equip-price">NT$ ${price}/件${incl>0?' ・含 '+incl+' 件/攤 超過加租':''}</div></div>
             <div class="equip-ctrl">
               <button class="eq-btn" type="button" onclick="adjEquip('${k}',-1)">−</button>
               <div class="eq-num" id="eq_num_${k}">0</div>
@@ -1491,6 +1491,20 @@ function adjEquip(k,delta){
   ST.equipQty[k]=next;
   const el=document.getElementById('eq_num_'+k);
   if(el)el.textContent=next;
+  // 動態更新說明：已含幾件、額外幾件
+  const _ed=(s?.equip||{})[k]||{};
+  const inclPerStall=Number(_ed.incl)||0;
+  const inclFree=inclPerStall*(ST.stallCount||1);
+  const extra=Math.max(0,next-inclFree);
+  const price=Number(_ed.price)||0;
+  const hintId='eq_hint_'+k.replace(/[^a-zA-Z0-9]/g,'_');
+  const hintEl=document.getElementById(hintId);
+  if(hintEl){
+    if(inclFree>0){
+      if(next<=inclFree) hintEl.textContent=`✓ 目前含 ${inclFree} 件免費，已含足夠`;
+      else hintEl.textContent=`✓ 含 ${inclFree} 件免費 ＋ 額外 ${extra} 件 = NT$${extra*price}`;
+    }
+  }
   updateFee();
 }
 
