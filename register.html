@@ -924,6 +924,7 @@ async function checkMemberStep(){
   if(emailEl) emailEl.disabled=false;
   if(member&&!member.error&&(member.name||member.brand)){
     ST.member=member;
+    try{localStorage.setItem('tb_member',JSON.stringify({email,member,savedAt:Date.now()}));}catch(e){}
     if(statusEl){
       statusEl.style.display='block';
       statusEl.style.background='var(--gp)';
@@ -1573,12 +1574,12 @@ async function submitReg(ev){
     // 若是新朋友，品牌名稱為必填
     const brandVal=($('f_brand')?.value||'').trim();
     const isNewU=!ST.member;
-    if(isNewU && !brandVal){ toast('新朋友請填寫品牌名稱'); $('f_brand')?.focus(); return false; }
-    if(!ok){ toast('請確認必填欄位'); return false; }
+    if(isNewU && !brandVal){ toast('新朋友請填寫品牌名稱'); showFormError('新朋友請填寫品牌名稱'); $('f_brand')?.focus(); restoreBtn(); return false; }
+    if(!ok){ toast('請確認必填欄位'); showFormError('請確認上方必填欄位（姓名 / 手機 / Email）'); restoreBtn(); return false; }
     let selectedDates=[];
     if(Array.isArray(s.dates) && s.dates.length>1){
       selectedDates=s.dates.filter((_,i)=>document.getElementById('dp_'+i)?.checked).map(d=>d.date).filter(Boolean);
-      if(!selectedDates.length){ toast('請至少選擇一個參加日期'); return false; }
+      if(!selectedDates.length){ toast('請至少選擇一個參加日期'); showFormError('請至少勾選一個參加日期'); restoreBtn(); return false; }
     }else if(Array.isArray(s.dates) && s.dates.length===1 && s.dates[0]?.date){
       selectedDates=[s.dates[0].date];
     }
@@ -1586,8 +1587,8 @@ async function submitReg(ev){
     if(invoiceType==='公司／機關'){
       const tax=($('f_taxId')?.value||'').trim();
       const title=($('f_invoiceTitle')?.value||'').trim();
-      if(!/^\d{8}$/.test(tax)){ toast('請填寫正確 8 碼統一編號'); return false; }
-      if(!title){ toast('請填寫公司抬頭'); return false; }
+      if(!/^\d{8}$/.test(tax)){ toast('請填寫正確 8 碼統一編號'); showFormError('請填寫正確 8 碼統一編號'); restoreBtn(); return false; }
+      if(!title){ toast('請填寫公司抬頭'); showFormError('請填寫公司抬頭'); restoreBtn(); return false; }
     }
     ST.__submitting=true;
     if(btn){ btn.disabled=true; btn.textContent='送出中…'; }
@@ -1602,7 +1603,17 @@ async function submitReg(ev){
     if(res.error){ toast('❌ '+res.error, 8000); showFormError(res.error); restoreBtn(); return false; }
     hideFormError();
     ST.memberEmail=email;
-    try{ const updatedMember=await api({action:'getMember',email}); if(updatedMember&&!updatedMember.error) ST.member=updatedMember; }catch(e){}
+    // 更新本地 member 資料（包含發票資訊，下次報名自動帶入）
+    const _brand=($('f_brand')?.value||'').trim();
+    const _taxId=($('f_taxId')?.value||'').trim();
+    const _company=($('f_invoiceTitle')?.value||'').trim();
+    const _carrier=($('f_invoiceCarrier')?.value||'').trim();
+    const _invEmail=($('f_invoiceEmail')?.value||$('f_personalInvoiceEmail')?.value||'').trim();
+    if(_brand||_taxId||_company){
+      ST.member={...(ST.member||{}),brand:_brand||ST.member?.brand,company:_company||ST.member?.company,taxId:_taxId||ST.member?.taxId,invoiceCarrier:_carrier||ST.member?.invoiceCarrier,invoiceEmail:_invEmail||ST.member?.invoiceEmail};
+      try{ localStorage.setItem('tb_member',JSON.stringify({email,member:ST.member,savedAt:Date.now()})); }catch(e){}
+    }
+    try{ const updatedMember=await api({action:'getMember',email}); if(updatedMember&&!updatedMember.error){ ST.member=updatedMember; try{localStorage.setItem('tb_member',JSON.stringify({email,member:updatedMember,savedAt:Date.now()}));}catch(e){} } }catch(e){}
     const dynForm=$('dynForm'); const feeBox=$('feeBox');
     if(dynForm) dynForm.style.display='none'; if(feeBox) feeBox.style.display='none'; if(btn) btn.style.display='none';
     const modalInner=$('regFormModal')?.querySelector('.modal-box');
