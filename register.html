@@ -944,14 +944,14 @@ function renderDynFormFull(s, isNew=false){
     ${vIg?`<a href="${vIg}" target="_blank" style="background:#C13584;color:#fff;padding:3px 9px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:700">IG</a>`:''}
   </span>`:'';
 
-  html+=`<div class="fcard">`;
-  html+=`<div class="fcard-t"><span>🏷️ 品牌資料${isNew?' <span style="font-size:12px;color:#e74c3c">（*請填寫）</span>':''}</span>${socialBtns}</div>`;
+  html+=`<div class="fcard" style="background:#f0ffff">`;
+  html+=`<div class="fcard-t" style="background:rgba(0,200,180,.08)"><span style="font-size:16px">🏷️ 品牌資料${isNew?' <span style="font-size:13px;color:#e74c3c;font-weight:600">（必填）</span>':''}</span>${socialBtns}</div>`;
   html+=`<div class="fcard-body">`;
-  html+=`<label>品牌名稱${isNew?' *':''}</label><input type="text" id="f_brand" value="${esc(V.brand||V.brand_name||'')}" placeholder="您的品牌或攤位名稱">`;
-  html+=`<label>品牌介紹</label><textarea id="f_brandIntro" rows="2" placeholder="簡短介紹您的品牌…">${esc(V.brandIntro||V.brand_intro||'')}</textarea>`;
-  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
-    <div><label>姓名 *</label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="姓名"><div class="err" id="e_name"></div></div>
-    <div><label>手機 *</label><input type="tel" id="f_phone" value="${esc(V.phone||'')}" placeholder="0912345678" inputmode="tel"><div class="err" id="e_phone"></div></div>
+  html+=`<label style="font-size:15px">品牌名稱${isNew?' <span style="color:#e74c3c">*</span>':''}</label><input type="text" id="f_brand" value="${esc(V.brand||V.brand_name||'')}" placeholder="您的品牌或攤位名稱">`;
+  html+=`<textarea id="f_brandIntro" style="display:none">${esc(V.brandIntro||V.brand_intro||'')}</textarea>`;
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+    <div><label style="font-size:15px">姓名 <span style="color:#e74c3c">*</span></label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="姓名"><div class="err" id="e_name"></div></div>
+    <div><label style="font-size:15px">手機 <span style="color:#e74c3c">*</span></label><input type="tel" id="f_phone" value="${esc(V.phone||'')}" placeholder="0912345678" inputmode="tel"><div class="err" id="e_phone"></div></div>
   </div>`;
 
   // 發票設定（在品牌卡片內）
@@ -1006,11 +1006,17 @@ function renderDynFormFull(s, isNew=false){
   if(s.dates && s.dates.length>1){
     html+=`<div class="fcard"><div class="fcard-t">📅 選擇參加日期</div><div class="fcard-body">`;
     s.dates.forEach((d,i)=>{
-      html+=`<label style="display:flex;align-items:center;gap:10px;margin:10px 0;cursor:pointer;font-size:15px">
-        <input type="checkbox" id="dp_${i}" onchange="updateFee()" style="width:22px;height:22px;accent-color:var(--g);flex-shrink:0">
-        <span>${d.date||''} ${d.start||''}${d.end?'–'+d.end:''} <strong style="color:var(--g)">${d.fee?'NT$'+d.fee:''}</strong></span>
+      html+=`<label style="display:flex;align-items:center;gap:12px;margin:12px 0;cursor:pointer;font-size:17px;font-weight:500">
+        <input type="checkbox" id="dp_${i}" onchange="updateFee()" style="width:24px;height:24px;accent-color:var(--g);flex-shrink:0">
+        <span>${d.date||''} ${d.start||''}${d.end?'–'+d.end:''} <strong style="color:var(--g);font-size:16px">${d.fee?'NT$'+d.fee:''}</strong></span>
       </label>`;
     });
+    // 全報優惠提示（全選日期時顯示）
+    if(s.fee>0){
+      html+=`<div id="fullPkgHint" style="display:none;background:linear-gradient(135deg,#d4edda,#c3e6cb);border-radius:10px;padding:10px 14px;margin-top:8px;font-size:14px;font-weight:700;color:#155724">
+        🎉 全程參加優惠價 NT$${s.fee*1} / 攤（單日各 NT$${(s.dates||[]).reduce((s,d)=>s+(Number(d.fee)||0),0)} 元，全報省 NT$${(s.dates||[]).reduce((s,d)=>s+(Number(d.fee)||0),0)-(s.fee||0)} 元）
+      </div>`;
+    }
     html+=`</div></div>`;
   }
 
@@ -1024,7 +1030,7 @@ function renderDynFormFull(s, isNew=false){
     const addons=(s.addons||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.open===true||a.open==='true');
 
     if(!isCollab){
-      html+=`<div class="fcard"><div class="fcard-body">`;
+      html+=`<div class="fcard" style="background:#ffe4e1"><div class="fcard-body">`;
 
       // 租幾攤 - 大按鈕
       html+=`<div style="display:flex;align-items:center;padding:6px 0 14px;border-bottom:1.5px solid #f0f0f0;margin-bottom:14px">
@@ -1099,7 +1105,8 @@ function adjStall(delta){
   const s=ST.currentSession||{};
   const sType=s.type||'市集場次';
   const isMkt=sType==='市集場次'||sType==='通路寄賣';
-  const maxN=isMkt?3:10;
+  // 上限從後台場次設定讀取，不硬編碼
+  const maxN=Number(s.maxStalls)>0?Number(s.maxStalls):99;
   ST.stallCount=Math.max(1,Math.min(maxN,(ST.stallCount||1)+delta));
   const stallUnit=isMkt?'攤':sType==='活動報名'?'份':'份';
   const el=$('stallDisplay');
@@ -1116,7 +1123,7 @@ async function openSessionDirect(sessionId){
   buildFormHero(s,cover);
   ST._formFrom='home';
   openRegFormModal();
-  renderDynForm(s);
+  renderDynFormFull(s, !ST.member);
   updateFee();
 }
 
@@ -1402,21 +1409,9 @@ async function quickMemberLogin(){
     toast('找不到會員資料，請填寫後報名將自動建立');
   }
   // 重新渲染表單帶入資料
-  if(ST.currentSession) renderDynForm(ST.currentSession);
-  // 更新 Email 欄位
-  const emailEl=document.getElementById('f_email');
-  if(emailEl&&!emailEl.value) emailEl.value=email;
+  // 已改用 renderDynFormFull（不再呼叫舊版 renderDynForm）
 }
-function adjStall(delta, maxOverride){
-  const s=ST.currentSession;
-  const max=maxOverride||(s&&s.maxStalls>0?s.maxStalls:3);
-  const cur=ST.stallCount||1;
-  const next=Math.min(max,Math.max(1,cur+delta));
-  ST.stallCount=next;
-  const el=document.getElementById('stallNum');
-  if(el) el.textContent=next;
-  updateFee();
-}
+// [adjStall 統一由上方新版定義]
 function toggleInvoiceFields(){
   const type=document.querySelector('input[name="f_invoiceType"]:checked')?.value||'個人';
   const personal=$('invoicePersonalFields');
@@ -1468,10 +1463,16 @@ function updateFee(){
   if(dates.length>1){
     // 多日場次：依勾選日期計算
     const selectedDates=dates.filter((_,i)=>document.getElementById('dp_'+i)?.checked);
-    if(selectedDates.length===dates.length && Number(s.fee)>0){
+    const allSelected=selectedDates.length===dates.length;
+    if(allSelected && Number(s.fee)>0){
       fee=Number(s.fee)*stalls;
+      // 顯示全報優惠提示
+      const disc=document.getElementById('fullPkgHint');
+      if(disc) disc.style.display='block';
     } else {
       fee=selectedDates.reduce((sum,d)=>sum+(Number(d.fee)||0),0)*stalls;
+      const disc=document.getElementById('fullPkgHint');
+      if(disc) disc.style.display='none';
     }
   } else if(dates.length===1){
     // 單日場次：用 dates[0].fee，沒有才用 s.fee（與 worker calcFee 一致）
