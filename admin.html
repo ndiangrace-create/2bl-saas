@@ -417,6 +417,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
       <option value="申請退費">申請退費</option>
       <option value="全部">全部</option>
     </select>
+    <button class="btn btn-b btn-sm" onclick="loadPayments()" style="font-size:14px">↻ 重新整理</button>
   </div>
   <div id="paymentStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
   <div id="paymentsBody"></div>
@@ -930,8 +931,6 @@ function thumbHtml(url, size=36, radius=6){
   return `<span style="${box};position:relative"><img src="${escAttr(u)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:cover;display:block"><span style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#f0f0f0">🎪</span></span>`;
 }
 function escAttr(v){return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function escHtml(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-
 function safeNum(v){const n=Number(v);return Number.isFinite(n)?n:0;}
 
 const EQUIP_LIST = [
@@ -1134,7 +1133,7 @@ async function loadCheckinRegs(){
   $('checkinBody').style.display='block';
   $('checkinList').innerHTML='<div style="text-align:center;padding:20px;color:#aaa">載入中...</div>';
   const regs=await api({action:'getRegsBySession',sessionId:sesId,email:ST.email,token:ST.token});
-  ST_checkinRegs=(regs||[]).filter(r=>r.status==='已錄取' && isPaidText(r.payStatus));
+  ST_checkinRegs=(regs||[]).filter(r=>String(r.status||'')==='已錄取' && isPaidText(r.payStatus||''));
   updateCheckinStats();
   filterCheckinList();
 }
@@ -1161,16 +1160,14 @@ function updateCheckinStats(){
   // 設備需求總計（這場要準備多少桌椅）
   const equipTotal={};
   ST_checkinRegs.forEach(r=>{
-    try{
-      const eq=JSON.parse(r.equip||'{}');
-      Object.entries(eq).forEach(([k,v])=>{ if(v>0) equipTotal[k]=(equipTotal[k]||0)+Number(v); });
-    }catch(e){}
+    const eq=(r.actualEquip&&typeof r.actualEquip==='object')?r.actualEquip:(()=>{try{return JSON.parse(r.equip||'{}')}catch(e){return {}}})();
+    Object.entries(eq||{}).forEach(([k,v])=>{ if(Number(v)>0) equipTotal[k]=(equipTotal[k]||0)+Number(v); });
   });
   const equipEl=$('checkinEquipTotal');
   if(equipEl){
     const items=Object.entries(equipTotal).filter(([k,v])=>v>0);
     if(items.length){
-      equipEl.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;margin-top:10px"><div style="font-size:13px;font-weight:700;color:#9a3412;margin-bottom:6px">📦 本場設備需求總計（要準備/租借的數量）</div><div style="font-size:15px;font-weight:700;color:#7c2d12">'+items.map(([k,v])=>k+' '+v+' 件').join('　')+'</div></div>';
+      equipEl.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;margin-top:10px"><div style="font-size:13px;font-weight:700;color:#9a3412;margin-bottom:6px">📦 本場設備需求總計（要準備/租借的數量）</div><div style="font-size:15px;font-weight:700;color:#7c2d12">'+items.map(([k,v])=>k+' '+v+' 張').join('　')+'</div></div>';
     } else {
       equipEl.innerHTML='';
     }
@@ -1195,8 +1192,8 @@ function filterCheckinList(){
     const cleared=r.clearStatus==='已清場';
     const refunded=(r.depositRefunded==='已退押金'||r.depositRefunded==='已退');
     // 設備字串
-    let equipStr='';
-    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+    let equipStr=r.equipmentText||'';
+    if(!equipStr){try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+' '+v).join(' ');}catch(e){}}
     return `<div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh)">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
         <input type="checkbox" class="checkin-chk" data-id="${r.id}" style="width:15px;height:15px;accent-color:var(--g);flex-shrink:0;margin-top:3px;cursor:pointer">
@@ -1567,7 +1564,7 @@ function filterRegsBySes(sesId){
 }
 
 async function loadAllRegs(){
-  const regs=await api({action:'getRegs',email:ST.email,token:ST.token});
+  const regs=await api({action:'getRegs',email:ST.email,token:ST.token,_t:Date.now()});
   ST.allRegs=regs||[];
   ST.regs=ST.allRegs;
 }
@@ -2293,37 +2290,13 @@ async function loadRegs(){
   ST.regs=list;
   renderRegs();
 }
-function parseBasicEquipText(txt){
-  const out={};
-  const str=String(txt||'');
-  const re=/(桌子|桌|椅子|椅|電|衣架|帳篷)\s*[xX×*：:]*\s*(\d+)/g;
-  let m;
-  while((m=re.exec(str))){
-    let k=m[1]; if(k==='桌子')k='桌'; if(k==='椅子')k='椅';
-    out[k]=(out[k]||0)+Number(m[2]||0);
-  }
-  if(!Object.keys(out).length){
-    const d=str.match(/(\d+)\s*桌/); if(d) out['桌']=(out['桌']||0)+Number(d[1]);
-    const c=str.match(/(\d+)\s*椅/); if(c) out['椅']=(out['椅']||0)+Number(c[1]);
-  }
-  return out;
-}
-function actualEquipObjForAdmin(equip,ses,stallCount){
+function formatEquipText(equip){
   let obj=equip||{};
-  if(typeof obj==='string'){ try{obj=JSON.parse(obj||'{}');}catch(e){obj={};} }
-  const out={};
-  const sc=Number(stallCount)||1;
-  const basic=parseBasicEquipText(ses?.basicEquip||ses?.basic_equip||ses?.basic||'');
-  Object.entries(basic).forEach(([k,v])=>{out[k]=(out[k]||0)+Number(v||0)*sc;});
-  Object.entries(obj||{}).forEach(([k,v])=>{ if(Number(v)>0) out[k]=(out[k]||0)+Number(v); });
-  return out;
-}
-function equipDisplayUnit(k){return String(k).includes('桌')?'張':String(k).includes('椅')?'張':'個';}
-function equipDisplayLabel(k){ if(k==='桌子')return '桌'; if(k==='椅子')return '椅'; return k; }
-function actualEquipEntriesForAdmin(equip,ses,stallCount){return Object.entries(actualEquipObjForAdmin(equip,ses,stallCount)).filter(([k,v])=>Number(v)>0);}
-function formatEquipText(equip,ses,stallCount){
-  const entries = ses ? actualEquipEntriesForAdmin(equip,ses,stallCount) : Object.entries((()=>{let obj=equip||{}; if(typeof obj==='string'){try{obj=JSON.parse(obj||'{}')}catch(e){obj={}}} return obj;})()).filter(([k,v])=>Number(v)>0);
-  return entries.length?entries.map(([k,v])=>`${equipDisplayLabel(k)} ${Number(v)} ${equipDisplayUnit(k)}`).join('、'):'無';
+  if(typeof obj==='string'){
+    try{obj=JSON.parse(obj||'{}');}catch(e){obj={};}
+  }
+  const items=Object.entries(obj||{}).filter(([k,v])=>Number(v)>0);
+  return items.length?items.map(([k,v])=>`${k}×${v}`).join('、'):'無';
 }
 function formatAddonText(r, ses){
   const qtyRaw=r.addonQty||r.addonQtyJson||r.addon_qty_json||{};
@@ -2494,12 +2467,27 @@ async function quickApprove(regId){
 
 async function confirmPay(){
   if(!ST.currentReg)return;
-  closeModal('regModal');
-  return confirmPayById(ST.currentReg.id);
+  const btn=getClickBtn();
+  return withBtnLock(btn,'確認中…',async()=>{
+    const res=await apiPost({action:'confirmPayment',regId:ST.currentReg.id});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已確認付款');closeModal('regModal');
+    await loadAllRegs();renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverview();
+  });
 }
 
 async function quickPay(id){
-  return confirmPayById(id);
+  const btn=getClickBtn();
+  return withBtnLock(btn,'確認中…',async()=>{
+    const res=await apiPost({action:'confirmPayment',regId:id});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已確認付款');
+    await loadAllRegs();renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+    ST.sdData=sd||[];renderOverview();
+  });
 }
 
 async function checkinReg(){
@@ -2658,9 +2646,7 @@ function isPendingPayText(v){
   const s=String(v||'').trim();
   return s==='待確認' || s==='付款待確認' || s==='已回報' || s==='待核款';
 }
-function paymentStatusLabel(v,r){
-  if(r && r.transferStatus==='申請退費') return '申請退費';
-  if(r && r.transferStatus==='已退費') return '已退費';
+function paymentStatusLabel(v){
   if(isPaidText(v)) return '已繳費';
   if(isPendingPayText(v)) return '待確認';
   return v || '未繳費';
@@ -2671,13 +2657,22 @@ async function loadPaymentsSimple(){
   renderPaymentManagement('paymentsBody2');
 }
 
-function getSesById(id){ return (ST.sdData||[]).find(x=>String(x.id)===String(id)) || (ST.sessions||[]).find(x=>String(x.id)===String(id)) || {}; }
-function compactPaymentInfo(r){
-  const ses=getSesById(r.sessionId||r.sesId);
-  const sesName=ses.name||r.sessionName||r.sesName||r.sessionId||'場次';
-  const dates=(ses.dates||r.selectedDates||[]); const dateText=Array.isArray(dates)?dates.join('、'):String(dates||'');
-  const equip=formatEquipText(r.equip,ses,r.stallCount);
-  return {ses, sesName, dateText, equip};
+function adminEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function regSessionLabel(r){
+  const ses=(ST.sdData||[]).find(s=>s.id===r.sessionId)||{};
+  return r.sessionName || ses.name || r.sessionId || '未指定場次';
+}
+function regDateLabel(r){
+  const arr=Array.isArray(r.selectedDates)?r.selectedDates:[];
+  if(arr.length) return arr.join('、');
+  const ses=(ST.sdData||[]).find(s=>s.id===r.sessionId)||{};
+  const d=Array.isArray(ses.dates)?ses.dates:[];
+  return d.map(x=>x.date).filter(Boolean).join('、');
+}
+function regEquipText(r){
+  if(r.equipmentText) return r.equipmentText;
+  const eq=(r.actualEquip&&typeof r.actualEquip==='object')?r.actualEquip:(()=>{try{return JSON.parse(r.equip||'{}')}catch(e){return {}}})();
+  return Object.entries(eq||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k} ${v} 張`).join('、');
 }
 function renderPaymentManagement(targetId){
   const el=$(targetId||'paymentsBody');
@@ -2687,57 +2682,76 @@ function renderPaymentManagement(targetId){
   const sesFilter = ST._payFilterSesId || '';
   if(sesFilter) ST._payFilterSesId = null;
   const regs=(ST.allRegs||[]).slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+
   const pending=regs.filter(r=>isPendingPayText(r.payStatus));
   const paid=regs.filter(r=>isPaidText(r.payStatus));
-  const refundReq=regs.filter(r=>r.transferStatus==='申請退費');
+  const refundReq=regs.filter(r=>String(r.transferStatus||'')==='申請退費');
   const totalPendingAmt=pending.reduce((sum,r)=>sum+(Number(r.amount)||0),0);
+
   const statsEl=$('paymentStats');
   if(statsEl){
     statsEl.innerHTML=`
-      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:22px;font-weight:900;color:var(--yl)">${pending.length}</div><div style="font-size:13px;color:var(--md)">待確認</div></div>
-      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:22px;font-weight:900;color:var(--g)">${paid.length}</div><div style="font-size:13px;color:var(--md)">已繳費</div></div>
-      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:22px;font-weight:900;color:var(--rd)">${refundReq.length}</div><div style="font-size:13px;color:var(--md)">退費申請</div></div>
-      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:20px;font-weight:900;color:var(--dk)">NT$${totalPendingAmt.toLocaleString()}</div><div style="font-size:13px;color:var(--md)">待核金額</div></div>`;
+      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:20px;font-weight:800;color:var(--yl)">${pending.length}</div><div style="font-size:11px;color:var(--md)">待確認</div></div>
+      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:20px;font-weight:800;color:var(--g)">${paid.length}</div><div style="font-size:11px;color:var(--md)">已繳費</div></div>
+      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:20px;font-weight:800;color:var(--rd)">${refundReq.length}</div><div style="font-size:11px;color:var(--md)">退費申請</div></div>
+      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:20px;font-weight:800;color:var(--dk)">NT$${totalPendingAmt.toLocaleString()}</div><div style="font-size:11px;color:var(--md)">待核金額</div></div>`;
   }
+
   let list=regs.filter(r=>{
-    const label=paymentStatusLabel(r.payStatus,r);
-    const matchStatus=filter==='全部' || label===filter || (filter==='已繳費'&&isPaidText(r.payStatus)) || (filter==='待確認'&&isPendingPayText(r.payStatus));
-    const info=compactPaymentInfo(r);
-    const text=[r.name,r.brand,r.email,r.phone,info.sesName,r.payMethod,r.adminNote,r.transferStatus].join(' ').toLowerCase();
+    const label=paymentStatusLabel(r.payStatus);
+    const isRefund=String(r.transferStatus||'')==='申請退費';
+    const matchStatus=filter==='全部' || (filter==='已繳費'?isPaidText(r.payStatus):(filter==='待確認'?isPendingPayText(r.payStatus):(filter==='申請退費'?isRefund:label===filter)));
+    const text=[r.name,r.brand,r.email,r.phone,regSessionLabel(r),r.payMethod,r.adminNote,r.stallCount,regEquipText(r)].join(' ').toLowerCase();
     const matchKw=!kw || text.includes(kw);
     const matchSes=!sesFilter || String(r.sessionId||r.sesId||'')===String(sesFilter);
     return matchStatus && matchKw && matchSes;
   });
-  if(!list.length){ el.innerHTML='<div style="color:#aaa;text-align:center;padding:22px;font-size:18px;background:#fff;border-radius:12px;box-shadow:var(--sh)">目前沒有符合條件的資料</div>'; return; }
+
+  if(!list.length){
+    el.innerHTML='<div style="color:#aaa;text-align:center;padding:22px;font-size:14px;background:#fff;border-radius:12px;box-shadow:var(--sh)">目前沒有符合條件的繳費資料</div>';
+    return;
+  }
+
   el.innerHTML=list.map(r=>{
-    const label=paymentStatusLabel(r.payStatus,r);
+    const label=paymentStatusLabel(r.payStatus);
     const isPending=isPendingPayText(r.payStatus);
     const isPaid=isPaidText(r.payStatus);
-    const isRefund=r.transferStatus==='申請退費';
-    const badgeBg=isRefund?'#fdecea':(isPending?'#fff8ed':(isPaid?'#e8f5e9':'#f5f5f5'));
+    const isRefund=String(r.transferStatus||'')==='申請退費';
+    const badgeBg=isRefund?'#fdecea':(isPending?'#fffaed':(isPaid?'#e8f5e9':'#f5f5f5'));
     const badgeColor=isRefund?'#c0392b':(isPending?'#b7860b':(isPaid?'#2e7d32':'#999'));
-    const note=escHtml(r.adminNote||'');
-    const info=compactPaymentInfo(r);
-    return `<div style="background:#fff;border-radius:13px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--sh);border-left:6px solid ${isRefund?'#c0392b':(isPending?'#f5c842':(isPaid?'#40916c':'#ddd'))}">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:6px">
-        <div style="font-size:19px;font-weight:900;color:var(--dk);line-height:1.35">${escHtml(info.sesName)}${info.dateText?`｜${escHtml(info.dateText)}`:''}</div>
-        <span style="background:${badgeBg};color:${badgeColor};font-size:17px;padding:4px 10px;border-radius:18px;font-weight:900;white-space:nowrap">${label}</span>
-      </div>
-      <div style="font-size:18px;line-height:1.55;color:var(--dk);font-weight:800">${escHtml(r.brand||'-')}｜${escHtml(r.name||'')}｜${escHtml(r.phone||'')}</div>
-      <div style="font-size:17px;line-height:1.55;color:var(--md)">${Number(r.stallCount||1)} 攤｜設備：${escHtml(info.equip)}</div>
-      <div style="font-size:18px;line-height:1.55;color:var(--dk);font-weight:900">${escHtml(r.payMethod||'未填方式')}｜NT$${Number(r.amount||0).toLocaleString()}${r.paidAt?'｜付款時間 '+String(r.paidAt).slice(0,16):''}</div>
-      ${note?`<div style="font-size:15px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap">${note}</div>`:''}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px">
-        ${isPending?`<button class="btn btn-g btn-sm" style="font-size:17px;padding:9px 13px" onclick="confirmPayById('${r.id}')">確認付款</button>`:''}
-        ${isRefund?`<button class="btn btn-r btn-sm" style="font-size:17px;padding:9px 13px" onclick="confirmRefundById('${r.id}')">確認退款</button>`:''}
-        <button class="btn btn-b btn-sm" style="font-size:17px;padding:9px 13px" onclick="openRegDetail('${r.id}')">看明細</button>
+    const note=adminEsc(r.adminNote||'');
+    const ses=adminEsc(regSessionLabel(r));
+    const dates=adminEsc(regDateLabel(r));
+    const equip=adminEsc(regEquipText(r)||'-');
+    const last5=(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+    return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--sh);border-left:5px solid ${isRefund?'#d94f4f':(isPending?'#f5c842':(isPaid?'#40916c':'#ddd'))}">
+      <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
+        <div style="min-width:0;flex:1;line-height:1.55">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+            <span style="background:${badgeBg};color:${badgeColor};font-size:16px;padding:4px 10px;border-radius:20px;font-weight:900">${isRefund?'申請退費':label}</span>
+            <span style="font-size:18px;font-weight:900;color:var(--dk)">${ses}</span>
+          </div>
+          <div style="font-size:16px;color:var(--md);font-weight:700">${dates}</div>
+          <div style="font-size:18px;color:var(--dk);font-weight:900">${adminEsc(r.brand||r.name||'未填品牌')}</div>
+          <div style="font-size:16px;color:var(--md)">${adminEsc(r.name||'')}　${adminEsc(r.phone||'')}</div>
+          <div style="font-size:16px;color:var(--md)">攤位數：<strong>${Number(r.stallCount||1)} 攤</strong>　設備：<strong>${equip}</strong></div>
+          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
+          ${note?`<div style="font-size:14px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap;max-height:96px;overflow:auto">${note}</div>`:''}
+          <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          ${isPending?`<button class="btn btn-g btn-sm" onclick="confirmPayById('${r.id}')">確認付款</button>`:''}
+          ${isRefund?`<button class="btn btn-r btn-sm" onclick="confirmRefundById('${r.id}')">確認退款</button>`:''}
+          <button class="btn btn-b btn-sm" onclick="openRegDetail('${r.id}')">看明細</button>
+        </div>
       </div>
     </div>`;
   }).join('');
 }
 
+
 async function loadPayments(){
-  if(!(ST.allRegs||[]).length) await loadAllRegs();
+  await loadAllRegs();
   renderPaymentManagement();
 }
 
@@ -3785,8 +3799,8 @@ function renderSesRegsList(){
   const statusColor={'待審核':'#856404','已錄取':'#155724','不錄取':'#721c24','備取':'#383d8a'};
   const statusBg={'待審核':'#fff3cd','已錄取':'#d4edda','不錄取':'#f8d7da','備取':'#e2e3ff'};
   el.innerHTML=regs.map(r=>{
-    let equipStr='';
-    try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+'x'+v).join(' ');}catch(e){}
+    let equipStr=r.equipmentText||'';
+    if(!equipStr){try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+' '+v).join(' ');}catch(e){}}
     return `<div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:6px;border:0.5px solid #e0e0e0">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
         <span style="background:${statusBg[r.status]||'#f0f0f0'};color:${statusColor[r.status]||'#666'};padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">${r.status||'待審核'}</span>
@@ -3802,41 +3816,58 @@ function renderSesRegsList(){
 
 
 // ── 補上缺少的三個函數 ──
-async function refreshAfterPayment(){
-  if(typeof loadAllRegs==='function') await loadAllRegs();
-  if(typeof renderPaymentManagement==='function') renderPaymentManagement();
-  if(typeof renderRegs==='function') renderRegs();
-  try{ const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token,_t:Date.now()}); ST.sdData=sd||[]; renderOverview(); }catch(e){}
-  try{ if($('checkinSesFilter')?.value) await loadCheckinRegs(); }catch(e){}
+function compactPaymentConfirmHtml(r){
+  const ses=adminEsc(regSessionLabel(r));
+  const dates=adminEsc(regDateLabel(r));
+  const equip=adminEsc(regEquipText(r)||'-');
+  const note=adminEsc(r.adminNote||'');
+  const last5=(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+  return `<div style="font-size:18px;line-height:1.55;color:var(--dk)">
+    <div style="font-size:20px;font-weight:900;margin-bottom:8px">你即將確認以下付款：</div>
+    <div><strong>場次：</strong>${ses}　${dates}</div>
+    <div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}　<strong>電話：</strong>${adminEsc(r.phone||'-')}</div>
+    <div><strong>攤位數：</strong>${Number(r.stallCount||1)} 攤　<strong>設備：</strong>${equip}</div>
+    <div><strong>繳費方式：</strong>${adminEsc(r.payMethod||'未填')}　<strong>回報金額：</strong>NT$${Number(r.amount||0).toLocaleString()}</div>
+    <div><strong>末五碼／交易末五碼：</strong>${adminEsc(last5||'未填')}</div>
+    ${note?`<div style="background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;font-size:14px;max-height:92px;overflow:auto;white-space:pre-wrap"><strong>備註：</strong>${note}</div>`:''}
+    <div style="margin-top:10px;color:#2d6a4f;font-weight:900">確認後將改為：已繳費（手動確認）<br>並寄出：繳費確認信</div>
+  </div>`;
+}
+function showConfirmDialog(html, onOk){
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px';
+  modal.innerHTML=`<div style="background:#fff;border-radius:18px;width:100%;max-width:560px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.25);max-height:88vh;overflow:auto">${html}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button id="cfCancel" style="background:#eee;color:#666;border:none;border-radius:10px;padding:12px;font-size:18px;font-weight:900">取消</button><button id="cfOk" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:12px;font-size:18px;font-weight:900">確認</button></div></div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#cfCancel').onclick=()=>modal.remove();
+  modal.querySelector('#cfOk').onclick=async()=>{ const btn=modal.querySelector('#cfOk'); btn.disabled=true; btn.textContent='確認中…'; await onOk(); modal.remove(); };
 }
 async function confirmPayById(payId){
-  const r=(ST.allRegs||[]).find(x=>String(x.id)===String(payId)) || (ST.regs||[]).find(x=>String(x.id)===String(payId));
+  const r=(ST.allRegs||[]).find(x=>String(x.id)===String(payId));
   if(!r){toast('找不到付款資料');return;}
-  const info=compactPaymentInfo(r);
-  const msg=`你即將確認以下付款：\n\n場次：${info.sesName} ${info.dateText||''}\n廠商：${r.brand||'-'}   姓名：${r.name||'-'}   電話：${r.phone||'-'}\n\n攤位數：${Number(r.stallCount||1)} 攤   設備：${info.equip}\n\n繳費方式：${r.payMethod||'未填'}   回報金額：NT$ ${Number(r.amount||0).toLocaleString()}\n${(r.adminNote||'').match(/末五碼[:：]?([^\s]+)/)?'末五碼／交易末五碼：'+((r.adminNote||'').match(/末五碼[:：]?([^\s]+)/)||[])[1]+'\n':''}備註：請核對後再確認\n\n確認後將改為：已繳費（手動確認）\n並寄出：繳費確認信`;
-  if(!confirm(msg)) return;
-  const btn=getClickBtn();
-  return withBtnLock(btn,'確認中…',async()=>{
-    const res=await apiPost({action:'confirmPayment',regId:payId,method:r.payMethod||'手動確認'});
+  showConfirmDialog(compactPaymentConfirmHtml(r), async()=>{
+    const res=await apiPost({action:'confirmPayment',regId:payId});
     if(res.error){toast('❌ '+res.error);return;}
-    toast(res.mailOk===false?'✅ 已確認付款，但信件寄送失敗，請看備註':'✅ 已確認付款，繳費確認信已處理');
-    await refreshAfterPayment();
+    toast(res.mailSent===false?'✅ 已確認付款，但信件可能未寄出':'✅ 已確認付款並寄出通知');
+    await loadAllRegs();
+    renderPaymentManagement();
+    if(typeof renderRegs==='function') renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token,_t:Date.now()});
+    ST.sdData=sd||[];renderOverview();
   });
 }
 async function confirmRefundById(regId){
   const r=(ST.allRegs||[]).find(x=>String(x.id)===String(regId));
-  if(!r){toast('找不到退費資料');return;}
-  const info=compactPaymentInfo(r);
-  const msg=`確認此筆退款？\n\n場次：${info.sesName} ${info.dateText||''}\n廠商：${r.brand||'-'}   姓名：${r.name||'-'}   電話：${r.phone||'-'}\n攤位數：${Number(r.stallCount||1)} 攤   設備：${info.equip}\n已繳金額：NT$ ${Number(r.amount||0).toLocaleString()}\n\n確認後將標記為：已退費`;
-  if(!confirm(msg)) return;
-  const btn=getClickBtn();
-  return withBtnLock(btn,'處理中…',async()=>{
-    const res=await apiPost({action:'confirmRefund',regId,refundDeposit:true});
+  if(!r){toast('找不到退款資料');return;}
+  const html=`<div style="font-size:18px;line-height:1.55;color:var(--dk)"><div style="font-size:20px;font-weight:900;margin-bottom:8px;color:var(--rd)">確認退款申請</div><div><strong>場次：</strong>${adminEsc(regSessionLabel(r))}　${adminEsc(regDateLabel(r))}</div><div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}</div><div><strong>已繳金額：</strong>NT$${Number(r.amount||0).toLocaleString()}　<strong>攤位：</strong>${Number(r.stallCount||1)} 攤</div><div style="margin-top:8px;color:var(--rd);font-weight:900">確認後將標記為：已退費，並寄出退費完成信。</div></div>`;
+  showConfirmDialog(html, async()=>{
+    const res=await apiPost({action:'confirmRefund',regId});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已標記退費');
-    await refreshAfterPayment();
+    toast('✅ 已標記退款完成');
+    await loadAllRegs();
+    renderPaymentManagement();
   });
 }
+
 
 
 function showFinAdd(type){
