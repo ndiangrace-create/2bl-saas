@@ -327,37 +327,7 @@ button,a,[onclick]{touch-action:manipulation}
     </div>
   </div>
 
-  <!-- 依類型選擇報名 腰帶 -->
-  <div style="background:#82ABA3;padding:12px 16px;text-align:center;margin:8px 0 0">
-    <div style="color:#fff;font-size:15px;font-weight:700;letter-spacing:2px">依類型選擇報名</div>
-  </div>
-
-  <!-- 四大分類 -->
-  <div class="cats-section">
-    <div class="cats-title">選擇報名類型</div>
-    <div class="cats-grid">
-      <div class="cat-btn active" id="cat-market" onclick="filterCat('市集報名',this)">
-        <img src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/6.png" alt="" onerror="this.innerHTML='🏪';this.style.fontSize='32px'">
-        <div class="cat-name">市集報名</div>
-        <div class="cat-sub">參加市集擺攤</div>
-      </div>
-      <div class="cat-btn" id="cat-activity" onclick="filterCat('體驗活動',this)">
-        <img src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/5.png" alt="" onerror="this.innerHTML='🎨';this.style.fontSize='32px'">
-        <div class="cat-name">體驗活動</div>
-        <div class="cat-sub">各類主題活動</div>
-      </div>
-      <div class="cat-btn" id="cat-dept" onclick="filterCat('通路寄賣',this)">
-        <img src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/4.png" alt="" onerror="this.innerHTML='🏬';this.style.fontSize='32px'">
-        <div class="cat-name">通路寄賣</div>
-        <div class="cat-sub">商場百貨通路</div>
-      </div>
-      <div class="cat-btn" id="cat-collab" onclick="filterCat('合作洽詢',this)">
-        <img src="https://raw.githubusercontent.com/ndiangrace-create/tuibile/main/3.png" alt="" onerror="this.innerHTML='🤝';this.style.fontSize='32px'">
-        <div class="cat-name">合作洽詢</div>
-        <div class="cat-sub">人才與異業合作</div>
-      </div>
-    </div>
-  </div>
+  <!-- V5 Database First：首頁不再顯示固定會員/報名分類入口；只顯示資料庫回傳的主題活動與開放場次。 -->
 
 </div>
 
@@ -666,24 +636,6 @@ async function apiPost(body, timeoutMs=15000){
 function openModal(id){const el=$(id);if(el)el.classList.add('show');}
 function closeModal(id){const el=$(id);if(el)el.classList.remove('show');}
 function openLine(){window.open(LINE_URL,'_blank');}
-
-// ── 後台入口：首頁封面長按 3 秒 ──
-let __adminHoldTimer = null;
-function getAdminUrl(){
-  const base = location.href.split('?')[0].replace(/\/[^\/]*$/, '/admin.html');
-  return base + '?tenant=' + encodeURIComponent(TENANT_ID);
-}
-function startLogoHold(ev){
-  if(ev && ev.preventDefault) ev.preventDefault();
-  stopLogoHold();
-  __adminHoldTimer = setTimeout(()=>{
-    try{ toast('進入後台…'); }catch(e){}
-    window.location.href = getAdminUrl();
-  }, 3000);
-}
-function stopLogoHold(){
-  if(__adminHoldTimer){ clearTimeout(__adminHoldTimer); __adminHoldTimer = null; }
-}
 
 function esc(v){return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
@@ -1837,7 +1789,7 @@ async function memberLogin(){
 }
 
 function memberLogout(){
-  try { localStorage.removeItem('tb_member'); localStorage.removeItem('tb_member_email'); } catch(e){}
+  try { localStorage.removeItem('tb_member'); } catch(e){}
   ST.memberEmail=''; ST.member=null;
   ST.member=null;ST.memberEmail=null;
   $('loginEmail').value='';
@@ -1845,73 +1797,6 @@ function memberLogout(){
   $('memberArea').style.display='none';
   const lbl=$('botMemberLabel');
   if(lbl) lbl.textContent='我的紀錄';
-}
-
-function fillMemberCard(member){
-  const m = member || {};
-  const email = m.email || ST.memberEmail || '';
-  if($('memberName')) $('memberName').textContent = m.name || email || '會員資料';
-  if($('memberEmail2')) $('memberEmail2').textContent = email;
-  const brand = m.brand || m.brand_name || '';
-  const sellCat = m.sellCat || m.sell_category || '';
-  if($('memberBrandShow')) $('memberBrandShow').textContent = [brand, sellCat].filter(Boolean).join('｜');
-}
-
-function openMemberEditModal(){
-  const m = ST.member || {email:ST.memberEmail||''};
-  const set=(id,v)=>{ const el=$(id); if(el) el.value=v||''; };
-  set('editName', m.name);
-  set('editPhone', m.phone);
-  set('editBrand', m.brand || m.brand_name);
-  set('editBrandIntro', m.brandIntro || m.brand_intro);
-  set('editFb', m.fb || m.fb_url);
-  set('editIg', m.ig || m.ig_url);
-  set('editCollabUrl', m.collabUrl || m.collab_url);
-  set('editPhoto', m.photo || m.photo_url);
-  set('editLineId', m.lineId || m.line_id);
-  set('editInvoiceCarrier', m.invoiceCarrier || m.invoice_carrier);
-  set('editTaxId', m.taxId || m.tax_id);
-  set('editCompany', m.company || m.invoiceTitle || m.invoice_title);
-  set('editInvoiceEmail', m.invoiceEmail || m.invoice_email || m.email || ST.memberEmail);
-  const msg=$('saveSuccessMsg'); if(msg) msg.style.display='none';
-  openModal('memberEditModal');
-}
-
-async function saveMemberEdit(){
-  const email = (ST.memberEmail || ST.member?.email || $('loginEmail')?.value || '').trim();
-  if(!email){ toast('請先登入會員'); return; }
-  const btn=$('saveMemberBtn');
-  const old=btn?btn.textContent:'';
-  if(btn){ btn.disabled=true; btn.textContent='儲存中…'; }
-  const body={
-    action:'saveMember', email,
-    name:($('editName')?.value||'').trim(),
-    phone:($('editPhone')?.value||'').trim(),
-    brand:($('editBrand')?.value||'').trim(),
-    brandIntro:($('editBrandIntro')?.value||'').trim(),
-    fb:($('editFb')?.value||'').trim(),
-    ig:($('editIg')?.value||'').trim(),
-    collabUrl:($('editCollabUrl')?.value||'').trim(),
-    photo:($('editPhoto')?.value||'').trim(),
-    lineId:($('editLineId')?.value||'').trim(),
-    invoiceCarrier:($('editInvoiceCarrier')?.value||'').trim(),
-    taxId:($('editTaxId')?.value||'').trim(),
-    company:($('editCompany')?.value||'').trim(),
-    invoiceTitle:($('editCompany')?.value||'').trim(),
-    invoiceEmail:($('editInvoiceEmail')?.value||email).trim(),
-  };
-  try{
-    const res=await apiPost(body);
-    if(res && res.error){ toast('❌ '+res.error, 5000); return; }
-    ST.member={...(ST.member||{}), ...body, brand_name:body.brand, brandIntro:body.brandIntro, invoiceCarrier:body.invoiceCarrier, taxId:body.taxId, invoiceEmail:body.invoiceEmail};
-    fillMemberCard(ST.member);
-    const msg=$('saveSuccessMsg'); if(msg) msg.style.display='block';
-    try{ localStorage.setItem('tb_member_email',email); }catch(e){}
-    toast('✅ 會員資料已更新');
-    setTimeout(()=>closeModal('memberEditModal'),700);
-  }finally{
-    if(btn){ btn.disabled=false; btn.textContent=old||'儲存資料'; }
-  }
 }
 
 function isPaidText(v){ return String(v||'').indexOf('已繳費')>=0 || String(v||'')==='免費'; }
@@ -2149,87 +2034,195 @@ function initFrontApp(){
   const deepSes=p.get('ses')||p.get('session')||p.get('sessionId');
   if(deepSes){ setTimeout(()=>openSession(deepSes), 800); }
 }
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded', initFrontApp);
-}else{
-  initFrontApp();
-}
+// V5 Database First：啟動交由下方 DB-DRIVEN CORE PATCH 統一處理，避免舊 loadHome 先渲染首頁。
+// initFrontApp 保留給歷史相容，但不在這裡自動執行。
 
 
 
 // ────────────────────────────────────────────────────────────────
-// DB-DRIVEN CORE PATCH 20260618：資料庫主導前台，不再靠零散前台狀態
+// DB-DRIVEN CORE PATCH 20260619：V5 SaaS / Database First 首頁統一入口
+// 目標：首頁只吃 frontBootstrap 的 events / sessions；localStorage 只記 Email；移除舊分類首頁流程。
 // ────────────────────────────────────────────────────────────────
 (function(){
-  const OPEN_STATUS = new Set(['報名中','開放中']);
+  const CLOSED_STATUS = new Set(['關閉','已關閉','停用','暫停','下架','已額滿','名額已滿','取消','已取消','不開放','未開放']);
+  const DRAFT_STATUS = new Set(['草稿','draft','Draft']);
   const portalTypeMap = {'市集報名':['市集場次'],'體驗活動':['活動報名','體驗活動'],'通路寄賣':['通路寄賣'],'合作洽詢':['合作申請']};
-  function openSess(s){ return OPEN_STATUS.has(String(s?.status||'')); }
   function asArr(v){ return Array.isArray(v)?v:[]; }
+  function sessionEventId(s){ return String(s?.eventId ?? s?.event_id ?? s?.event ?? '').trim(); }
+  function openSess(s){
+    const st = String(s?.status ?? '').trim();
+    if(!st) return true;
+    if(CLOSED_STATUS.has(st) || DRAFT_STATUS.has(st)) return false;
+    return true;
+  }
   function uniqueSessions(list){ return [...new Map(asArr(list).filter(Boolean).map(s=>[String(s.id),s])).values()]; }
-  function sessionEventId(s){ return String(s?.eventId || s?.event_id || '').trim(); }
   function saveEmail(email){ try{ localStorage.setItem('tb_member_email', email||''); localStorage.removeItem('tb_member'); }catch(e){} }
   function readEmail(){ try{ return localStorage.getItem('tb_member_email')||''; }catch(e){ return ''; } }
+  function tenantName(t){ return t?.name || t?.brandName || t?.brand_name || '兔彼樂共創活動'; }
+  function tenantLogo(t){ return t?.logoUrl || t?.logo_url || ''; }
+  function tenantColor(t){ return t?.color || t?.brandColor || t?.brand_color || ''; }
+  function tenantHero(t){ return t?.heroImg || t?.hero_img || t?.heroUrl || t?.hero_url || ''; }
+  function tenantInfo(t){ return t?.infoText || t?.info_text || t?.footerText || t?.footer_text || ''; }
+  function tenantBank(t){ return t?.bankInfo || t?.bank_info || ''; }
+  function tenantLine(t){ return t?.lineUrl || t?.line_url || ''; }
   window.isOpenSession = openSess;
+
+  function applyTenantToPage(t){
+    if(!t) return;
+    const name = tenantName(t);
+    if(name){
+      document.title = name + ' — 報名系統';
+      const awt=document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      if(awt) awt.setAttribute('content', name + '報名');
+      const logoText = document.querySelector('.logo-text');
+      if(logoText) logoText.childNodes[0].textContent = name;
+    }
+    const line = tenantLine(t); if(line) LINE_URL = line;
+    const logo = tenantLogo(t);
+    if(logo){
+      document.querySelectorAll('.logo-img').forEach(img=>{ img.src=logo; img.style.display=''; });
+      const apple=document.querySelector('link[rel="apple-touch-icon"]'); if(apple) apple.href=logo;
+      const fav=document.querySelector('link[rel="icon"]'); if(fav) fav.href=logo;
+    }
+    const color = tenantColor(t); if(color) document.documentElement.style.setProperty('--g', color);
+    const info = tenantInfo(t); const band=$('siteInfoBand'); const strong=band&&band.querySelector('strong');
+    if(strong && info) strong.textContent=info;
+    const heroImg = tenantHero(t); const heroImgEl=document.querySelector('.hero-rabbit-img');
+    if(heroImg && heroImgEl){ heroImgEl.src=heroImg; heroImgEl.style.display=''; }
+    const bank = tenantBank(t); const bankEl=document.getElementById('bankInfoDisplay');
+    if(bankEl){ bankEl.innerHTML = bank ? String(bank).replace(/\n/g,'<br>') : '<span style="color:#aaa">付款資訊載入中…</span>'; }
+  }
+
+  function getOpenSessions(){ return uniqueSessions(ST.allSessionsData || ST.sessions || []).filter(openSess); }
+
   window.loadHome = async function(){
-    const evEl=$('eventsList'); if(evEl) evEl.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px">載入中…</div>';
-    try{ const boot = await api({action:'frontBootstrap', tenant:TENANT_ID, _t:Date.now()});
-      ST.events=asArr(boot.events); ST.sessions=uniqueSessions(boot.sessions).filter(openSess); ST.allSessionsData=ST.sessions;
-      if(boot.tenant){
-        // 動態更新 LINE_URL
-        if(boot.tenant.name){ document.title = boot.tenant.name + ' — 報名系統'; }
-        const awt=document.querySelector('meta[name="apple-mobile-web-app-title"]'); if(awt&&boot.tenant.name) awt.setAttribute('content', boot.tenant.name);
-        if(boot.tenant.lineUrl) LINE_URL = boot.tenant.lineUrl;
-        // 動態更新銀行帳號顯示
-        if(boot.tenant.bankInfo){
-          const bi = boot.tenant.bankInfo;
-          const bankEl = document.getElementById('bankInfoDisplay');
-          if(bankEl){ bankEl.innerHTML = bi.replace(/\n/g,'<br>'); }
-        }
-        // 動態更新品牌顯示
-        const logoText = document.querySelector('.logo-text');
-        if(logoText && boot.tenant.name) logoText.childNodes[0].textContent = boot.tenant.name;
-        const logoImg = document.querySelector('.logo-img');
-        if(logoImg && boot.tenant.logoUrl){ logoImg.src = boot.tenant.logoUrl; logoImg.style.display=''; }
-        // infoText / heroImg
-        const band=$('siteInfoBand'); const strong=band&&band.querySelector('strong');
-        if(strong && boot.tenant.infoText) strong.textContent=boot.tenant.infoText;
-        const hero=$('siteHero');
-        const heroImgEl=document.querySelector('.hero-rabbit-img');
-        if(heroImgEl && boot.tenant.heroImg){ heroImgEl.src=boot.tenant.heroImg; heroImgEl.style.display=''; }
-        if(hero && boot.tenant.color){ document.documentElement.style.setProperty('--g', boot.tenant.color); }
-      }
-      renderAnnouncements(asArr(boot.announcements)); renderEvents(); return boot;
-    }catch(e){ console.error('[frontBootstrap failed]', e); const sessions=await api({action:'getSessions', _t:Date.now()}); ST.allSessionsData=uniqueSessions(sessions).filter(openSess); ST.sessions=ST.allSessionsData; ST.events=[]; renderEvents(); }
+    const evEl=$('eventsList');
+    if(evEl) evEl.innerHTML='<div style="padding:20px;color:#aaa;font-size:15px;text-align:center">載入中…</div>';
+    try{
+      const boot = await api({action:'frontBootstrap', tenant:TENANT_ID, _t:Date.now()});
+      if(boot && boot.error) throw new Error(boot.error);
+      ST.events = asArr(boot.events);
+      ST.sessions = uniqueSessions(boot.sessions).filter(openSess);
+      ST.allSessionsData = ST.sessions;
+      applyTenantToPage(boot.tenant || boot.site || {});
+      renderAnnouncements(asArr(boot.announcements));
+      renderEvents();
+      return boot;
+    }catch(e){
+      console.error('[frontBootstrap failed]', e);
+      try{
+        const sessions = await api({action:'getSessions', tenant:TENANT_ID, _t:Date.now()});
+        ST.allSessionsData = uniqueSessions(sessions).filter(openSess);
+        ST.sessions = ST.allSessionsData;
+        ST.events = [];
+      }catch(e2){ console.error('[getSessions fallback failed]', e2); ST.allSessionsData=[]; ST.sessions=[]; ST.events=[]; }
+      renderEvents();
+    }
   };
+
   window.renderEvents = function(){
-    const el=$('eventsList');
-    if(!el) return;
+    const el=$('eventsList'); if(!el) return;
+    const sessions=getOpenSessions();
     const events=asArr(ST.events);
-    const sessions=uniqueSessions(ST.allSessionsData).filter(openSess);
-    const openEventIds=new Set(sessions.map(sessionEventId).filter(Boolean));
-    const eventsWithSessions=events.filter(e=>!openEventIds.size || openEventIds.has(String(e.id)));
+    const eventsWithSessions = events.filter(e => sessions.some(s => sessionEventId(s) === String(e.id)));
     if(eventsWithSessions.length){
-      el.innerHTML=eventsWithSessions.map(e=>`<div class="event-card" style="cursor:default"><div class="event-cover">${e.cover?`<img src="${esc(e.cover)}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`:`<div class="event-cover-placeholder">🎪</div>`}<div class="event-status-tag">報名中</div></div><div class="event-info"><div class="event-name">${esc(e.title||'主題活動')}</div>${e.location?`<div class="event-meta">📍 ${esc(e.location)}</div>`:''}${e.desc?`<div class="event-meta">${esc(String(e.desc).slice(0,28))}</div>`:''}<button type="button" onclick="openEvent('${esc(e.id)}')" style="margin-top:8px;width:100%;border:none;background:var(--gp);color:var(--g);border-radius:10px;padding:10px;font-size:16px;font-weight:900">查看場次</button></div></div>`).join('');
-    }else if(sessions.length){
-      el.innerHTML=sessions.slice(0,10).map(s=>renderSessionCard(s)).join('');
-    }else{
+      el.innerHTML=eventsWithSessions.map(e=>{
+        const cover=e.cover || e.coverUrl || e.cover_url || '';
+        return `<div class="event-card" style="cursor:default"><div class="event-cover">${cover?`<img src="${esc(cover)}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`:`<div class="event-cover-placeholder">🎪</div>`}<div class="event-status-tag">報名中</div></div><div class="event-info"><div class="event-name">${esc(e.title||e.name||'主題活動')}</div>${e.location?`<div class="event-meta">📍 ${esc(e.location)}</div>`:''}${e.desc?`<div class="event-meta">${esc(String(e.desc).slice(0,28))}</div>`:''}<button type="button" onclick="openEvent('${esc(e.id)}')" style="margin-top:8px;width:100%;border:none;background:var(--gp);color:var(--g);border-radius:10px;padding:10px;font-size:16px;font-weight:900">查看場次</button></div></div>`;
+      }).join('');
+    } else if(sessions.length){
+      el.innerHTML=sessions.slice(0,12).map(s=>renderSessionCard(s)).join('');
+    } else {
       el.innerHTML='<div style="padding:20px;color:#aaa;font-size:15px;text-align:center;line-height:1.7">目前尚無開放報名<br><span onclick="loadHome()" style="color:var(--g);font-weight:800;cursor:pointer">重新載入</span></div>';
     }
     setTimeout(enableDragScroll,100);
   };
+
   window.renderSessionCard = function(s){
-    const full=Number(s.limit)>0&&Number(s.count)>=Number(s.limit); const closed=!openSess(s)||full; const dates=asArr(s.dates); let dateStr=''; if(dates.length>1){ const fmt=d=>d?String(d).slice(5).replace('-','/'):''; dateStr=fmt(dates[0].date)+'-'+fmt(dates[dates.length-1].date); } else if(dates.length===1){ dateStr=String(dates[0].date||'').slice(5).replace('-','/'); }
-    const feeStr=Number(s.fee)>0?'NT$'+Number(s.fee).toLocaleString():'免費'; const meta=[dateStr,s.region,feeStr,s.venue].filter(Boolean).join(' · '); const typeLabel=({'市集場次':'市集','活動報名':'活動','體驗活動':'體驗','通路寄賣':'寄賣','合作申請':'合作'}[s.type]||s.type||''); const badge=typeLabel?`<span style="background:${closed?'#eee':'var(--gp)'};color:${closed?'#888':'var(--g)'};padding:2px 8px;border-radius:6px;font-size:15px;font-weight:800;flex-shrink:0">${esc(typeLabel)}</span>`:'';
+    const full=Number(s.limit)>0 && Number(s.count)>=Number(s.limit);
+    const closed=!openSess(s) || full;
+    const dates=asArr(s.dates); let dateStr='';
+    if(dates.length>1){ const fmt=d=>d?String(d).slice(5).replace('-','/'):''; dateStr=fmt(dates[0].date)+'-'+fmt(dates[dates.length-1].date); }
+    else if(dates.length===1){ dateStr=String(dates[0].date||'').slice(5).replace('-','/'); }
+    else if(s.date){ dateStr=String(s.date).slice(5).replace('-','/'); }
+    const feeStr=Number(s.fee)>0?'NT$'+Number(s.fee).toLocaleString():'免費';
+    const meta=[dateStr,s.region,feeStr,s.venue].filter(Boolean).join(' · ');
+    const typeLabel=({'市集場次':'市集','活動報名':'活動','體驗活動':'體驗','通路寄賣':'寄賣','合作申請':'合作'}[s.type]||s.type||'');
+    const badge=typeLabel?`<span style="background:${closed?'#eee':'var(--gp)'};color:${closed?'#888':'var(--g)'};padding:2px 8px;border-radius:6px;font-size:15px;font-weight:800;flex-shrink:0">${esc(typeLabel)}</span>`:'';
     if(closed) return `<div style="background:#f8f8f8;border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;opacity:.6"><div style="flex:1;min-width:0"><div style="display:flex;gap:8px;align-items:center">${badge}<span style="font-size:19px;font-weight:800;color:#aaa">${esc(s.name||'')}</span></div><div style="font-size:15px;color:#aaa">${esc(meta)}</div></div><span style="font-size:14px;color:#aaa;font-weight:800">${full?'名額已滿':'已關閉'}</span></div>`;
     return `<div role="button" tabindex="0" data-session-id="${esc(s.id)}" onclick="openSessionFromCard(event,'${esc(s.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){openSessionFromCard(event,'${esc(s.id)}')}" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;overflow:hidden">${badge}<span style="font-size:20px;font-weight:900;color:var(--dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.name||'')}</span></div><div style="font-size:16px;color:var(--md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(meta)}</div></div><span style="color:var(--g);font-size:26px;font-weight:900">›</span></div>`;
   };
-  window.openSessionFromCard=function(ev,sessionId){ if(ev){ev.preventDefault();ev.stopPropagation();} openSession(sessionId); }; window.handleSessionTap=window.openSessionFromCard;
-  window.openEvent=async function(eventId){ const evt=asArr(ST.events).find(e=>String(e.id)===String(eventId)); const list=$('portalSessionList'); const title=$('portalTitle'); if(title) title.textContent=evt?evt.title:'場次列表'; navTo('portal'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; let data=uniqueSessions(ST.allSessionsData).filter(s=>String(s.eventId||s.event_id||'')===String(eventId)&&openSess(s)); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',eventId,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
-  window.filterCat=async function(type,el){ ST.currentCatFilter=type; document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); if(el) el.classList.add('active'); const title=$('portalTitle'); if(title) title.textContent=type; const list=$('portalSessionList'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; navTo('portal'); const allow=portalTypeMap[type]||[]; let data=uniqueSessions(ST.allSessionsData).filter(s=>openSess(s)&&((asArr(s.portals).includes(type))||allow.includes(s.type))); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',portal:type,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
-  const _oldCheckMemberStep=window.checkMemberStep; window.checkMemberStep=async function(){ const email=(($('step1Email')&&$('step1Email').value)||'').trim(); if(email) saveEmail(email); return _oldCheckMemberStep?_oldCheckMemberStep():undefined; };
-  window.memberLogin=async function(){ const email=($('loginEmail')?.value||readEmail()||'').trim(); if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;} const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';} ST.memberEmail=email; saveEmail(email); try{ const [member,regs]=await Promise.all([api({action:'getMember',email,_t:Date.now()}),api({action:'getMyRegs',email,_t:Date.now()})]); ST.member=member&&!member.error?member:null; if($('memberLoginArea')) $('memberLoginArea').style.display='none'; if($('memberArea')) $('memberArea').style.display='block'; fillMemberCard(ST.member||{email}); if($('memberName')) $('memberName').textContent=ST.member?.name||email; if($('memberEmail2')) $('memberEmail2').textContent=email; const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄'; renderMyRegs(asArr(regs)); } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} } };
-  window.goMemberPage=async function(){ navTo('member'); const email=ST.memberEmail||readEmail(); if(!email){ if($('memberLoginArea')) $('memberLoginArea').style.display='block'; if($('memberArea')) $('memberArea').style.display='none'; return; } if($('loginEmail')) $('loginEmail').value=email; await memberLogin(); };
-  function bootDbFront(){ const email=readEmail(); if(email){ST.memberEmail=email; if($('loginEmail')) $('loginEmail').value=email;} loadHome(); }
+
+  window.openSessionFromCard=function(ev,sessionId){ if(ev){ev.preventDefault();ev.stopPropagation();} openSession(sessionId); };
+  window.handleSessionTap=window.openSessionFromCard;
+
+  window.openEvent=async function(eventId){
+    const evt=asArr(ST.events).find(e=>String(e.id)===String(eventId));
+    const list=$('portalSessionList'); const title=$('portalTitle');
+    if(title) title.textContent=evt?(evt.title||evt.name||'場次列表'):'場次列表';
+    navTo('portal');
+    if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>';
+    let data=getOpenSessions().filter(s=>sessionEventId(s)===String(eventId));
+    if(!data.length){
+      data=uniqueSessions(await api({action:'getSessions', tenant:TENANT_ID, eventId, _t:Date.now()})).filter(openSess);
+      ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]);
+    }
+    if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>';
+  };
+
+  window.filterCat=async function(type,el){
+    ST.currentCatFilter=type;
+    document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+    if(el) el.classList.add('active');
+    const title=$('portalTitle'); if(title) title.textContent=type;
+    const list=$('portalSessionList'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>';
+    navTo('portal');
+    const allow=portalTypeMap[type]||[];
+    let data=getOpenSessions().filter(s=>openSess(s)&&((asArr(s.portals).includes(type))||allow.includes(s.type)));
+    if(!data.length){
+      data=uniqueSessions(await api({action:'getSessions', tenant:TENANT_ID, portal:type, _t:Date.now()})).filter(openSess);
+      ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]);
+    }
+    if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>';
+  };
+
+  const _oldCheckMemberStep=window.checkMemberStep;
+  window.checkMemberStep=async function(){ const email=(($('step1Email')&&$('step1Email').value)||'').trim(); if(email) saveEmail(email); return _oldCheckMemberStep?_oldCheckMemberStep():undefined; };
+
+  window.memberLogin=async function(){
+    const email=($('loginEmail')?.value||readEmail()||'').trim();
+    if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;}
+    const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';}
+    ST.memberEmail=email; saveEmail(email);
+    try{
+      const [member,regs]=await Promise.all([api({action:'getMember',email,tenant:TENANT_ID,_t:Date.now()}),api({action:'getMyRegs',email,tenant:TENANT_ID,_t:Date.now()})]);
+      ST.member=member&&!member.error?member:null;
+      if($('memberLoginArea')) $('memberLoginArea').style.display='none';
+      if($('memberArea')) $('memberArea').style.display='block';
+      fillMemberCard(ST.member||{email});
+      if($('memberName')) $('memberName').textContent=ST.member?.name||email;
+      if($('memberEmail2')) $('memberEmail2').textContent=email;
+      const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄';
+      renderMyRegs(asArr(regs));
+    } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} }
+  };
+
+  window.goMemberPage=async function(){
+    navTo('member');
+    const email=ST.memberEmail||readEmail();
+    if(!email){ if($('memberLoginArea')) $('memberLoginArea').style.display='block'; if($('memberArea')) $('memberArea').style.display='none'; return; }
+    if($('loginEmail')) $('loginEmail').value=email;
+    await memberLogin();
+  };
+
+  function bootDbFront(){
+    const email=readEmail(); if(email){ST.memberEmail=email; if($('loginEmail')) $('loginEmail').value=email;}
+    try{ history.replaceState({page:'home'}, '', location.href); }catch(e){}
+    loadHome();
+    const p=new URLSearchParams(window.location.search);
+    const deepSes=p.get('ses')||p.get('session')||p.get('sessionId');
+    if(deepSes){ setTimeout(()=>openSession(deepSes), 900); }
+  }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
 })();
 
