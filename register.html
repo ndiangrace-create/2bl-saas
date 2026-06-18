@@ -309,7 +309,7 @@ button,a,[onclick]{touch-action:manipulation}
   <!-- 說明帶 -->
   <div class="info-band" id="siteInfoBand">
     加入會員後，資料填一次就好、下次報名自動帶入。（記得加入手機桌面喔）<br>
-    <strong>活動資訊載入中…</strong>
+    <strong>兔彼樂共創活動 期待與您的每場相遇 🌿</strong>
   </div>
 
   <!-- 公告欄 -->
@@ -569,14 +569,8 @@ async function applySiteConfig(){
         hero.style.backgroundRepeat = 'no-repeat';
       }
     }
-    // 資訊帶文字
-    if(cfg.infoText){
-      const band = document.getElementById('siteInfoBand');
-      if(band){
-        const strong = band.querySelector('strong');
-        if(strong) strong.textContent = cfg.infoText;
-      }
-    }
+    // 歡迎詞固定放在首頁資訊帶，不用 infoText 覆蓋。
+    // infoText / footerText 若未來要顯示，請另開公告或品牌說明區，不可把歡迎詞改成「載入中」。
   }catch(e){}
 }
 
@@ -2041,7 +2035,7 @@ function initFrontApp(){
 
 // ────────────────────────────────────────────────────────────────
 // DB-DRIVEN CORE PATCH 20260619：V5 SaaS / Database First 首頁統一入口
-// 目標：首頁只吃 frontBootstrap 的 events / sessions；localStorage 只記 Email；移除舊分類首頁流程。
+// 目標：首頁主題活動吃 frontBootstrap 的 events/sessions；依類型選擇報名保留，但場次資料仍只吃 DB；localStorage 只記 Email。
 // ────────────────────────────────────────────────────────────────
 (function(){
   const CLOSED_STATUS = new Set(['關閉','已關閉','停用','暫停','下架','已額滿','名額已滿','取消','已取消','不開放','未開放']);
@@ -2085,8 +2079,9 @@ function initFrontApp(){
       const fav=document.querySelector('link[rel="icon"]'); if(fav) fav.href=logo;
     }
     const color = tenantColor(t); if(color) document.documentElement.style.setProperty('--g', color);
-    const info = tenantInfo(t); const band=$('siteInfoBand'); const strong=band&&band.querySelector('strong');
-    if(strong && info) strong.textContent=info;
+    // 首頁資訊帶是固定歡迎詞，不拿 tenant.infoText / footerText 當載入文字。
+    const band=$('siteInfoBand'); const strong=band&&band.querySelector('strong');
+    if(strong) strong.textContent = name + ' 期待與您的每場相遇 🌿';
     const heroImg = tenantHero(t); const heroImgEl=document.querySelector('.hero-rabbit-img');
     if(heroImg && heroImgEl){ heroImgEl.src=heroImg; heroImgEl.style.display=''; }
     const bank = tenantBank(t); const bankEl=document.getElementById('bankInfoDisplay');
