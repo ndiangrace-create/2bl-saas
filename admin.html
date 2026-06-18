@@ -933,22 +933,6 @@ function thumbHtml(url, size=36, radius=6){
 function escAttr(v){return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function safeNum(v){const n=Number(v);return Number.isFinite(n)?n:0;}
 
-// 設備內含數防呆：避免舊資料把每場都誤帶成「含 1 桌／1 椅」
-// 只有場次「基本配備說明」明確寫有桌／椅時，才承認桌椅內含數。
-// 若基本配備空白，或寫不含／沒有／不提供，桌椅內含一律視為 0。
-function getEffectiveEquipIncl(session, key, def){
-  const raw = Number(def?.incl)||0;
-  if(raw<=0) return 0;
-  const name = String(key||'');
-  const basic = String(session?.basicEquip || session?.basic_equip || session?.basicEquipText || '').trim();
-  const isTableOrChair = name.includes('桌') || name.includes('椅');
-  if(!isTableOrChair) return raw;
-  if(/不含|無附|無提供|沒有|不提供|未提供/.test(basic)) return 0;
-  if(!basic) return 0;
-  const mentionsThis = name.includes('桌') ? basic.includes('桌') : (basic.includes('椅') || basic.includes('椅子'));
-  return mentionsThis ? raw : 0;
-}
-
 const EQUIP_LIST = [
   {k:'桌',icon:'🪵',price:350},{k:'椅子',icon:'🪑',price:20},
   {k:'帳篷',icon:'⛺',price:800},{k:'野餐墊',icon:'🧺',price:50},
@@ -1779,7 +1763,7 @@ function buildEquipDefs(equipObj){
       </label>
       <div style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--lt)">每攤內含</span>
-        <input type="number" id="eq_incl_${eq.k}" value="${getEffectiveEquipIncl({basicEquip:($('sm_basicEquip')?.value||'')}, eq.k, equipObj[eq.k]||{})}" inputmode="numeric" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
+        <input type="number" id="eq_incl_${eq.k}" value="${equipObj[eq.k]?.incl||0}" inputmode="numeric" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--lt)">超過單價</span>
@@ -2744,7 +2728,7 @@ function renderPaymentManagement(targetId){
     const ses=adminEsc(regSessionLabel(r));
     const dates=adminEsc(regDateLabel(r));
     const equip=adminEsc(regEquipText(r)||'-');
-    const last5=(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+    const last5=r.paymentLast5||r.payment_last5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--sh);border-left:5px solid ${isRefund?'#d94f4f':(isPending?'#f5c842':(isPaid?'#40916c':'#ddd'))}">
       <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
         <div style="min-width:0;flex:1;line-height:1.55">
@@ -2756,7 +2740,7 @@ function renderPaymentManagement(targetId){
           <div style="font-size:18px;color:var(--dk);font-weight:900">${adminEsc(r.brand||r.name||'未填品牌')}</div>
           <div style="font-size:16px;color:var(--md)">${adminEsc(r.name||'')}　${adminEsc(r.phone||'')}</div>
           <div style="font-size:16px;color:var(--md)">攤位數：<strong>${Number(r.stallCount||1)} 攤</strong>　設備：<strong>${equip}</strong></div>
-          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
+          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.paymentReportAmount||r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
           ${note?`<div style="font-size:14px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap;max-height:96px;overflow:auto">${note}</div>`:''}
           <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
         </div>
@@ -3360,7 +3344,7 @@ async function downloadSesData(sesId,sesName){
     const defs=ses.equip||{};
     const def=defs[name]||{};
     const fallback=(EQUIP_LIST||[]).find(x=>x.k===name)||{};
-    return {price:n(def.price||fallback.price), incl:getEffectiveEquipIncl(ses, name, def)};
+    return {price:n(def.price||fallback.price), incl:n(def.incl)};
   }
   function stallCount(r){return n(r.stallCount)||1;}
   function payAmount(r){return n(r.amount||r.totalAmount||r.payAmount);}
@@ -3520,7 +3504,7 @@ async function loadFinanceData(){
     const defs=ses.equip||{};
     const def=defs[name]||{};
     const fallback=(typeof EQUIP_LIST!=='undefined'?(EQUIP_LIST||[]):[]).find(x=>x.k===name)||{};
-    return {price:safeN(def.price||fallback.price), incl:getEffectiveEquipIncl(ses, name, def)};
+    return {price:safeN(def.price||fallback.price), incl:safeN(def.incl)};
   }
   function finEquipCharge(r){
     return finEquipEntries(r).reduce((sum,[name,qty])=>{
@@ -3573,7 +3557,7 @@ async function loadFinanceData(){
     const equipDetailRows=Object.keys(equipSummary).map(name=>{
       const totalNeed=equipSummary[name]||0;
       const def=equipDefs[name]||{};
-      const inclPerStall=getEffectiveEquipIncl(ses, name, def)||0;
+      const inclPerStall=safeN(def.incl)||0;
       const paidCount=paidRegs.length;
       // 內含 = 每攤內含 × 本場已繳費攤數合計
       const totalStalls=paidRegs.reduce((s,r)=>s+(safeN(r.stallCount)||1),0);
@@ -3842,13 +3826,13 @@ function compactPaymentConfirmHtml(r){
   const dates=adminEsc(regDateLabel(r));
   const equip=adminEsc(regEquipText(r)||'-');
   const note=adminEsc(r.adminNote||'');
-  const last5=(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+  const last5=r.paymentLast5||r.payment_last5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
   return `<div style="font-size:18px;line-height:1.55;color:var(--dk)">
     <div style="font-size:20px;font-weight:900;margin-bottom:8px">你即將確認以下付款：</div>
     <div><strong>場次：</strong>${ses}　${dates}</div>
     <div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}　<strong>電話：</strong>${adminEsc(r.phone||'-')}</div>
     <div><strong>攤位數：</strong>${Number(r.stallCount||1)} 攤　<strong>設備：</strong>${equip}</div>
-    <div><strong>繳費方式：</strong>${adminEsc(r.payMethod||'未填')}　<strong>回報金額：</strong>NT$${Number(r.amount||0).toLocaleString()}</div>
+    <div><strong>繳費方式：</strong>${adminEsc(r.payMethod||'未填')}　<strong>回報金額：</strong>NT$${Number(r.paymentReportAmount||r.amount||0).toLocaleString()}</div>
     <div><strong>末五碼／交易末五碼：</strong>${adminEsc(last5||'未填')}</div>
     ${note?`<div style="background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;font-size:14px;max-height:92px;overflow:auto;white-space:pre-wrap"><strong>備註：</strong>${note}</div>`:''}
     <div style="margin-top:10px;color:#2d6a4f;font-weight:900">確認後將改為：已繳費（手動確認）<br>並寄出：繳費確認信</div>

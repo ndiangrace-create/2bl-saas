@@ -664,31 +664,7 @@ function openModal(id){const el=$(id);if(el)el.classList.add('show');}
 function closeModal(id){const el=$(id);if(el)el.classList.remove('show');}
 function openLine(){window.open(LINE_URL,'_blank');}
 
-function esc(v){
-  return String(v??'')
-    .replace(/\\/g,'\\\\')
-    .replace(/'/g,"\\'")
-    .replace(/"/g,'&quot;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;');
-}
-function getEffectiveEquipIncl(session, key, def){
-  const raw=Number(def?.incl)||0;
-  if(raw<=0) return 0;
-  const name=String(key||'');
-  const isTableOrChair=name.includes('桌')||name.includes('椅');
-  if(!isTableOrChair) return raw;
-  const basic=String(session?.basicEquip||session?.basic_equip||'').trim();
-  if(!basic) return 0;
-  if(/不含|無附|無提供|沒有|不提供|未提供|不附/.test(basic)) return 0;
-  const mentions=name.includes('桌') ? basic.includes('桌') : (basic.includes('椅')||basic.includes('椅子'));
-  return mentions ? raw : 0;
-}
-function openEventFromButton(ev,eventId){
-  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
-  if(ST._eventDragUntil && Date.now()<ST._eventDragUntil) return;
-  openEvent(eventId);
-}
+function esc(v){return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ── 頁面切換 ──
 
@@ -719,7 +695,7 @@ function goMemberPage(){
     // 再嘗試從 localStorage 讀一次
     try{
       const saved=localStorage.getItem('tb_member');
-      if(saved){const d=JSON.parse(saved);if(d&&d.email){ST.memberEmail=d.email;ST.member=d.member||null;}}
+      if(saved){const d=JSON.parse(saved);if(d&&d.email){ST.memberEmail=d.email;ST.member=null;}}
     }catch(e){}
   }
   if(!ST.memberEmail){
@@ -729,9 +705,10 @@ function goMemberPage(){
     loginArea.style.display='none';
     memberArea.style.display='block';
     fillMemberCard(ST.member);
-    // 重新載入最新報名紀錄
-    api({action:'getMyRegs',email:ST.memberEmail}).then(regs=>{
+    Promise.all([api({action:'getMember',email:ST.memberEmail}), api({action:'getMyRegs',email:ST.memberEmail})]).then(([member,regs])=>{
+      if(member && !member.error){ ST.member=member; fillMemberCard(member); }
       renderMyRegs(regs||[]);
+      try{localStorage.setItem('tb_member',JSON.stringify({email:ST.memberEmail,savedAt:Date.now()}));}catch(e){}
     });
   }
 }
@@ -763,36 +740,22 @@ function renderAnnouncements(list){
 
 
 
-function isOpenSessionStatus(status){
-  const v=String(status||'').trim();
-  return v==='報名中' || v==='開放中' || v==='open' || v==='OPEN';
-}
-
-function getEventTitle(e){ return (e && (e.title||e.name||e.eventName)) || '主題活動'; }
-function getEventDesc(e){ return (e && (e.desc||e.description||e.content)) || ''; }
-function getEventCover(e){ return (e && (e.cover||e.cover_url||e.image||e.imageUrl)) || ''; }
-function getEventLocation(e){ return (e && (e.location||e.venue)) || ''; }
-
 async function loadHome(){
   try{
     const [events, sessions, announcements] = await Promise.all([
-      api({action:'getEvents',_t:Date.now()}),
-      api({action:'getSessions',_t:Date.now()}),
-      api({action:'getAnnouncements',_t:Date.now()}),
+      api({action:'getEvents'}),
+      api({action:'getSessions'}),
+      api({action:'getAnnouncements'}),
     ]);
-    ST.events = Array.isArray(events) ? events.filter(e=>e && (e.id||e.eventId)) : [];
-    const sessionRows = Array.isArray(sessions) ? sessions : [];
-    ST.allSessionsData = sessionRows.filter(s=>s && isOpenSessionStatus(s.status));
+    ST.events = Array.isArray(events) ? events : [];
+    ST.allSessionsData = Array.isArray(sessions) ? sessions.filter(s=>s.status==='報名中') : [];
     ST.sessions = ST.allSessionsData;
     renderAnnouncements(Array.isArray(announcements) ? announcements : []);
     renderEvents();
   }catch(e){
     console.error('loadHome error:', e);
-    const el=$('eventsList');
-    if(el) el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">主題活動載入失敗<br><span onclick="loadHome()" style="color:var(--g);font-weight:900;cursor:pointer">點此重新載入</span></div>';
   }
 }
-
 
 async function filterCat(type, el){
   ST.currentCatFilter = type;
@@ -813,7 +776,7 @@ async function filterCat(type, el){
   window.scrollTo(0,0);
   // 載入場次
   const sessions = await api({action:'getSessions', portal:type});
-  const data = Array.isArray(sessions) ? sessions.filter(s=>isOpenSessionStatus(s.status)) : [];
+  const data = Array.isArray(sessions) ? sessions.filter(s=>s.status==='報名中') : [];
   if(!list) return;
   if(!data.length){
     list.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前無開放場次</div>';
@@ -825,95 +788,64 @@ async function filterCat(type, el){
 function renderEvents(){
   const el=$('eventsList');
   if(!el) return;
-  let events=Array.isArray(ST.events)?ST.events.filter(e=>e && (e.id||e.eventId)):[];
-  const openSessions=(ST.allSessionsData||[]).filter(s=>s && isOpenSessionStatus(s.status));
-
-  // events 資料表暫時沒資料時，只用「近期開放報名」作備援；
-  // 不把單一場次卡混進主題活動區，避免主題活動內容又被覆蓋掉。
-  if(!events.length && openSessions.length){
-    const first=openSessions.find(s=>s.cover)||{};
-    events=[{id:'__all_sessions__', title:'近期開放報名', desc:'查看目前所有開放場次', location:'', cover:first.cover||'', virtual:true}];
+  if(!ST.events.length){
+    const sessions=Array.isArray(ST.allSessionsData)?ST.allSessionsData:[];
+    if(sessions.length){
+      el.innerHTML=sessions.slice(0,10).map(s=>`<div class="event-card" aria-label="${escHtml(s.name||'近期開放報名')}">
+        <div class="event-cover">${s.cover?`<img src="${s.cover}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`:`<div class="event-cover-placeholder">🎪</div>`}<div class="event-status-tag">報名中</div></div>
+        <div class="event-info"><div class="event-name">${escHtml(s.name||'近期開放報名')}</div>${s.venue?`<div class="event-meta">📍 ${escHtml(s.venue)}</div>`:''}<button type="button" class="event-action-btn" onclick="openSession('${esc(s.id)}')">查看報名</button></div>
+      </div>`).join('');
+      setTimeout(enableDragScroll,100);return;
+    }
+    el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前沒有開放場次<br><span onclick="loadHome()" style="color:var(--g);font-weight:700;cursor:pointer">點此重新載入</span></div>';return;
   }
-
-  if(!events.length){
-    el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前沒有開放中的主題活動<br><span onclick="loadHome()" style="color:var(--g);font-weight:900;cursor:pointer">重新載入</span></div>';
-    return;
-  }
-
-  el.innerHTML=events.map(e=>{
-    const id=String(e.id||e.eventId||'');
-    const title=getEventTitle(e);
-    const desc=getEventDesc(e);
-    const location=getEventLocation(e);
-    const cover=getEventCover(e);
-    return `
-    <div class="event-card" style="cursor:default" aria-label="${esc(title)}">
+  // 手機橫向滑動時很容易誤觸卡片，所以主題活動卡片本身不再整張可點。
+  // 只有下方明確按鈕會進入場次列表，避免滑動途中被帶走。
+  el.innerHTML=ST.events.map(e=>`
+    <div class="event-card" aria-label="${escHtml(e.title||'主題活動')}">
       <div class="event-cover">
-        ${cover
-          ?`<img src="${esc(cover)}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`
+        ${e.cover
+          ?`<img src="${e.cover}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`
           :`<div class="event-cover-placeholder">🎪</div>`}
         <div class="event-status-tag">報名中</div>
       </div>
       <div class="event-info">
-        <div class="event-name">${esc(title)}</div>
-        ${location?`<div class="event-meta">📍 ${esc(location)}</div>`:''}
-        ${desc?`<div class="event-meta">${esc(String(desc).slice(0,42))}</div>`:''}
-        <button type="button" class="event-action-btn" onclick="openEventFromButton(event,'${esc(id)}')">查看場次</button>
+        <div class="event-name">${e.title}</div>
+        ${e.location?`<div class="event-meta">📍 ${e.location}</div>`:''}
+        ${e.desc?`<div class="event-meta">${String(e.desc).slice(0,20)}</div>`:''}
+        <button type="button" class="event-action-btn" onclick="openEvent('${esc(e.id)}')">查看場次</button>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
   setTimeout(enableDragScroll, 100);
 }
 
 // ── 活動→場次 ──
 async function openEvent(eventId){
-  const isAll=String(eventId)==='__all_sessions__';
-  const evt=isAll ? {title:'近期開放報名'} : (ST.events||[]).find(e=>String(e.id||e.eventId)===String(eventId));
+  const evt=ST.events.find(e=>e.id===eventId);
   ST.currentEvent=evt;
-
+  // 進入 pagePortal 顯示該活動的場次
   const title=$('portalTitle');
-  if(title) title.textContent=isAll ? '近期開放報名' : (evt?getEventTitle(evt):'場次列表');
+  if(title) title.textContent=evt?evt.title:'場次列表';
   const list=$('portalSessionList');
   if(list) list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
-
+  // 根據活動名稱設定頁面背景色
   const _evtBgMap={'耶市集':'#E6F1ED','幻日祭':'#EBE2E5'};
-  const _evtName=evt?getEventTitle(evt):'';
-  const _evtBg=Object.entries(_evtBgMap).find(([k])=>_evtName.includes(k));
+  const _evtBg=evt?Object.entries(_evtBgMap).find(([k])=>(evt.title||'').includes(k)):null;
+  // 設定全頁底色（含 body，確保空白區域也有底色）
   const _bg=_evtBg?_evtBg[1]:'';
   const _portalPage=$('pagePortal');
   if(_portalPage) _portalPage.style.background=_bg;
   document.body.style.background=_bg||'var(--wh)';
   navTo('portal');
-
-  const renderList=(rows)=>{
-    const data=(Array.isArray(rows)?rows:[]).filter(s=>s && isOpenSessionStatus(s.status));
-    ST.sessions=data;
-    ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]),...data].map(s=>[s.id,s])).values()];
-    if(!list) return;
-    if(!data.length){
-      list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:16px">目前無開放場次</div>';
-      return;
-    }
-    list.innerHTML=data.map(s=>renderSessionCard(s)).join('');
-  };
-
-  if(isAll){
-    const cached=(ST.allSessionsData||[]).filter(s=>s && isOpenSessionStatus(s.status));
-    if(cached.length) renderList(cached);
-    const sessions=await api({action:'getSessions',_t:Date.now()});
-    if(Array.isArray(sessions) && sessions.length) renderList(sessions);
-    else if(!cached.length) renderList([]);
+  const sessions=await api({action:'getSessions',eventId});
+  ST.sessions=Array.isArray(sessions)?sessions:[];
+  ST.allSessionsData=[...new Map([...ST.allSessionsData,...ST.sessions].map(s=>[s.id,s])).values()];
+  if(!list) return;
+  if(!ST.sessions.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:16px">目前無開放場次</div>';
     return;
   }
-
-  const cached=(ST.allSessionsData||[]).filter(s=>
-    s && isOpenSessionStatus(s.status) && String(s.eventId||s.event_id||'')===String(eventId)
-  );
-  if(cached.length) renderList(cached);
-
-  const sessions=await api({action:'getSessions',eventId,_t:Date.now()});
-  if(Array.isArray(sessions) && sessions.length) renderList(sessions);
-  else if(!cached.length) renderList([]);
+  list.innerHTML=ST.sessions.map(s=>renderSessionCard(s)).join('');
 }
 
 function renderSessionCard(s){
@@ -976,7 +908,7 @@ function renderAllSessions(){
     el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:20px">載入中…</div>';
     return;
   }
-  const list=ST.allSessionsData.filter(s=>isOpenSessionStatus(s.status));
+  const list=ST.allSessionsData.filter(s=>s.status==='報名中'||s.status==='開放中');
   if(!list.length){
     el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:20px">目前無開放場次</div>';
     return;
@@ -1035,7 +967,7 @@ async function checkMemberStep(){
   if(emailEl) emailEl.disabled=false;
   if(member&&!member.error&&(member.name||member.brand)){
     ST.member=member;
-    try{localStorage.setItem('tb_member',JSON.stringify({email,member,savedAt:Date.now()}));}catch(e){}
+    try{localStorage.setItem('tb_member',JSON.stringify({email,savedAt:Date.now()}));}catch(e){}
     if(statusEl){
       statusEl.style.display='block';
       statusEl.style.background='var(--gp)';
@@ -1116,7 +1048,7 @@ function renderDynFormFull(s, isNew=false){
 
   // 其他開放欄位（本次販售商品、備註、自訂欄位）
   if(mods.sell_item){
-    html+=`<label>本次販售商品 *</label><input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物"><div class="err" id="e_sellItem"></div>`;
+    html+=`<label>販售類別</label><input type="text" id="f_sellCat" placeholder="例：手作、甜點、二手、插畫"><label>本次販售商品 *</label><input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物"><div class="err" id="e_sellItem"></div>`;
   }
   if(mods.adult||mods.child){
     html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">`;
@@ -1181,7 +1113,7 @@ function renderDynFormFull(s, isNew=false){
       if(equipDefs.length>0){
         html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）請填寫總數量</div>`;
         equipDefs.forEach(([k,v])=>{
-          const incl=getEffectiveEquipIncl(s,k,v);
+          const incl=frontEffectiveEquipIncl(k,v,s.basicEquip||s.basic_equip||'');
           const price=Number(v.price)||0;
           html+=`<div class="equip-row">
             <div class="equip-info"><div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
@@ -1510,7 +1442,7 @@ function renderDynForm(s){
   // 本次販售商品
   if(mods.sell_item){
     html+=`<div class="fcard"><div class="fcard-t">🛍️ 本次販售商品</div><div class="fcard-body">`;
-    html+=`<input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物">`;
+    html+=`<label>販售類別</label><input type="text" id="f_sellCat" placeholder="例：手作、甜點、二手、插畫"><label style="margin-top:10px">本次販售商品</label><input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物">`;
     html+=`<div class="err" id="e_sellItem"></div>`;
     html+=`</div></div>`;
   }
@@ -1617,6 +1549,16 @@ function adjAddon(i,delta){
   if(el)el.textContent=next;
   updateFee();
 }
+
+function frontEffectiveEquipIncl(name, def, basicEquipText){
+  const raw=String(basicEquipText||'').trim();
+  const n=Number(def&&def.incl)||0;
+  if(!n) return 0;
+  const neg=/(不含|沒有|無提供|不提供|未提供|不附|無附|自備)/;
+  if(!raw || neg.test(raw)) return 0;
+  if(name && !raw.includes(name)) return 0;
+  return n;
+}
 function adjEquip(k,delta){
   const cur=ST.equipQty[k]||0;
   const s=ST.currentSession;
@@ -1635,7 +1577,7 @@ function adjEquip(k,delta){
   if(el)el.textContent=next;
   // 動態更新說明：已含幾件、額外幾件
   const _ed=(s?.equip||{})[k]||{};
-  const inclPerStall=getEffectiveEquipIncl(s,k,_ed);
+  const inclPerStall=frontEffectiveEquipIncl(k,_ed,s?.basicEquip||s?.basic_equip||'');
   const inclFree=inclPerStall*(ST.stallCount||1);
   const extra=Math.max(0,next-inclFree);
   const price=Number(_ed.price)||0;
@@ -1680,7 +1622,7 @@ function updateFee(){
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
     if(v&&v.open){
-      const incl=getEffectiveEquipIncl(s,k,v)*stalls;
+      const incl=frontEffectiveEquipIncl(k,v,s?.basicEquip||s?.basic_equip||'')*stalls;
       const want=ST.equipQty[k]||0;
       const extra=Math.max(0, want-incl);  // 只算超過內含的部分
       equipTotal+=(v.price||0)*extra;
@@ -1771,7 +1713,7 @@ async function submitReg(ev){
     const body={
       action:'register',sessionId:s.id,email,name,phone,stallCount:ST.stallCount||1,invoiceType,
       invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),taxId:($('f_taxId')?.value||'').trim(),invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),selectedDates,
-      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellCat:($('f_sellCat')?.value||(($('f_sellItem')?.value||'').split(/[、,，]/)[0])||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     };
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
@@ -1786,14 +1728,14 @@ async function submitReg(ev){
     const _invEmail=($('f_invoiceEmail')?.value||$('f_personalInvoiceEmail')?.value||'').trim();
     if(_brand||_taxId||_company){
       ST.member={...(ST.member||{}),brand:_brand||ST.member?.brand,company:_company||ST.member?.company,taxId:_taxId||ST.member?.taxId,invoiceCarrier:_carrier||ST.member?.invoiceCarrier,invoiceEmail:_invEmail||ST.member?.invoiceEmail};
-      try{ localStorage.setItem('tb_member',JSON.stringify({email,member:ST.member,savedAt:Date.now()})); }catch(e){}
+      try{ localStorage.setItem('tb_member',JSON.stringify({email,savedAt:Date.now()})); }catch(e){}
     }
     // 會員資料改成背景更新，不讓 getMember 卡住成功畫面
     setTimeout(()=>{
       api({action:'getMember',email}).then(updatedMember=>{
         if(updatedMember&&!updatedMember.error){
           ST.member=updatedMember;
-          try{localStorage.setItem('tb_member',JSON.stringify({email,member:updatedMember,savedAt:Date.now()}));}catch(e){}
+          try{localStorage.setItem('tb_member',JSON.stringify({email,savedAt:Date.now()}));}catch(e){}
         }
       }).catch(e=>console.warn('[background getMember failed]', e));
     },0);
@@ -1860,11 +1802,7 @@ async function memberLogin(){
   restoreBtn();
   // 持久化登入狀態到 localStorage
   try {
-    localStorage.setItem('tb_member', JSON.stringify({
-      email: email,
-      member: member||null,
-      savedAt: Date.now()
-    }));
+    localStorage.setItem('tb_member', JSON.stringify({email: email, savedAt: Date.now()}));
   } catch(e){}
 }
 
@@ -2054,62 +1992,22 @@ async function submitPaymentForm(){
   }
 }
 
-
-// ── 前台啟動流程：主題活動 + 會員資料都從資料庫重新抓 ──
-async function restoreMemberFromStorage(){
-  let saved=null;
-  try{
-    const raw=localStorage.getItem('tb_member');
-    if(raw) saved=JSON.parse(raw);
-  }catch(e){ saved=null; }
-  if(!saved || !saved.email) return null;
-  ST.memberEmail=saved.email;
-  ST.member=saved.member||null;
-  try{
-    const fresh=await api({action:'getMember',email:saved.email,_t:Date.now()});
-    if(fresh && !fresh.error && (fresh.email || fresh.name || fresh.brand)){
-      ST.member=fresh;
-      ST.memberEmail=fresh.email||saved.email;
-      localStorage.setItem('tb_member',JSON.stringify({email:ST.memberEmail,member:fresh,savedAt:Date.now()}));
-      return fresh;
-    }
-  }catch(e){}
-  return ST.member;
-}
-
-async function bootApp(){
-  if(window.__tbBooted) return;
-  window.__tbBooted=true;
-  const params=new URLSearchParams(window.location.search);
-  const payRegId=params.get('pay');
-  const directSesId=params.get('ses');
-  if(payRegId) window._pendingPayRegId=payRegId;
-
-  await applySiteConfig().catch(()=>{});
-  await restoreMemberFromStorage();
-  await loadHome();
-
-  // 深連結：信件點進會員中心，不清掉資料；有本機 email 就從資料庫重抓報名紀錄。
-  if(params.get('member')==='1'){
+// ── URL 深連結：?member=1&pay=REG_xxx ──
+(async()=>{
+  const _p = new URLSearchParams(window.location.search);
+  if(_p.get('member')==='1'){
+    const _payRegId = _p.get('pay');
+    if(_payRegId) window._pendingPayRegId = _payRegId;
+    // 信件按鈕進來時，直接切到會員中心；若本機已登入，會自動載入紀錄並開啟付款。
     setTimeout(()=>{
       goMemberPage();
       const ml=$('memberLoginArea');
       if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
-    },300);
-    return;
+    }, 800);
   }
+})();
 
-  // 深連結：直接進某場報名表，先等首頁場次資料進快取，再打開表單。
-  if(directSesId){
-    setTimeout(()=>openSession(directSesId),350);
-  }
-}
 
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',bootApp,{once:true});
-}else{
-  bootApp();
-}
 
 // ── 電腦版滑鼠拖曳橫向滑動 ──
 function enableDragScroll(){
@@ -2126,20 +2024,36 @@ function enableDragScroll(){
     const x=e.pageX-el.offsetLeft;
     el.scrollLeft = scrollLeft - (x-startX)*1.5;
   });
-  let touchStartX=0, touchStartY=0;
-  el.addEventListener('touchstart', e=>{
-    const t=e.touches&&e.touches[0]; if(!t) return;
-    touchStartX=t.clientX; touchStartY=t.clientY; ST._eventDragMoved=false;
-  }, {passive:true});
-  el.addEventListener('touchmove', e=>{
-    const t=e.touches&&e.touches[0]; if(!t) return;
-    const dx=Math.abs(t.clientX-touchStartX), dy=Math.abs(t.clientY-touchStartY);
-    if(dx>12 && dx>dy){ ST._eventDragMoved=true; ST._eventDragUntil=Date.now()+450; }
-  }, {passive:true});
-  el.addEventListener('touchend', ()=>{
-    if(ST._eventDragMoved) ST._eventDragUntil=Date.now()+450;
-  }, {passive:true});
 }
+
+// ── 前台啟動：一定要自動載入首頁資料 ──
+function initFrontApp(){
+  if(window.__tbFrontInited) return;
+  window.__tbFrontInited = true;
+  try{
+    history.replaceState({page:'home'}, '', location.href);
+  }catch(e){}
+  try{
+    const saved=localStorage.getItem('tb_member');
+    if(saved){
+      const d=JSON.parse(saved);
+      if(d&&d.email){ ST.memberEmail=d.email; ST.member=null; }
+    }
+  }catch(e){}
+  applySiteConfig();
+  loadHome();
+  const p=new URLSearchParams(window.location.search);
+  const deepSes=p.get('ses')||p.get('session')||p.get('sessionId');
+  if(deepSes){
+    setTimeout(()=>openSession(deepSes), 700);
+  }
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', initFrontApp);
+}else{
+  initFrontApp();
+}
+
 </script>
 </body>
 </html>
