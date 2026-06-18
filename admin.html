@@ -267,6 +267,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 }
 
 </style>
+<!-- db-driven-20260618 -->
 <!-- build: finance-card-invoice-footer-187 -->
 </head>
 <body>
@@ -3428,9 +3429,7 @@ async function downloadSesData(sesId,sesName){
     ['押金未退',depositTotal-refundedTotal,'不列入損益']
   ];
   const regRows=regs.map(r=>[
-    finalSesName, sesId, r.eventId||ses.eventId||'', r.sessionId||sesId, r.id, r.name, r.brand, r.sellCat||'', r.products||r.sellItem||'', r.phone, r.email,
-    Array.isArray(r.selectedDates)?r.selectedDates.join('、'):'', stallCount(r), r.status, r.payStatus, payAmount(r), depAmount(r), r.payMethod||'', r.payReportAmount||'', r.payLast5||'', r.paymentReportedAt||'',
-    r.checkin||'', r.clearStatus||'', r.depositRefunded||'', r.stallNo||'', r.taxId||'', r.invoiceTitle||'', r.invoiceEmail||'', r.invoiceCarrier||'', r.invoiceStatus||'', equipSummaryText(r), created(r), r.adminNote||''
+    finalSesName,r.id,r.name,r.brand,r.phone,r.email,stallCount(r),r.status,r.payStatus,payAmount(r),depAmount(r),r.payMethod||'',r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',r.invoiceEmail||'',r.invoiceStatus||'',equipSummaryText(r),created(r),r.adminNote||''
   ]);
   const equipAllRows=buildEquipRows(regs,'全部報名');
   const equipApprovedRows=buildEquipRows(approvedRegs,'已錄取/已繳費');
@@ -3448,7 +3447,7 @@ async function downloadSesData(sesId,sesName){
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const csv='場次資訊\n'+toCSV(['欄位','內容'],infoRows)
     +'\n\n財報摘要（該場次最新資料）\n'+toCSV(['項目','金額/數量','備註'],summaryRows)
-    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','場次ID','活動ID','報名場次ID','報名ID','姓名','品牌','販售類別','本次販售商品','手機','Email','報名日期','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','回報金額','末五碼','回報時間','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','手機載具','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
+    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
     +'\n\n設備明細（全部報名，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipAllRows)
     +'\n\n設備明細（已錄取/已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipApprovedRows)
     +'\n\n設備明細（已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipPaidRows)
