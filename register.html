@@ -616,6 +616,11 @@ const _urlParams = new URLSearchParams(window.location.search);
 const TENANT_ID = _urlParams.get('tenant') || _urlParams.get('tenantId') || 'tuibile';
 // LINE_URL 由 frontBootstrap 動態取得，以下為 fallback
 let LINE_URL = 'https://lin.ee/Xpiib15';
+const SELL_CAT_OPTIONS = ['手作設計','甜點食品','二手選物','插畫文創','飾品配件','服飾配件','體驗服務','其他'];
+function sellCatOptionsHtml(selected=''){
+  return '<option value="">請選擇販售類別</option>'+SELL_CAT_OPTIONS.map(o=>`<option value="${o}" ${o===selected?'selected':''}>${o}</option>`).join('');
+}
+
 const LINEPAY_LINK = 'https://line.me/R/pay/payment?action=reserve&encPath=O9zzNsv4sXSYJj0lFsg5StIHatavCRHHS3pZkNOCBdRfr7e3xZaXE7C8dvmPyP12&merchantProvider=LINEPAY';
 const CARDPAY_LINK = 'https://p.ecpay.com.tw/C97B672';
 
@@ -630,6 +635,7 @@ let ST = {
   events:[], sessions:[], currentEvent:null, currentSession:null,
   member:null, memberEmail:null, equipQty:{}, stallCount:1,
   currentCatFilter:'市集場次',
+  tenant:{invoiceEnabled:false, priceTaxMode:'no_invoice', taxRate:0.05},
 };
 
 function $(id){return document.getElementById(id);}
@@ -1032,6 +1038,7 @@ function renderDynFormFull(s, isNew=false){
   html+=`<div class="fcard-t" style="background:rgba(0,200,180,.08)"><span style="font-size:16px">🏷️ 品牌資料${isNew?' <span style="font-size:13px;color:#e74c3c;font-weight:600">（必填）</span>':''}</span>${socialBtns}</div>`;
   html+=`<div class="fcard-body">`;
   html+=`<label style="font-size:15px">品牌名稱${isNew?' <span style="color:#e74c3c">*</span>':''}</label><input type="text" id="f_brand" value="${esc(V.brand||V.brand_name||'')}" placeholder="您的品牌或攤位名稱">`;
+  html+=`<label style="font-size:15px;margin-top:8px">販售類別 <span style="color:#e74c3c">*</span></label><select id="f_sellCat">${sellCatOptionsHtml(V.sellCat||V.sell_category||'')}</select><div class="err" id="e_sellCat"></div>`;
   html+=`<textarea id="f_brandIntro" style="display:none">${esc(V.brandIntro||V.brand_intro||'')}</textarea>`;
   html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
     <div><label style="font-size:15px">姓名 <span style="color:#e74c3c">*</span></label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="姓名"><div class="err" id="e_name"></div></div>
@@ -1065,7 +1072,7 @@ function renderDynFormFull(s, isNew=false){
 
   // 其他開放欄位（本次販售商品、備註、自訂欄位）
   if(mods.sell_item){
-    html+=`<label>販售類別</label><input type="text" id="f_sellCat" placeholder="例：手作、甜點、二手、插畫"><label>本次販售商品 *</label><input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物"><div class="err" id="e_sellItem"></div>`;
+    html+=`<label>本次販售商品 *</label><input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物"><div class="err" id="e_sellItem"></div>`;
   }
   if(mods.adult||mods.child){
     html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">`;
@@ -1459,7 +1466,7 @@ function renderDynForm(s){
   // 本次販售商品
   if(mods.sell_item){
     html+=`<div class="fcard"><div class="fcard-t">🛍️ 本次販售商品</div><div class="fcard-body">`;
-    html+=`<label>販售類別</label><input type="text" id="f_sellCat" placeholder="例：手作、甜點、二手、插畫"><label style="margin-top:10px">本次販售商品</label><input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物">`;
+    html+=`<label style="margin-top:10px">本次販售商品</label><input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物">`;
     html+=`<div class="err" id="e_sellItem"></div>`;
     html+=`</div></div>`;
   }
@@ -1769,7 +1776,7 @@ async function submitReg(ev){
       if(scrollArea.scrollTo) scrollArea.scrollTo(0,9999);
     }else{ alert('報名成功！'); }
     ST.__submitting=false;
-    setTimeout(()=>{ closeRegFormModal(); openMemberRecordsAfterSubmit(email); window.scrollTo(0,0); },3000);
+    setTimeout(async ()=>{ closeRegFormModal(); window.scrollTo(0,0); try{ await goMemberPage(); }catch(e){ console.warn('[goMemberPage after submit failed]', e); } },3000);
     return false;
   }catch(e){
     console.error('[submitReg fatal]', e);
@@ -1778,57 +1785,6 @@ async function submitReg(ev){
     toast('❌ '+errMsg, 8000);
     restoreBtn(); return false;
   }
-}
-
-
-function fillMemberCard(member){
-  member = member || {};
-  const email = member.email || ST.memberEmail || '';
-  const brand = member.brand || member.brand_name || '';
-  const name = member.name || email;
-  const phone = member.phone || '';
-  const sellCat = member.sellCat || member.sell_category || '';
-  if($('memberName')) $('memberName').textContent = name;
-  if($('memberEmail2')) $('memberEmail2').textContent = email;
-  if($('memberBrandShow')) $('memberBrandShow').textContent = [brand, sellCat].filter(Boolean).join('｜');
-  const card=$('memberCardBody');
-  if(card){
-    const links=[];
-    const fb=member.fb||member.fb_url||'';
-    const ig=member.ig||member.ig_url||'';
-    const photo=member.photo||member.photo_url||'';
-    if(fb) links.push(`<a href="${escHtml?escHtml(fb):fb}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#1877F2;color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">FB ↗</a>`);
-    if(ig) links.push(`<a href="${escHtml?escHtml(ig):ig}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">IG ↗</a>`);
-    if(photo) links.push(`<a href="${escHtml?escHtml(photo):photo}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#555;color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">出攤照 ↗</a>`);
-    card.innerHTML=`
-      ${brand?`<div style="font-size:15px;font-weight:700;margin-bottom:4px">${escHtml?escHtml(brand):brand}</div>`:''}
-      ${sellCat?`<div style="font-size:14px;color:var(--g);font-weight:800;margin-bottom:4px">${escHtml?escHtml(sellCat):sellCat}</div>`:''}
-      ${(member.brandIntro||member.brand_intro)?`<div style="font-size:16px;color:var(--md);margin-bottom:8px">${escHtml?escHtml(member.brandIntro||member.brand_intro):member.brandIntro||member.brand_intro}</div>`:''}
-      ${links.length?`<div style="margin-bottom:8px">${links.join('')}</div>`:''}
-      ${phone?`<div style="font-size:15px;color:var(--lt)">手機：${escHtml?escHtml(phone):phone}</div>`:''}
-    `;
-  }
-}
-
-async function openMemberRecordsAfterSubmit(email){
-  const cleanEmail = (email || ST.memberEmail || '').trim();
-  if(!cleanEmail) return;
-  ST.memberEmail = cleanEmail;
-  try{ localStorage.setItem('tb_member_email', cleanEmail); localStorage.removeItem('tb_member'); }catch(e){}
-  navTo('member');
-  if($('loginEmail')) $('loginEmail').value = cleanEmail;
-  if($('memberLoginArea')) $('memberLoginArea').style.display='none';
-  if($('memberArea')) $('memberArea').style.display='block';
-  try{
-    const [member, regs] = await Promise.all([
-      api({action:'getMember', email:cleanEmail, _t:Date.now()}),
-      api({action:'getMyRegs', email:cleanEmail, _t:Date.now()})
-    ]);
-    ST.member = member && !member.error ? member : {email:cleanEmail};
-    fillMemberCard(ST.member);
-    renderMyRegs(regs || []);
-    const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄';
-  }catch(e){ console.warn('[openMemberRecordsAfterSubmit failed]', e); }
 }
 
 // ── 會員 ──
@@ -2144,7 +2100,7 @@ if(document.readyState==='loading'){
     const evEl=$('eventsList'); if(evEl) evEl.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px">載入中…</div>';
     try{ const boot = await api({action:'frontBootstrap', tenant:TENANT_ID, _t:Date.now()});
       ST.events=asArr(boot.events); ST.sessions=uniqueSessions(boot.sessions).filter(openSess); ST.allSessionsData=ST.sessions;
-      if(boot.tenant){
+      if(boot.tenant){ ST.tenant={...(ST.tenant||{}),...boot.tenant};
         // 動態更新 LINE_URL
         if(boot.tenant.name){ document.title = boot.tenant.name + ' — 報名系統'; }
         const awt=document.querySelector('meta[name="apple-mobile-web-app-title"]'); if(awt&&boot.tenant.name) awt.setAttribute('content', boot.tenant.name);
@@ -2192,32 +2148,6 @@ if(document.readyState==='loading'){
   window.goMemberPage=async function(){ navTo('member'); const email=ST.memberEmail||readEmail(); if(!email){ if($('memberLoginArea')) $('memberLoginArea').style.display='block'; if($('memberArea')) $('memberArea').style.display='none'; return; } if($('loginEmail')) $('loginEmail').value=email; await memberLogin(); };
   function bootDbFront(){ const email=readEmail(); if(email){ST.memberEmail=email; if($('loginEmail')) $('loginEmail').value=email;} loadHome(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
-})();
-
-
-// ── RECORDS NORMALIZE PATCH：我的紀錄欄位防呆 ──
-(function(){
-  function pick(o, keys, fallback=''){
-    for(const k of keys){ if(o && o[k]!==undefined && o[k]!==null && o[k]!== '') return o[k]; }
-    return fallback;
-  }
-  const oldRender = window.renderMyRegs || renderMyRegs;
-  window.renderMyRegs = function(regs){
-    const arr = Array.isArray(regs) ? regs.map(r=>{
-      const n = {...r};
-      n.sessionName = pick(r,['sessionName','sesName','場次名稱','session_name'], n.sessionName||'');
-      n.status = pick(r,['status','reviewStatus','review_status','審核狀態'], n.status||'');
-      n.payStatus = pick(r,['payStatus','paymentStatus','payment_status','付款狀態'], n.payStatus||'');
-      n.amount = Number(pick(r,['amount','金額','total','總計','total_amount'], n.amount||0))||0;
-      n.total = Number(pick(r,['total','總計','amount','金額','total_amount'], n.total||n.amount||0))||0;
-      n.deposit = Number(pick(r,['deposit','存款','保證金'], n.deposit||0))||0;
-      n.stallCount = Number(pick(r,['stallCount','stall_count','攤位數'], n.stallCount||1))||1;
-      n.equip = pick(r,['equip','equipment','equipment_json'], n.equip||{});
-      if(typeof n.equip === 'string'){ try{ n.equip=JSON.parse(n.equip||'{}'); }catch(e){ n.equip={}; } }
-      return n;
-    }) : [];
-    return oldRender(arr);
-  };
 })();
 
 </script>
