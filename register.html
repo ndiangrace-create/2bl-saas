@@ -497,32 +497,30 @@ textarea{min-height:72px;resize:vertical}
 <!-- ══ Modals ══ -->
 <div class="modal-overlay" id="payModal" onclick="if(event.target===this)closeModal('payModal')">
   <div class="modal-box">
-    <div class="modal-title" id="payModalTitle">繳費回報</div>
-    <div id="payModalInfo" style="background:var(--gp);border-radius:10px;padding:14px;margin-bottom:16px;font-size:14px"></div>
+    <div class="modal-title" id="payModalTitle">前往繳費</div>
+    <div id="payModalInfo" style="background:var(--gp);border-radius:10px;padding:14px;margin-bottom:14px;font-size:14px"></div>
 
-    <div style="font-weight:700;font-size:14px;margin-bottom:10px">選擇繳費方式 *</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid #d0e8d8;border-radius:10px;cursor:pointer;font-size:14px">
-        <input type="radio" name="payMethod" value="匯款／ATM" style="accent-color:var(--g);width:16px;height:16px"> 🏦 匯款／ATM
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid #d0e8d8;border-radius:10px;cursor:pointer;font-size:14px">
-        <input type="radio" name="payMethod" value="刷卡" style="accent-color:var(--g);width:16px;height:16px"> 💳 刷卡
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid #06C755;border-radius:10px;cursor:pointer;font-size:14px">
-        <input type="radio" name="payMethod" value="LINE Pay" style="accent-color:#06C755;width:16px;height:16px"> <span style="color:#06C755;font-weight:700">LINE Pay</span>
-      </label>
+    <div style="font-weight:900;font-size:15px;margin-bottom:10px;color:var(--dk)">請先選擇真正的繳費方式</div>
+    <button class="btn-p" onclick="goLinePay()" style="width:100%;margin-bottom:8px;background:#06C755">LINE Pay 線上付款</button>
+    <button class="btn-p" onclick="goEcpay()" style="width:100%;margin-bottom:12px;background:#1D9E75">信用卡／綠界線上付款</button>
+
+    <div style="height:1px;background:#edf2ef;margin:14px 0"></div>
+    <div style="font-size:14px;font-weight:900;color:var(--dk);margin-bottom:8px">已用匯款／ATM 完成付款，才填這裡回報</div>
+    <div style="background:#fff8dc;border:1px solid #f5df9a;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:#7a5a00">
+      <div><strong>銀行：</strong>台北富邦銀行左營分行（012）</div>
+      <div><strong>帳號：</strong>82110000172998</div>
+      <div><strong>戶名：</strong>兔彼樂共創活動有限公司</div>
     </div>
-
-    <label style="font-size:16px;color:var(--md)">帳號末五碼（匯款／ATM 請填，刷卡／LINE Pay 可空白）</label>
-    <input type="text" id="payLastFive" placeholder="選填" inputmode="numeric" maxlength="5" style="margin-bottom:10px">
-    <label style="font-size:16px;color:var(--md)">繳費金額 *</label>
+    <label style="font-size:16px;color:var(--md)">帳號末五碼（匯款／ATM 回報必填）</label>
+    <input type="text" id="payLastFive" placeholder="請填轉出帳號末五碼" inputmode="numeric" maxlength="5" style="margin-bottom:10px">
+    <label style="font-size:16px;color:var(--md)">回報金額</label>
     <div id="payAmount" style="background:#f8f8f8;border:1.5px solid #d0e8d8;border-radius:8px;padding:10px 12px;font-size:14px;font-weight:700;color:#2d6a4f;margin-bottom:14px"></div>
 
-    <button class="btn-p" onclick="submitPaymentForm()" style="width:100%;margin-bottom:8px">確認送出繳費通知</button>
+    <button class="btn-p" onclick="submitPaymentForm()" style="width:100%;margin-bottom:8px;background:#d89b22">我已匯款，送出回報</button>
     <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%">取消</button>
   </div>
 </div>
-<div class="modal-overlay" id="cancelModal" onclick="if(event.target===this)closeModal('cancelModal')">
+<div class="modal-overlay" id="cancelModal"<div class="modal-overlay" id="cancelModal" onclick="if(event.target===this)closeModal('cancelModal')">
   <div class="modal-box">
     <div class="modal-title">取消報名確認</div>
     <div style="font-size:18px;font-weight:700;color:var(--dk);margin-bottom:12px" id="cancelModalSesName"></div>
@@ -1697,7 +1695,7 @@ async function memberLogin(){
   fillMemberCard(member);
   // 更新底部按鈕
   const lbl=$('botMemberLabel');
-  if(lbl) lbl.textContent='會員登出';
+  if(lbl) lbl.textContent='我的紀錄';
   $('memberName').textContent=member?.name||email;
   $('memberEmail2').textContent=email;
   // 渲染會員資料卡片
@@ -1734,9 +1732,16 @@ function memberLogout(){
   $('memberLoginArea').style.display='block';
   $('memberArea').style.display='none';
   const lbl=$('botMemberLabel');
-  if(lbl) lbl.textContent='會員登入';
+  if(lbl) lbl.textContent='我的紀錄';
 }
 
+function payStatusInfo(v){
+  const s=String(v||'未繳費').trim() || '未繳費';
+  if(s==='免費') return {label:'免費',bg:'#eef7ff',color:'#277da1',desc:'此報名不需繳費'};
+  if(s.indexOf('已繳費')>=0) return {label:'已繳費',bg:'#e8f7ee',color:'#2d6a4f',desc:'主辦已確認付款'};
+  if(isPendingPayText(s)) return {label:'待確認',bg:'#fff3cd',color:'#b7860b',desc:'已送出繳費回報，等待主辦確認'};
+  return {label:'未繳費',bg:'#fdecea',color:'#d94f4f',desc:'尚未完成繳費'};
+}
 function renderMyRegs(regs){
   ST.regs = Array.isArray(regs) ? regs : [];
   const el=$('myRegsList');
@@ -1748,21 +1753,36 @@ function renderMyRegs(regs){
   }
   const statusColor={'待審核':'#f5a623','已錄取':'#2d6a4f','不錄取':'#d94f4f','已取消':'#aaa','已報到':'#1a7f5a'};
   el.innerHTML=ST.regs.map(r=>{
-    const color=statusColor[r.status]||'#888';
-    return `<div onclick="openRegDetail('${r.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${color}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div style="font-size:20px;font-weight:800;color:var(--dk);flex:1;margin-right:8px">${r.sessionName||r.sesName||'場次'}</div>
-        <span style="background:${color}22;color:${color};padding:3px 12px;border-radius:20px;font-size:16px;font-weight:700;flex-shrink:0">${r.status}</span>
+    const reviewColor=statusColor[r.status]||'#888';
+    const p=payStatusInfo(r.payStatus);
+    const canPay=canPayReg(r);
+    const safeSes=String(r.sessionName||r.sesName||'場次').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    const amountHtml = Number(r.total||0)>0 ? `NT$ ${Number(r.total||0).toLocaleString()}` : (r.payStatus==='免費'?'免費':'');
+    const actionHtml = canPay
+      ? `<button onclick="event.stopPropagation();showPayPage('${r.id}',this.dataset.ses,'${Number(r.total||0)}')" data-ses="${safeSes}" style="width:100%;margin-top:12px;background:var(--g);color:#fff;border:none;border-radius:12px;padding:12px 14px;font-size:16px;font-weight:900;cursor:pointer">前往繳費</button>`
+      : (isPendingPayText(r.payStatus)?`<div style="margin-top:12px;background:#fff8dc;border:1px solid #f1d98a;border-radius:10px;padding:9px 11px;color:#8a6400;font-size:14px;font-weight:800">已送出繳費回報，等待主辦確認</div>`:'');
+    return `<div onclick="openRegDetail('${r.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${reviewColor}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px">
+        <div style="font-size:20px;font-weight:900;color:var(--dk);flex:1;line-height:1.35">${r.sessionName||r.sesName||'場次'}</div>
+        <span style="background:${p.bg};color:${p.color};padding:5px 12px;border-radius:20px;font-size:15px;font-weight:900;flex-shrink:0">${p.label}</span>
       </div>
-      <div style="font-size:17px;color:var(--md)">攤位數：${r.stallCount||1} 攤　${r.total>0?'NT$ '+r.total:r.payStatus==='免費'?'免費':''}</div>
-      <div style="font-size:16px;color:var(--lt);margin-top:4px">${r.payStatus||''}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span style="background:${reviewColor}22;color:${reviewColor};padding:3px 10px;border-radius:20px;font-size:14px;font-weight:800">${r.status}</span>
+        <span style="font-size:15px;color:var(--md)">${p.desc}</span>
+      </div>
+      <div style="font-size:17px;color:var(--md);line-height:1.7">攤位數：${r.stallCount||1} 攤${amountHtml?'　'+amountHtml:''}</div>
+      ${actionHtml}
     </div>`;
   }).join('');
   handlePendingPayLink(ST.regs);
 }
 
 function isPaidText(v){ return String(v||'').indexOf('已繳費')>=0; }
-function canPayReg(reg){ return reg && reg.status==='已錄取' && Number(reg.total||0)>0 && !isPaidText(reg.payStatus) && reg.payStatus!=='免費'; }
+function isPendingPayText(v){ const s=String(v||''); return s==='待確認' || s==='付款待確認' || s==='已回報' || s==='待核款'; }
+function canPayReg(reg){
+  const pay=String(reg?.payStatus||'未繳費');
+  return reg && reg.status==='已錄取' && Number(reg.total||0)>0 && !isPaidText(pay) && !isPendingPayText(pay) && pay!=='免費';
+}
 function handlePendingPayLink(regs){
   const regId = window._pendingPayRegId || '';
   if(!regId) return;
@@ -1780,8 +1800,9 @@ function openRegDetail(regId){
   if(!reg) return;
   const statusColor={'待審核':'#f5a623','已錄取':'#2d6a4f','不錄取':'#d94f4f','已取消':'#aaa','已報到':'#1a7f5a'};
   const color=statusColor[reg.status]||'#888';
-  const canCancel=['待審核','已錄取'].includes(reg.status)&&reg.payStatus!=='已繳費';
+  const canCancel=['待審核','已錄取'].includes(reg.status)&&!isPaidText(reg.payStatus);
   const canPay = canPayReg(reg);
+  const payInfo = payStatusInfo(reg.payStatus);
   const modal=document.createElement('div');
   modal.id='regDetailModal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:flex-end;justify-content:center';
@@ -1806,8 +1827,9 @@ function openRegDetail(regId){
       </div>`:''}
       <div style="display:flex;justify-content:space-between">
         <span style="font-size:16px;color:var(--md)">繳費狀態</span>
-        <span style="font-size:13px;font-weight:700">${reg.payStatus||'-'}</span>
+        <span style="font-size:15px;font-weight:900;background:${payInfo.bg};color:${payInfo.color};padding:4px 10px;border-radius:20px">${payInfo.label}</span>
       </div>
+      ${isPendingPayText(reg.payStatus)?`<div style="margin-top:10px;background:#fff8dc;border:1px solid #f1d98a;border-radius:10px;padding:9px 11px;color:#8a6400;font-size:14px;font-weight:800">已送出繳費回報，等待主辦確認</div>`:''}
     </div>
     <div style="font-size:15px;color:var(--lt);margin-bottom:14px">報名編號：${reg.id}</div>
     ${canPay?`<button onclick="document.getElementById('regDetailModal').remove();showPayPage('${reg.id}',this.dataset.ses,'${Number(reg.total||0)}');" data-ses="${(reg.sessionName||reg.sesName||'場次').replace(/"/g,'&quot;')}" style="width:100%;background:var(--g);color:#fff;border:none;padding:12px;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:8px">前往繳費</button>`:''}
@@ -1879,11 +1901,11 @@ let ST_currentPayAmount = 0;
 function showPayPage(regId, sesName, amount){
   ST_currentPayRegId = regId;
   ST_currentPayAmount = amount;
-  $('payModalTitle').textContent = '繳費 — '+sesName;
+  $('payModalTitle').textContent = '前往繳費 — '+sesName;
   $('payModalInfo').innerHTML = `
     <div>場次：<strong>${sesName}</strong></div>
     <div style="font-size:16px;font-weight:700;color:var(--g);margin-top:4px">應繳金額：NT$ ${amount}</div>
-    <div style="font-size:15px;color:#888;margin-top:4px">請於錄取後一週內完成繳費，逾期名額將釋出</div>`;
+    <div style="font-size:15px;color:#888;margin-top:4px">請先使用線上付款；若已匯款，才填下方末五碼回報。</div>`;
   // 預填匯款金額
   const payAmtEl = $('payAmount');
   const payLastEl = $('payLastFive');
@@ -1898,8 +1920,8 @@ async function goLinePay(){
   const res = await apiPost({action:'createLinePayOrder', regId:ST_currentPayRegId});
   if(res.error){toast('LINE Pay 錯誤：'+res.error);return;}
   closeModal('payModal');
-  window.open(res.paymentUrl, '_blank');
-  toast('已開啟 LINE Pay 付款頁面', 5000);
+  window.location.href = res.paymentUrl;
+  return;
 }
 async function goEcpay(){
   if(!ST_currentPayRegId){toast('錯誤：找不到報名資料');return;}
@@ -1911,7 +1933,7 @@ async function goEcpay(){
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = res.apiUrl;
-  form.target = '_blank';
+  
   Object.entries(res.params).forEach(([k,v])=>{
     const inp = document.createElement('input');
     inp.type = 'hidden';
@@ -1923,21 +1945,18 @@ async function goEcpay(){
   form.submit();
   document.body.removeChild(form);
   closeModal('payModal');
-  toast('✅ 已開啟付款頁面，完成付款後系統自動確認', 5000);
+  toast('已送出至付款頁面，完成付款後系統會自動確認', 5000);
 }
 
 async function submitPaymentForm(){
-  const methodEl = document.querySelector('input[name="payMethod"]:checked');
-  if(!methodEl){toast('請選擇繳費方式');return;}
-  const method = methodEl.value;
+  const method = '匯款／ATM';
   const lastFive = $('payLastFive')?.value.trim() || '';
   const amount = ST_currentPayAmount || 0;
   if(!amount){toast('繳費金額有誤，請重新進入繳費頁面');return;}
-  // 匯款/ATM 需要末五碼
-  if(method==='匯款／ATM' && !lastFive){toast('匯款／ATM 請填寫帳號末五碼');return;}
+  if(!lastFive){toast('請填寫匯款／ATM 轉出帳號末五碼');return;}
 
-  const btn = document.querySelector('#payModal .btn-p');
-  if(btn){btn.disabled=true;btn.textContent='送出中…';}
+  const btn = document.querySelector('#payModal .btn-p[onclick="submitPaymentForm()"]') || document.querySelector('#payModal .btn-p');
+  if(btn){btn.disabled=true;btn.textContent='送出回報中…';}
   try{
     const res = await apiPost({
       action:'submitPayment',
@@ -1947,78 +1966,14 @@ async function submitPaymentForm(){
       amount:amount,
     });
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已送出繳費通知，請等待確認！',4000);
+    toast('✅ 已送出繳費回報，等待主辦確認',4000);
     closeModal('payModal');
     if(ST.memberEmail){
       const regs = await api({action:'getMyRegs',email:ST.memberEmail});
       renderMyRegs(regs||[]);
     }
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='確認送出繳費通知';}
-  }
-}
-
-// ── 選位功能 ──
-let ST_selectingRegId = '';
-let ST_selectingSession = null;
-
-async function showStallPicker(regId, sesId){
-  ST_selectingRegId = regId;
-  const sesData = await api({action:'getSession', id:sesId});
-  ST_selectingSession = sesData;
-  const status = await api({action:'getStallStatus', sessionId:sesId});
-  
-  const stallList = status.stallList || sesData.stallList || [];
-  const taken = status.taken || {};
-  
-  if(!stallList.length){
-    toast('此場次尚未設定攤位號碼');
-    return;
-  }
-  
-  const html = stallList.map(s => {
-    const info = taken[s];
-    let cls = 'stall-available';
-    let label = s;
-    let disabled = false;
-    if(info){
-      if(info.status==='paid'){ cls='stall-taken'; disabled=true; label=s+' 已選'; }
-      else { 
-        const exp = info.expiry ? new Date(info.expiry) : null;
-        if(exp && new Date() < exp){ cls='stall-reserved'; disabled=true; label=s+' 預留中'; }
-      }
-    }
-    const clickFn = disabled ? '' : `onclick="pickStall('${s}')"`;
-    return `<div class="stall-cell ${cls}" ${clickFn} style="
-      padding:12px;border-radius:10px;text-align:center;font-weight:700;font-size:13px;cursor:${disabled?'not-allowed':'pointer'};
-      background:${cls==='stall-available'?'#f0fdf4':cls==='stall-taken'?'#fdecea':'#fffaed'};
-      border:2px solid ${cls==='stall-available'?'#52b788':cls==='stall-taken'?'#c0392b':'#b7860b'};
-      color:${cls==='stall-available'?'#2d6a4f':cls==='stall-taken'?'#c0392b':'#b7860b'};
-      opacity:${disabled?'0.6':'1'}
-    ">${label}</div>`;
-  }).join('');
-  
-  $('stallPickerTitle').textContent = sesData.name || '選擇攤位';
-  $('stallGrid').innerHTML = html;
-  $('stallPickerModal').classList.add('show');
-}
-
-async function pickStall(stallName){
-  if(!ST.memberEmail){ toast('請先登入'); return; }
-  const res = await apiPost({
-    action:'selectStall',
-    regId: ST_selectingRegId,
-    sessionId: ST_selectingSession?.id || '',
-    email: ST.memberEmail,
-    stalls: [stallName]
-  });
-  if(res.error){ toast('❌ '+res.error); return; }
-  toast('✅ 攤位 '+stallName+' 選位成功！');
-  closeModal('stallPickerModal');
-  // 更新報名紀錄
-  if(ST.memberEmail){
-    const regs = await api({action:'getMyRegs', email:ST.memberEmail});
-    renderMyRegs(regs||[]);
+    if(btn){btn.disabled=false;btn.textContent='我已匯款，送出回報';}
   }
 }
 
@@ -2127,7 +2082,7 @@ function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
         ST.member = d.member||null;
         // 更新底部按鈕
         const lbl=$('botMemberLabel');
-        if(lbl) lbl.textContent='會員登出';
+        if(lbl) lbl.textContent='我的紀錄';
         console.log('[register] 已還原登入:', d.email);
       }
     }
