@@ -3316,13 +3316,16 @@ async function downloadSesData(sesId,sesName){
   toast('準備下載最新財報資料...');
 
   // 先重新抓最新總覽，避免使用舊快取造成金額、場次名稱或設備統計不正確
-  let freshDash=[];
+  // 單場模式：只撈這一場，不撈全部場次，效率直接
+  let ses={};
   try{
-    freshDash=await api({action:'getSessionDashboard', email:ST.email, token:ST.token});
-    if(Array.isArray(freshDash)) ST.sdData=freshDash;
-  }catch(e){ console.warn('最新場次總覽讀取失敗，改用目前畫面資料', e); }
-
-  const ses=(ST.sdData||[]).find(x=>x.id===sesId)||{};
+    const freshDash=await api({action:'getSessionDashboard', sessionId:sesId, email:ST.email, token:ST.token});
+    if(Array.isArray(freshDash) && freshDash.length) {
+      ses=freshDash[0];
+      // 同步更新 ST.sdData 裡的這場資料（保持總覽快取一致）
+      ST.sdData=(ST.sdData||[]).map(x=>x.id===sesId?ses:x);
+    }
+  }catch(e){ console.warn('單場資料讀取失敗，改用快取', e); ses=(ST.sdData||[]).find(x=>x.id===sesId)||{}; }
   let ev=(ST.events||[]).find(e=>e.id===ses.eventId)||{};
   if(!(ST.events||[]).length){
     try{ const evs=await api({action:'getEventsAdmin', email:ST.email, token:ST.token}); if(Array.isArray(evs)){ST.events=evs; ev=(ST.events||[]).find(e=>e.id===ses.eventId)||ev;} }catch(e){}
