@@ -98,6 +98,12 @@ img{display:block;max-width:100%}
 .event-meta{font-size:13px;color:var(--md);line-height:1.5}
 .event-more{font-size:14px;color:var(--g);font-weight:700;margin-top:6px}
 
+
+/* 主題活動：滑動不誤觸，只有按鈕可進入 */
+.event-card{cursor:default!important}
+.event-action-btn{margin-top:8px;width:100%;border:none;border-radius:10px;background:var(--g);color:#fff;font-size:15px;font-weight:900;padding:9px 10px;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.event-action-btn:active{transform:scale(.97);opacity:.9}
+
 /* ── 場次頁 ── */
 .page{display:none;padding-bottom:100px;width:100%}
 .page.active{display:block}
@@ -620,8 +626,8 @@ const EQUIP_LIST_DEFS = {
 };
 
 let ST = {
-  events:[], sessions:[], currentEvent:null, currentSession:null,
-  member:null, memberEmail:null, equipQty:{}, stallCount:1,
+  events:[], sessions:[], allSessionsData:[], regs:[], currentEvent:null, currentSession:null,
+  member:null, memberEmail:null, equipQty:{}, addonQty:{}, stallCount:1,
   currentCatFilter:'市集場次',
 };
 
@@ -658,6 +664,32 @@ function openModal(id){const el=$(id);if(el)el.classList.add('show');}
 function closeModal(id){const el=$(id);if(el)el.classList.remove('show');}
 function openLine(){window.open(LINE_URL,'_blank');}
 
+function esc(v){
+  return String(v??'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function getEffectiveEquipIncl(session, key, def){
+  const raw=Number(def?.incl)||0;
+  if(raw<=0) return 0;
+  const name=String(key||'');
+  const isTableOrChair=name.includes('桌')||name.includes('椅');
+  if(!isTableOrChair) return raw;
+  const basic=String(session?.basicEquip||session?.basic_equip||'').trim();
+  if(!basic) return 0;
+  if(/不含|無附|無提供|沒有|不提供|未提供|不附/.test(basic)) return 0;
+  const mentions=name.includes('桌') ? basic.includes('桌') : (basic.includes('椅')||basic.includes('椅子'));
+  return mentions ? raw : 0;
+}
+function openEventFromButton(ev,eventId){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  if(ST._eventDragUntil && Date.now()<ST._eventDragUntil) return;
+  openEvent(eventId);
+}
+
 // ── 頁面切換 ──
 
 // ── 統一返回 ──
@@ -684,7 +716,11 @@ function goMemberPage(){
   const memberArea=$('memberArea');
   if(!loginArea||!memberArea) return;
   if(!ST.memberEmail){
-    try{const saved=localStorage.getItem('tb_member'); if(saved){const d=JSON.parse(saved); if(d&&d.email) ST.memberEmail=d.email;}}catch(e){}
+    // 再嘗試從 localStorage 讀一次
+    try{
+      const saved=localStorage.getItem('tb_member');
+      if(saved){const d=JSON.parse(saved);if(d&&d.email){ST.memberEmail=d.email;ST.member=d.member||null;}}
+    }catch(e){}
   }
   if(!ST.memberEmail){
     loginArea.style.display='block';
@@ -693,8 +729,8 @@ function goMemberPage(){
     loginArea.style.display='none';
     memberArea.style.display='block';
     fillMemberCard(ST.member);
-    Promise.all([api({action:'getMember',email:ST.memberEmail}), api({action:'getMyRegs',email:ST.memberEmail})]).then(([member,regs])=>{
-      if(member && !member.error){ST.member=member; fillMemberCard(member); try{localStorage.setItem('tb_member',JSON.stringify({email:ST.memberEmail,savedAt:Date.now()}));}catch(e){}}
+    // 重新載入最新報名紀錄
+    api({action:'getMyRegs',email:ST.memberEmail}).then(regs=>{
       renderMyRegs(regs||[]);
     });
   }
@@ -735,7 +771,9 @@ async function loadHome(){
       api({action:'getAnnouncements'}),
     ]);
     ST.events = Array.isArray(events) ? events : [];
-    ST.allSessionsData = Array.isArray(sessions) ? sessions.filter(s=>s.status==='報名中') : [];
+    ST.allSessionsData = Array.isArray(sessions)
+      ? sessions.filter(s=>s && (s.status==='報名中'||s.status==='開放中'))
+      : [];
     ST.sessions = ST.allSessionsData;
     renderAnnouncements(Array.isArray(announcements) ? announcements : []);
     renderEvents();
@@ -762,8 +800,10 @@ async function filterCat(type, el){
   navTo('portal');
   window.scrollTo(0,0);
   // 載入場次
-  const sessions = await api({action:'getSessions', portal:type});
-  const data = Array.isArray(sessions) ? sessions.filter(s=>s.status==='報名中') : [];
+  const sessions = await api({action:'getSessions', portal:type, _t:Date.now()});
+  const data = Array.isArray(sessions) ? sessions.filter(s=>s && (s.status==='報名中'||s.status==='開放中')) : [];
+  ST.sessions = data;
+  ST.allSessionsData = [...new Map([...(ST.allSessionsData||[]), ...data].map(s=>[String(s.id),s])).values()];
   if(!list) return;
   if(!data.length){
     list.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前無開放場次</div>';
@@ -774,20 +814,30 @@ async function filterCat(type, el){
 
 function renderEvents(){
   const el=$('eventsList');
-  if(!ST.events.length){el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中，請稍候…<br><span onclick="loadHome()" style="color:var(--g);font-weight:700;cursor:pointer">點此重新載入</span></div>';return;}
-  el.innerHTML=ST.events.map(e=>`
-    <div class="event-card" onclick="openEvent('${e.id}')" ontouchend="event.preventDefault();openEvent('${e.id}')">
+  if(!el) return;
+  const events=Array.isArray(ST.events)?ST.events:[];
+  if(!events.length){
+    const fallback=(ST.allSessionsData||[]).filter(x=>x && (x.status==='報名中'||x.status==='開放中')).slice(0,8);
+    if(fallback.length){
+      el.innerHTML=fallback.map(s=>renderSessionCard(s)).join('');
+      return;
+    }
+    el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前沒有開放中的主題活動</div>';
+    return;
+  }
+  el.innerHTML=events.map(e=>`
+    <div class="event-card" style="cursor:default">
       <div class="event-cover">
         ${e.cover
-          ?`<img src="${e.cover}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`
+          ?`<img src="${esc(e.cover)}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`
           :`<div class="event-cover-placeholder">🎪</div>`}
         <div class="event-status-tag">報名中</div>
       </div>
       <div class="event-info">
-        <div class="event-name">${e.title}</div>
-        ${e.location?`<div class="event-meta">📍 ${e.location}</div>`:''}
-        ${e.desc?`<div class="event-meta">${e.desc.slice(0,20)}</div>`:''}
-        <div class="event-more" style="font-size:16px">查看詳情 →</div>
+        <div class="event-name">${esc(e.title||'')}</div>
+        ${e.location?`<div class="event-meta">📍 ${esc(e.location)}</div>`:''}
+        ${e.desc?`<div class="event-meta">${esc(String(e.desc).slice(0,20))}</div>`:''}
+        <button type="button" onclick="openEventFromButton(event,'${esc(e.id)}')" style="margin-top:8px;width:100%;border:none;border-radius:10px;background:var(--gp);color:var(--g);font-size:16px;font-weight:900;padding:9px 8px;font-family:inherit;cursor:pointer">查看場次</button>
       </div>
     </div>`).join('');
   setTimeout(enableDragScroll, 100);
@@ -813,7 +863,7 @@ async function openEvent(eventId){
   navTo('portal');
   const sessions=await api({action:'getSessions',eventId});
   ST.sessions=Array.isArray(sessions)?sessions:[];
-  ST.allSessionsData=[...new Map([...ST.allSessionsData,...ST.sessions].map(s=>[s.id,s])).values()];
+  ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]),...ST.sessions].map(s=>[String(s.id),s])).values()];
   if(!list) return;
   if(!ST.sessions.length){
     list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:16px">目前無開放場次</div>';
@@ -857,7 +907,7 @@ function renderSessionCard(s){
       <span style="font-size:14px;color:#bbb;flex-shrink:0;font-weight:700">${full?'名額已滿':'已關閉'}</span>
     </div>`;
   }
-  return `<div onclick="openSession('${s.id}')" ontouchend="event.preventDefault();openSession('${s.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1)">
+  return `<div role="button" tabindex="0" data-session-id="${esc(s.id)}" onclick="openSessionFromCard(event,'${esc(s.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){openSessionFromCard(event,'${esc(s.id)}')}" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1);position:relative;z-index:1">
     <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:nowrap;overflow:hidden">
         ${typeBadge}
@@ -941,7 +991,7 @@ async function checkMemberStep(){
   if(emailEl) emailEl.disabled=false;
   if(member&&!member.error&&(member.name||member.brand)){
     ST.member=member;
-    try{localStorage.setItem('tb_member',JSON.stringify({email,savedAt:Date.now()}));}catch(e){}
+    try{localStorage.setItem('tb_member',JSON.stringify({email,member,savedAt:Date.now()}));}catch(e){}
     if(statusEl){
       statusEl.style.display='block';
       statusEl.style.background='var(--gp)';
@@ -989,7 +1039,6 @@ function renderDynFormFull(s, isNew=false){
   html+=`<div class="fcard-t" style="background:rgba(0,200,180,.08)"><span style="font-size:16px">🏷️ 品牌資料${isNew?' <span style="font-size:13px;color:#e74c3c;font-weight:600">（必填）</span>':''}</span>${socialBtns}</div>`;
   html+=`<div class="fcard-body">`;
   html+=`<label style="font-size:15px">品牌名稱${isNew?' <span style="color:#e74c3c">*</span>':''}</label><input type="text" id="f_brand" value="${esc(V.brand||V.brand_name||'')}" placeholder="您的品牌或攤位名稱">`;
-  html+=`<label style="font-size:15px;margin-top:10px">販售類別</label><input type="text" id="f_sellCat" value="${esc(V.sellCat||V.sell_category||'')}" placeholder="例：手作、甜點、二手、插畫">`;
   html+=`<textarea id="f_brandIntro" style="display:none">${esc(V.brandIntro||V.brand_intro||'')}</textarea>`;
   html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
     <div><label style="font-size:15px">姓名 <span style="color:#e74c3c">*</span></label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="姓名"><div class="err" id="e_name"></div></div>
@@ -1088,7 +1137,7 @@ function renderDynFormFull(s, isNew=false){
       if(equipDefs.length>0){
         html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）請填寫總數量</div>`;
         equipDefs.forEach(([k,v])=>{
-          const incl=Number(v.incl)||0;
+          const incl=getEffectiveEquipIncl(s,k,v);
           const price=Number(v.price)||0;
           html+=`<div class="equip-row">
             <div class="equip-info"><div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
@@ -1156,6 +1205,13 @@ function adjStall(delta){
   updateFee();
 }
 
+
+
+function openSessionFromCard(ev, sessionId){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  if(!sessionId){ toast('場次資料讀取失敗，請重新整理'); return; }
+  openSession(sessionId);
+}
 
 async function openSessionDirect(sessionId){
   const s=ST.allSessionsData&&ST.allSessionsData.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
@@ -1295,30 +1351,69 @@ function shareCurrentSession(){
 }
 
 async function openSession(sessionId){
-  // 永遠即時抓最新資料（避免費用/加購快取問題）
-  const s = await api({action:'getSession',id:sessionId});
-  if(!s||s.error){ toast('場次資料讀取失敗，請重試'); return; }
-  ST.currentSession=s; ST.equipQty={}; ST.addonQty={}; ST.stallCount=1;
-  const evt=ST.events.find(e=>e.id===s.eventId);
-  const cover=s.cover||evt?.cover||'';
-  buildFormHero(s,cover);
-  const titleEl=$('formBackTitle');
-  if(titleEl) titleEl.textContent=s.name||'報名表';
-  openRegFormModal();
-  // 已登入 → 先查重複報名
-  if(ST.member && ST.memberEmail){
-    // 查詢是否已報名此場次
-    const myRegs=await api({action:'getMyRegs',email:ST.memberEmail});
-    const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
-    if(dup){
-      // 已報名 → 顯示提示
-      showAlreadyRegistered(s,dup);
+  // 點場次必須立即有反應：先用列表快取打開報名表，再背景抓最新資料。
+  const cached = (ST.allSessionsData||[]).find(x=>String(x.id)===String(sessionId))
+    || (ST.sessions||[]).find(x=>String(x.id)===String(sessionId));
+  const openWithSession = async (s, fromFresh=false)=>{
+    if(!s || s.error){ toast('場次資料讀取失敗，請重試'); return; }
+    ST.currentSession=s;
+    ST.equipQty={};
+    ST.addonQty={};
+    ST.stallCount=1;
+    const evt=(ST.events||[]).find(e=>String(e.id)===String(s.eventId));
+    const cover=s.cover||evt?.cover||'';
+    buildFormHero(s,cover);
+    const titleEl=$('formBackTitle');
+    if(titleEl) titleEl.textContent=s.name||'報名表';
+    const modal=$('regFormModal');
+    if(!modal || !modal.classList.contains('show')) openRegFormModal();
+    if(ST.member && ST.memberEmail){
+      try{
+        const myRegs=await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
+        const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
+        if(dup) showAlreadyRegistered(s,dup);
+        else renderDynFormFull(s, false);
+      }catch(e){
+        renderDynFormFull(s, false);
+      }
     } else {
-      renderDynFormFull(s, false);
+      showEmailStep(s);
     }
-  } else {
-    showEmailStep(s);
+    updateFee();
+  };
+
+  if(cached){
+    await openWithSession(cached, false);
+    // 背景更新最新場次資料，不讓使用者覺得點了沒反應。
+    api({action:'getSession',id:sessionId,_t:Date.now()}).then(fresh=>{
+      if(!fresh || fresh.error) return;
+      ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]), fresh].map(x=>[x.id,x])).values()];
+      if(ST.currentSession && String(ST.currentSession.id)===String(sessionId)){
+        ST.currentSession=fresh;
+        // 只在表單還沒進入填寫成功畫面時刷新內容。
+        const success=document.querySelector('#regFormModal .success-screen');
+        if(!success){
+          buildFormHero(fresh, fresh.cover||((ST.events||[]).find(e=>String(e.id)===String(fresh.eventId))||{}).cover||'');
+          if(ST.member && ST.memberEmail) renderDynFormFull(fresh, false);
+          else showEmailStep(fresh);
+          updateFee();
+        }
+      }
+    }).catch(()=>{});
+    return;
   }
+
+  // 沒快取時，顯示明確載入畫面，不要無感等待。
+  const formHero=$('formHero');
+  if(formHero) formHero.innerHTML='<div class="form-hero-placeholder">🎪</div><div class="form-hero-overlay"><div class="form-hero-title">場次資料載入中…</div></div>';
+  const titleEl=$('formBackTitle');
+  if(titleEl) titleEl.textContent='報名表';
+  ST.currentSession=null;
+  openRegFormModal();
+  const dyn=$('dynForm');
+  if(dyn) dyn.innerHTML='<div style="padding:24px;text-align:center;color:#777;font-size:16px">正在讀取場次資料…</div>';
+  const s = await api({action:'getSession',id:sessionId,_t:Date.now()});
+  await openWithSession(s, true);
 }
 
 function showAlreadyRegistered(s,reg){
@@ -1503,7 +1598,7 @@ function adjEquip(k,delta){
   if(el)el.textContent=next;
   // 動態更新說明：已含幾件、額外幾件
   const _ed=(s?.equip||{})[k]||{};
-  const inclPerStall=Number(_ed.incl)||0;
+  const inclPerStall=getEffectiveEquipIncl(s,k,_ed);
   const inclFree=inclPerStall*(ST.stallCount||1);
   const extra=Math.max(0,next-inclFree);
   const price=Number(_ed.price)||0;
@@ -1548,7 +1643,7 @@ function updateFee(){
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
     if(v&&v.open){
-      const incl=(v.incl||0)*stalls;
+      const incl=getEffectiveEquipIncl(s,k,v)*stalls;
       const want=ST.equipQty[k]||0;
       const extra=Math.max(0, want-incl);  // 只算超過內含的部分
       equipTotal+=(v.price||0)*extra;
@@ -1616,7 +1711,6 @@ async function submitReg(ev){
     if(!email||!/\S+@\S+\.\S+/.test(email)){ const e=$('e_email'); if(e)e.textContent='請填寫正確 Email'; ok=false; } else { const e=$('e_email'); if(e)e.textContent=''; }
     // 若是新朋友，品牌名稱為必填
     const brandVal=($('f_brand')?.value||'').trim();
-    const sellCatVal=($('f_sellCat')?.value||ST.member?.sellCat||ST.member?.sell_category||'').trim();
     const isNewU=!ST.member;
     if(isNewU && !brandVal){ toast('新朋友請填寫品牌名稱'); showFormError('新朋友請填寫品牌名稱'); $('f_brand')?.focus(); restoreBtn(); return false; }
     if(!ok){ toast('請確認必填欄位'); showFormError('請確認上方必填欄位（姓名 / 手機 / Email）'); restoreBtn(); return false; }
@@ -1640,7 +1734,7 @@ async function submitReg(ev){
     const body={
       action:'register',sessionId:s.id,email,name,phone,stallCount:ST.stallCount||1,invoiceType,
       invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),taxId:($('f_taxId')?.value||'').trim(),invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),selectedDates,
-      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:sellCatVal,brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     };
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
@@ -1649,21 +1743,20 @@ async function submitReg(ev){
     ST.memberEmail=email;
     // 更新本地 member 資料（包含發票資訊，下次報名自動帶入）
     const _brand=($('f_brand')?.value||'').trim();
-    const _sellCat=($('f_sellCat')?.value||'').trim();
     const _taxId=($('f_taxId')?.value||'').trim();
     const _company=($('f_invoiceTitle')?.value||'').trim();
     const _carrier=($('f_invoiceCarrier')?.value||'').trim();
     const _invEmail=($('f_invoiceEmail')?.value||$('f_personalInvoiceEmail')?.value||'').trim();
     if(_brand||_taxId||_company){
-      ST.member={...(ST.member||{}),brand:_brand||ST.member?.brand,sellCat:_sellCat||ST.member?.sellCat,company:_company||ST.member?.company,taxId:_taxId||ST.member?.taxId,invoiceCarrier:_carrier||ST.member?.invoiceCarrier,invoiceEmail:_invEmail||ST.member?.invoiceEmail};
-      try{ localStorage.setItem('tb_member',JSON.stringify({email,savedAt:Date.now()})); }catch(e){}
+      ST.member={...(ST.member||{}),brand:_brand||ST.member?.brand,company:_company||ST.member?.company,taxId:_taxId||ST.member?.taxId,invoiceCarrier:_carrier||ST.member?.invoiceCarrier,invoiceEmail:_invEmail||ST.member?.invoiceEmail};
+      try{ localStorage.setItem('tb_member',JSON.stringify({email,member:ST.member,savedAt:Date.now()})); }catch(e){}
     }
     // 會員資料改成背景更新，不讓 getMember 卡住成功畫面
     setTimeout(()=>{
       api({action:'getMember',email}).then(updatedMember=>{
         if(updatedMember&&!updatedMember.error){
           ST.member=updatedMember;
-          try{localStorage.setItem('tb_member',JSON.stringify({email,savedAt:Date.now()}));}catch(e){}
+          try{localStorage.setItem('tb_member',JSON.stringify({email,member:updatedMember,savedAt:Date.now()}));}catch(e){}
         }
       }).catch(e=>console.warn('[background getMember failed]', e));
     },0);
@@ -1709,7 +1802,7 @@ async function memberLogin(){
   fillMemberCard(member);
   // 更新底部按鈕
   const lbl=$('botMemberLabel');
-  if(lbl) lbl.textContent='我的紀錄';
+  if(lbl) lbl.textContent='會員登出';
   $('memberName').textContent=member?.name||email;
   $('memberEmail2').textContent=email;
   // 渲染會員資料卡片
@@ -1730,7 +1823,11 @@ async function memberLogin(){
   restoreBtn();
   // 持久化登入狀態到 localStorage
   try {
-    localStorage.setItem('tb_member', JSON.stringify({email: email, savedAt: Date.now()}));
+    localStorage.setItem('tb_member', JSON.stringify({
+      email: email,
+      member: member||null,
+      savedAt: Date.now()
+    }));
   } catch(e){}
 }
 
@@ -1920,6 +2017,42 @@ async function submitPaymentForm(){
   }
 }
 
+
+// ── 前台正式啟動：首頁資料與會員資料都必須從資料庫回抓 ──
+async function bootApp(){
+  if(window.__TB_BOOT_DONE) return;
+  window.__TB_BOOT_DONE = true;
+  try{ history.replaceState({page:'home'}, '', location.href); }catch(e){}
+  try{ applySiteConfig(); }catch(e){ console.warn('applySiteConfig skipped', e); }
+  try{
+    const saved = JSON.parse(localStorage.getItem('tb_member')||'null');
+    const email = (saved && saved.email) ? String(saved.email).trim() : '';
+    if(email){
+      ST.memberEmail = email;
+      api({action:'getMember', email, _t:Date.now()}).then(m=>{
+        if(m && !m.error){
+          ST.member = m;
+          try{ localStorage.setItem('tb_member', JSON.stringify({email})); }catch(e){}
+          const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄';
+        }
+      }).catch(()=>{});
+    }
+  }catch(e){}
+  await loadHome();
+  setTimeout(enableDragScroll, 150);
+  try{
+    const p = new URLSearchParams(window.location.search);
+    const ses = p.get('ses');
+    if(ses) setTimeout(()=>openSession(ses), 350);
+  }catch(e){}
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', bootApp, {once:true});
+}else{
+  bootApp();
+}
+
 // ── URL 深連結：?member=1&pay=REG_xxx ──
 (async()=>{
   const _p = new URLSearchParams(window.location.search);
@@ -1952,6 +2085,19 @@ function enableDragScroll(){
     const x=e.pageX-el.offsetLeft;
     el.scrollLeft = scrollLeft - (x-startX)*1.5;
   });
+  let touchStartX=0, touchStartY=0;
+  el.addEventListener('touchstart', e=>{
+    const t=e.touches&&e.touches[0]; if(!t) return;
+    touchStartX=t.clientX; touchStartY=t.clientY; ST._eventDragMoved=false;
+  }, {passive:true});
+  el.addEventListener('touchmove', e=>{
+    const t=e.touches&&e.touches[0]; if(!t) return;
+    const dx=Math.abs(t.clientX-touchStartX), dy=Math.abs(t.clientY-touchStartY);
+    if(dx>12 && dx>dy){ ST._eventDragMoved=true; ST._eventDragUntil=Date.now()+450; }
+  }, {passive:true});
+  el.addEventListener('touchend', ()=>{
+    if(ST._eventDragMoved) ST._eventDragUntil=Date.now()+450;
+  }, {passive:true});
 }
 </script>
 </body>
