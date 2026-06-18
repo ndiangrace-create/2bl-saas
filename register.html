@@ -501,18 +501,24 @@ textarea{min-height:72px;resize:vertical}
     <div id="payModalInfo" style="background:var(--gp);border-radius:10px;padding:14px;margin-bottom:14px;font-size:14px"></div>
 
     <div style="font-weight:900;font-size:15px;margin-bottom:10px;color:var(--dk)">請先選擇真正的繳費方式</div>
-    <button class="btn-p" onclick="goLinePay()" style="width:100%;margin-bottom:8px;background:#06C755">LINE Pay 線上付款</button>
-    <button class="btn-p" onclick="goEcpay()" style="width:100%;margin-bottom:12px;background:#1D9E75">信用卡／綠界線上付款</button>
+    <button class="btn-p" onclick="goLinePay()" style="width:100%;margin-bottom:8px;background:#06C755">LINE Pay 付款</button>
+    <button class="btn-p" onclick="goEcpay()" style="width:100%;margin-bottom:12px;background:#1D9E75">信用卡付款</button>
 
     <div style="height:1px;background:#edf2ef;margin:14px 0"></div>
-    <div style="font-size:14px;font-weight:900;color:var(--dk);margin-bottom:8px">已用匯款／ATM 完成付款，才填這裡回報</div>
+    <div style="font-size:14px;font-weight:900;color:var(--dk);margin-bottom:8px">已完成付款後，請填下方資料送出回報</div>
+    <label style="font-size:16px;color:var(--md)">付款方式</label>
+    <select id="payMethod" onchange="onPayMethodChange()" style="width:100%;padding:11px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:16px;margin-bottom:10px;background:#fff">
+      <option value="匯款／ATM">匯款／ATM</option>
+      <option value="LINE Pay">LINE Pay</option>
+      <option value="信用卡付款">信用卡付款</option>
+    </select>
     <div style="background:#fff8dc;border:1px solid #f5df9a;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:#7a5a00">
       <div><strong>銀行：</strong>台北富邦銀行左營分行（012）</div>
       <div><strong>帳號：</strong>82110000172998</div>
       <div><strong>戶名：</strong>兔彼樂共創活動有限公司</div>
     </div>
-    <label style="font-size:16px;color:var(--md)">帳號末五碼（匯款／ATM 回報必填）</label>
-    <input type="text" id="payLastFive" placeholder="請填轉出帳號末五碼" inputmode="numeric" maxlength="5" style="margin-bottom:10px">
+    <label style="font-size:16px;color:var(--md)" id="payLastFiveLabel">帳號末五碼（匯款／ATM 回報必填）</label>
+    <input type="text" id="payLastFive" placeholder="請填轉出帳號末五碼" inputmode="numeric" maxlength="30" style="margin-bottom:10px">
     <label style="font-size:16px;color:var(--md)">回報金額</label>
     <div id="payAmount" style="background:#f8f8f8;border:1.5px solid #d0e8d8;border-radius:8px;padding:10px 12px;font-size:14px;font-weight:700;color:#2d6a4f;margin-bottom:14px"></div>
 
@@ -520,7 +526,7 @@ textarea{min-height:72px;resize:vertical}
     <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%">取消</button>
   </div>
 </div>
-<div class="modal-overlay" id="cancelModal"<div class="modal-overlay" id="cancelModal" onclick="if(event.target===this)closeModal('cancelModal')">
+<div class="modal-overlay" id="cancelModal" onclick="if(event.target===this)closeModal('cancelModal')">
   <div class="modal-box">
     <div class="modal-title">取消報名確認</div>
     <div style="font-size:18px;font-weight:700;color:var(--dk);margin-bottom:12px" id="cancelModalSesName"></div>
@@ -596,6 +602,8 @@ async function applySiteConfig(){
 
 const API = 'https://tobeloved-api.ndiangrace.workers.dev';
 const LINE_URL = 'https://lin.ee/Xpiib15';
+const LINE_PAY_URL = 'https://line.me/R/pay/payment?action=reserve&encPath=O9zzNsv4sXSYJj0lFsg5StIHatavCRHHS3pZkNOCBdRfr7e3xZaXE7C8dvmPyP12&merchantProvider=LINEPAY';
+const CREDIT_CARD_URL = 'https://p.ecpay.com.tw/C97B672';
 
 const EQUIP_LIST_DEFS = {
   '桌':{icon:'🪵',price:350},'椅子':{icon:'🪑',price:20},
@@ -1940,55 +1948,48 @@ function showPayPage(regId, sesName, amount){
   $('payModalInfo').innerHTML = `
     <div>場次：<strong>${sesName}</strong></div>
     <div style="font-size:16px;font-weight:700;color:var(--g);margin-top:4px">應繳金額：NT$ ${amount}</div>
-    <div style="font-size:15px;color:#888;margin-top:4px">請先使用線上付款；若已匯款，才填下方末五碼回報。</div>`;
+    <div style="font-size:15px;color:#888;margin-top:4px">請先完成付款，再填下方資料送出回報。</div>`;
   // 預填匯款金額
   const payAmtEl = $('payAmount');
   const payLastEl = $('payLastFive');
   if(payAmtEl) payAmtEl.textContent = 'NT$ ' + amount;
   if(payLastEl) payLastEl.value = '';
+  const methodEl=$('payMethod'); if(methodEl) methodEl.value='匯款／ATM';
+  onPayMethodChange();
   $('payModal').classList.add('show');
 }
 
+function onPayMethodChange(){
+  const method = $('payMethod')?.value || '匯款／ATM';
+  const label = $('payLastFiveLabel');
+  const input = $('payLastFive');
+  if(method==='匯款／ATM'){
+    if(label) label.textContent='帳號末五碼（匯款／ATM 回報必填）';
+    if(input){ input.placeholder='請填轉出帳號末五碼'; input.inputMode='numeric'; }
+  }else{
+    if(label) label.textContent='付款備註／末五碼（可填訂單資訊）';
+    if(input){ input.placeholder='可填訂單資訊或備註'; input.inputMode='text'; }
+  }
+}
 async function goLinePay(){
-  if(!ST_currentPayRegId){toast('錯誤：找不到報名資料');return;}
-  toast('建立 LINE Pay 訂單中...');
-  const res = await apiPost({action:'createLinePayOrder', regId:ST_currentPayRegId});
-  if(res.error){toast('LINE Pay 錯誤：'+res.error);return;}
-  closeModal('payModal');
-  window.location.href = res.paymentUrl;
-  return;
+  const methodEl=$('payMethod'); if(methodEl) methodEl.value='LINE Pay';
+  onPayMethodChange();
+  window.open(LINE_PAY_URL,'_blank');
+  toast('請完成 LINE Pay 付款後，回到本頁送出繳費回報',5000);
 }
 async function goEcpay(){
-  if(!ST_currentPayRegId){toast('錯誤：找不到報名資料');return;}
-  toast('建立訂單中…');
-  const res = await apiPost({action:'createEcpayOrder', regId:ST_currentPayRegId});
-  if(res.error){toast('❌ '+res.error);return;}
-
-  // 建立表單並自動提交到綠界
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = res.apiUrl;
-  
-  Object.entries(res.params).forEach(([k,v])=>{
-    const inp = document.createElement('input');
-    inp.type = 'hidden';
-    inp.name = k;
-    inp.value = v;
-    form.appendChild(inp);
-  });
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
-  closeModal('payModal');
-  toast('已送出至付款頁面，完成付款後系統會自動確認', 5000);
+  const methodEl=$('payMethod'); if(methodEl) methodEl.value='信用卡付款';
+  onPayMethodChange();
+  window.open(CREDIT_CARD_URL,'_blank');
+  toast('請完成信用卡付款後，回到本頁送出繳費回報',5000);
 }
 
 async function submitPaymentForm(){
-  const method = '匯款／ATM';
+  const method = $('payMethod')?.value || '匯款／ATM';
   const lastFive = $('payLastFive')?.value.trim() || '';
   const amount = ST_currentPayAmount || 0;
   if(!amount){toast('繳費金額有誤，請重新進入繳費頁面');return;}
-  if(!lastFive){toast('請填寫匯款／ATM 轉出帳號末五碼');return;}
+  if(method==='匯款／ATM' && !lastFive){toast('請填寫匯款／ATM 轉出帳號末五碼');return;}
 
   const btn = document.querySelector('#payModal .btn-p[onclick="submitPaymentForm()"]') || document.querySelector('#payModal .btn-p');
   if(btn){btn.disabled=true;btn.textContent='送出回報中…';}
