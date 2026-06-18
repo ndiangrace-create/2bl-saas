@@ -1724,7 +1724,7 @@ async function submitReg(ev){
     const body={
       action:'register',sessionId:s.id,email,name,phone,stallCount:ST.stallCount||1,invoiceType,
       invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),taxId:($('f_taxId')?.value||'').trim(),invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),selectedDates,
-      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:($('f_sellCat')?.value||M.sellCat||M.sell_category||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:(M.sellCat||M.sell_category||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     };
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
@@ -1738,7 +1738,7 @@ async function submitReg(ev){
     const _carrier=($('f_invoiceCarrier')?.value||'').trim();
     const _invEmail=($('f_invoiceEmail')?.value||$('f_personalInvoiceEmail')?.value||'').trim();
     if(_brand||_taxId||_company){
-      ST.member={...(ST.member||{}),brand:_brand||ST.member?.brand,sellCat:($('f_sellCat')?.value||ST.member?.sellCat||ST.member?.sell_category||''),company:_company||ST.member?.company,taxId:_taxId||ST.member?.taxId,invoiceCarrier:_carrier||ST.member?.invoiceCarrier,invoiceEmail:_invEmail||ST.member?.invoiceEmail};
+      ST.member={...(ST.member||{}),brand:_brand||ST.member?.brand,sellCat:(ST.member?.sellCat||ST.member?.sell_category||''),company:_company||ST.member?.company,taxId:_taxId||ST.member?.taxId,invoiceCarrier:_carrier||ST.member?.invoiceCarrier,invoiceEmail:_invEmail||ST.member?.invoiceEmail};
       try{ localStorage.setItem('tb_member_email',email||''); }catch(e){}
     }
     // 會員資料改成背景更新，不讓 getMember 卡住成功畫面
