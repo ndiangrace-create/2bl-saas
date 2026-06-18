@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>兔彼樂後台管理</title>
+<title>活動後台管理</title>
 <!-- full-chain-fix-20260616 -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -275,7 +275,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 <!-- ══ 登入 ══ -->
 <div id="loginPage" class="login-page">
   <div class="login-box">
-    <h2>🐰 兔彼樂後台</h2>
+    <h2>活動後台</h2>
     <p>請輸入管理員 Email 登入</p>
     <label>Email</label>
     <input type="email" id="loginEmail" placeholder="your@email.com" inputmode="email" onkeydown="if(event.key==='Enter')doLogin()">
@@ -291,7 +291,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <button onclick="toggleSb()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;padding:0 2px">☰</button>
-      <div class="topbar-logo">🐰 兔彼樂後台</div>
+      <div class="topbar-logo">活動後台</div>
     </div>
     <div class="topbar-right">
       <a class="topbar-front-btn" href="register.html" target="_blank">前台報名</a>
@@ -452,7 +452,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 
   <label style="font-size:13px;color:var(--md);display:block;margin-bottom:4px">首頁資訊帶文字（下方粗體那行）</label>
   <div style="display:flex;gap:8px;margin-bottom:4px">
-    <input id="siteInfoText" type="text" placeholder="兔彼樂共創活動 期待與您的每場相遇 🌿" style="flex:1;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:14px;font-family:inherit">
+    <input id="siteInfoText" type="text" placeholder="主辦單位期待與您的每場相遇 🌿" style="flex:1;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:14px;font-family:inherit">
     <button class="btn btn-g btn-sm" onclick="saveSiteConfig()" style="white-space:nowrap">儲存</button>
   </div>
   <div style="font-size:11px;color:var(--lt)">空白則使用預設文字。</div>
@@ -914,6 +914,10 @@ let ST_finAddType="income";
 let ST_invoiceData=[];
 
 const API = 'https://tobeloved-api.ndiangrace.workers.dev';
+// V5 SaaS: 後台登入後從 adminLogin 回傳的 tenantId 決定租戶
+// 初始值從 URL ?tenant= 讀取（方便直接連結特定租戶後台）
+const _adminUrlParams = new URLSearchParams(window.location.search);
+let TENANT_ID = _adminUrlParams.get('tenant') || _adminUrlParams.get('tenantId') || 'tuibile';
 
 
 function normalizeImageUrl(url){
@@ -958,19 +962,22 @@ let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],cur
 function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
+  if (!params.tenant && !params.tenantId) params.tenant = TENANT_ID;
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
   try{
     const r=await fetch(API+'?'+qs);
-    if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')：請確認 Apps Script 已正確部署'); return {error:'連線失敗 '+r.status}; }
+    if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')：請確認 Worker 是否正常運作'); return {error:'連線失敗 '+r.status}; }
     return await r.json();
   }catch(e){ toast('⚠️ 無法連線後端，請確認部署網址'); return {error:'連線失敗'}; }
 }
 async function apiPost(body){
   try{
+    const payload = {...body,email:ST.email,token:ST.token};
+    if(!payload.tenant && !payload.tenantId) payload.tenant = TENANT_ID;
     const r=await fetch(API,{
       method:'POST',
       headers:{'Content-Type':'application/json;charset=utf-8'},
-      body:JSON.stringify({...body,email:ST.email,token:ST.token})
+      body:JSON.stringify(payload)
     });
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
     return await r.json();
@@ -1060,13 +1067,15 @@ async function doLogin(){
   const res=await api({action:'adminLogin',email});
   if(res.error){$('loginErr').textContent=res.error;return;}
   ST.email=email;ST.token=res.token;ST.role=res.role;
-  localStorage.setItem('tb_v3',JSON.stringify({email,token:res.token,role:res.role,name:res.name}));
+  const tenantId = res.tenantId || TENANT_ID;
+  TENANT_ID = tenantId;
+  localStorage.setItem('tb_v3',JSON.stringify({email,token:res.token,role:res.role,name:res.name,tenantId}));
   initAdmin(res.name,res.role);
 }
 function logout(){localStorage.removeItem('tb_v3');location.reload();}
 (function(){
   const s=JSON.parse(localStorage.getItem('tb_v3')||'null');
-  if(s&&s.token){ST.email=s.email;ST.token=s.token;ST.role=s.role;initAdmin(s.name,s.role);}
+  if(s&&s.token){ST.email=s.email;ST.token=s.token;ST.role=s.role;if(s.tenantId){TENANT_ID=s.tenantId;ST.tenantId=s.tenantId;}initAdmin(s.name,s.role);}
 })();
 
 function initAdmin(name,role){
@@ -2729,7 +2738,7 @@ function renderPaymentManagement(targetId){
     const ses=adminEsc(regSessionLabel(r));
     const dates=adminEsc(regDateLabel(r));
     const equip=adminEsc(regEquipText(r)||'-');
-    const last5=(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+    const last5=r.payLast5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--sh);border-left:5px solid ${isRefund?'#d94f4f':(isPending?'#f5c842':(isPaid?'#40916c':'#ddd'))}">
       <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
         <div style="min-width:0;flex:1;line-height:1.55">
@@ -3475,7 +3484,7 @@ function downloadCurrentFinanceData(){
 function shareLineFinance(){
   const title=$('financeTitle')?.textContent||'場次';
   const net=$('f-net')?.textContent?.match(/NT\$[\d,]+/)?.[0]||'';
-  const text='【兔彼樂財報】'+title+'\n本場淨利：'+net+'\n詳細請洽主辦。';
+  const text='【活動財報】'+title+'\n本場淨利：'+net+'\n詳細請洽主辦。';
   window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
 }
 async function loadFinanceData(){
@@ -3827,7 +3836,7 @@ function compactPaymentConfirmHtml(r){
   const dates=adminEsc(regDateLabel(r));
   const equip=adminEsc(regEquipText(r)||'-');
   const note=adminEsc(r.adminNote||'');
-  const last5=(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+  const last5=r.payLast5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
   return `<div style="font-size:18px;line-height:1.55;color:var(--dk)">
     <div style="font-size:20px;font-weight:900;margin-bottom:8px">你即將確認以下付款：</div>
     <div><strong>場次：</strong>${ses}　${dates}</div>
