@@ -1525,8 +1525,8 @@ function goPage(name, opts){
   if(!['regs'].includes(name)) ST._filterSesId=null;
   const inits={
     overview: ()=>{ renderOverviewCards(); },
-    regs: ()=>{ renderRegs(); },
-    checkin: ()=>{ fillCheckinSesFilter(); },
+    regs: async ()=>{ await loadAllRegs(); renderRegs(); },
+    checkin: async ()=>{ await loadAllRegs(); fillCheckinSesFilter(); loadCheckinRegs(); },
     payments: async ()=>{ await loadAllRegs(); renderPaymentManagement(); },
     settings: ()=>{ loadStaff(); loadAnnounce(); loadSiteConfig(); },
   };
@@ -2502,6 +2502,9 @@ async function markClearReg(){
   const res=await apiPost({action:'markClear',regId:ST.currentReg.id,refunded:refund});
   if(res.error){toast('❌ '+res.error);return;}
   toast('✅ 已清場');closeModal('regModal');
+  await loadAllRegs();
+  if(typeof renderRegs==='function') renderRegs();
+  if(typeof loadCheckinRegs==='function') loadCheckinRegs();
 }
 async function batchCheckin(){
   const ids=getCheckedIds();
@@ -2514,6 +2517,8 @@ async function batchCheckin(){
   }
   toast('已報到 '+ok+' 筆');
   await loadAllRegs();
+  if(typeof loadCheckinRegs==='function') loadCheckinRegs();
+  if(typeof renderPaymentManagement==='function') renderPaymentManagement();
 }
 async function quickWaitlist(regId){
   const res=await apiPost({action:'approveReg',regId,status:'備取'});
