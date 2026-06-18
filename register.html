@@ -98,12 +98,6 @@ img{display:block;max-width:100%}
 .event-meta{font-size:13px;color:var(--md);line-height:1.5}
 .event-more{font-size:14px;color:var(--g);font-weight:700;margin-top:6px}
 
-
-/* 主題活動：滑動不誤觸，只有按鈕可進入 */
-.event-card{cursor:default!important}
-.event-action-btn{margin-top:8px;width:100%;border:none;border-radius:10px;background:var(--g);color:#fff;font-size:15px;font-weight:900;padding:9px 10px;font-family:inherit;cursor:pointer;touch-action:manipulation}
-.event-action-btn:active{transform:scale(.97);opacity:.9}
-
 /* ── 場次頁 ── */
 .page{display:none;padding-bottom:100px;width:100%}
 .page.active{display:block}
@@ -625,6 +619,22 @@ const EQUIP_LIST_DEFS = {
   '燈':{icon:'💡',price:50},'陽傘':{icon:'☂️',price:450},
 };
 
+// 設備內含數防呆：避免舊資料把每場都誤帶成「含 1 桌／1 椅」
+// 只有場次「基本配備說明」明確寫有桌／椅時，才承認桌椅內含數。
+// 若基本配備空白，或寫不含／沒有／不提供，桌椅內含一律視為 0。
+function getEffectiveEquipIncl(session, key, def){
+  const raw = Number(def?.incl)||0;
+  if(raw<=0) return 0;
+  const name = String(key||'');
+  const basic = String(session?.basicEquip || session?.basic_equip || '').trim();
+  const isTableOrChair = name.includes('桌') || name.includes('椅');
+  if(!isTableOrChair) return raw;
+  if(/不含|無附|無提供|沒有|不提供|未提供/.test(basic)) return 0;
+  if(!basic) return 0;
+  const mentionsThis = name.includes('桌') ? basic.includes('桌') : (basic.includes('椅') || basic.includes('椅子'));
+  return mentionsThis ? raw : 0;
+}
+
 let ST = {
   events:[], sessions:[], currentEvent:null, currentSession:null,
   member:null, memberEmail:null, equipQty:{}, stallCount:1,
@@ -663,8 +673,6 @@ async function apiPost(body, timeoutMs=15000){
 function openModal(id){const el=$(id);if(el)el.classList.add('show');}
 function closeModal(id){const el=$(id);if(el)el.classList.remove('show');}
 function openLine(){window.open(LINE_URL,'_blank');}
-
-function esc(v){return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ── 頁面切換 ──
 
@@ -786,12 +794,9 @@ async function filterCat(type, el){
 
 function renderEvents(){
   const el=$('eventsList');
-  if(!el) return;
   if(!ST.events.length){el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中，請稍候…<br><span onclick="loadHome()" style="color:var(--g);font-weight:700;cursor:pointer">點此重新載入</span></div>';return;}
-  // 手機橫向滑動時很容易誤觸卡片，所以主題活動卡片本身不再整張可點。
-  // 只有下方明確按鈕會進入場次列表，避免滑動途中被帶走。
   el.innerHTML=ST.events.map(e=>`
-    <div class="event-card" aria-label="${escHtml(e.title||'主題活動')}">
+    <div class="event-card" onclick="openEvent('${e.id}')" ontouchend="event.preventDefault();openEvent('${e.id}')">
       <div class="event-cover">
         ${e.cover
           ?`<img src="${e.cover}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`
@@ -801,8 +806,8 @@ function renderEvents(){
       <div class="event-info">
         <div class="event-name">${e.title}</div>
         ${e.location?`<div class="event-meta">📍 ${e.location}</div>`:''}
-        ${e.desc?`<div class="event-meta">${String(e.desc).slice(0,20)}</div>`:''}
-        <button type="button" class="event-action-btn" onclick="openEvent('${esc(e.id)}')">查看場次</button>
+        ${e.desc?`<div class="event-meta">${e.desc.slice(0,20)}</div>`:''}
+        <div class="event-more" style="font-size:16px">查看詳情 →</div>
       </div>
     </div>`).join('');
   setTimeout(enableDragScroll, 100);
@@ -872,7 +877,7 @@ function renderSessionCard(s){
       <span style="font-size:14px;color:#bbb;flex-shrink:0;font-weight:700">${full?'名額已滿':'已關閉'}</span>
     </div>`;
   }
-  return `<div role="button" tabindex="0" onclick="openSession('${esc(s.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSession('${esc(s.id)}')}" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1)">
+  return `<div onclick="openSession('${s.id}')" ontouchend="event.preventDefault();openSession('${s.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1)">
     <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:nowrap;overflow:hidden">
         ${typeBadge}
@@ -1102,7 +1107,7 @@ function renderDynFormFull(s, isNew=false){
       if(equipDefs.length>0){
         html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）請填寫總數量</div>`;
         equipDefs.forEach(([k,v])=>{
-          const incl=Number(v.incl)||0;
+          const incl=getEffectiveEquipIncl(s,k,v);
           const price=Number(v.price)||0;
           html+=`<div class="equip-row">
             <div class="equip-info"><div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
@@ -1309,69 +1314,30 @@ function shareCurrentSession(){
 }
 
 async function openSession(sessionId){
-  // 點場次必須立即有反應：先用列表快取打開報名表，再背景抓最新資料。
-  const cached = (ST.allSessionsData||[]).find(x=>String(x.id)===String(sessionId))
-    || (ST.sessions||[]).find(x=>String(x.id)===String(sessionId));
-  const openWithSession = async (s, fromFresh=false)=>{
-    if(!s || s.error){ toast('場次資料讀取失敗，請重試'); return; }
-    ST.currentSession=s;
-    ST.equipQty={};
-    ST.addonQty={};
-    ST.stallCount=1;
-    const evt=(ST.events||[]).find(e=>String(e.id)===String(s.eventId));
-    const cover=s.cover||evt?.cover||'';
-    buildFormHero(s,cover);
-    const titleEl=$('formBackTitle');
-    if(titleEl) titleEl.textContent=s.name||'報名表';
-    const modal=$('regFormModal');
-    if(!modal || !modal.classList.contains('show')) openRegFormModal();
-    if(ST.member && ST.memberEmail){
-      try{
-        const myRegs=await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
-        const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
-        if(dup) showAlreadyRegistered(s,dup);
-        else renderDynFormFull(s, false);
-      }catch(e){
-        renderDynFormFull(s, false);
-      }
-    } else {
-      showEmailStep(s);
-    }
-    updateFee();
-  };
-
-  if(cached){
-    await openWithSession(cached, false);
-    // 背景更新最新場次資料，不讓使用者覺得點了沒反應。
-    api({action:'getSession',id:sessionId,_t:Date.now()}).then(fresh=>{
-      if(!fresh || fresh.error) return;
-      ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]), fresh].map(x=>[x.id,x])).values()];
-      if(ST.currentSession && String(ST.currentSession.id)===String(sessionId)){
-        ST.currentSession=fresh;
-        // 只在表單還沒進入填寫成功畫面時刷新內容。
-        const success=document.querySelector('#regFormModal .success-screen');
-        if(!success){
-          buildFormHero(fresh, fresh.cover||((ST.events||[]).find(e=>String(e.id)===String(fresh.eventId))||{}).cover||'');
-          if(ST.member && ST.memberEmail) renderDynFormFull(fresh, false);
-          else showEmailStep(fresh);
-          updateFee();
-        }
-      }
-    }).catch(()=>{});
-    return;
-  }
-
-  // 沒快取時，顯示明確載入畫面，不要無感等待。
-  const formHero=$('formHero');
-  if(formHero) formHero.innerHTML='<div class="form-hero-placeholder">🎪</div><div class="form-hero-overlay"><div class="form-hero-title">場次資料載入中…</div></div>';
+  // 永遠即時抓最新資料（避免費用/加購快取問題）
+  const s = await api({action:'getSession',id:sessionId});
+  if(!s||s.error){ toast('場次資料讀取失敗，請重試'); return; }
+  ST.currentSession=s; ST.equipQty={}; ST.addonQty={}; ST.stallCount=1;
+  const evt=ST.events.find(e=>e.id===s.eventId);
+  const cover=s.cover||evt?.cover||'';
+  buildFormHero(s,cover);
   const titleEl=$('formBackTitle');
-  if(titleEl) titleEl.textContent='報名表';
-  ST.currentSession=null;
+  if(titleEl) titleEl.textContent=s.name||'報名表';
   openRegFormModal();
-  const dyn=$('dynForm');
-  if(dyn) dyn.innerHTML='<div style="padding:24px;text-align:center;color:#777;font-size:16px">正在讀取場次資料…</div>';
-  const s = await api({action:'getSession',id:sessionId,_t:Date.now()});
-  await openWithSession(s, true);
+  // 已登入 → 先查重複報名
+  if(ST.member && ST.memberEmail){
+    // 查詢是否已報名此場次
+    const myRegs=await api({action:'getMyRegs',email:ST.memberEmail});
+    const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
+    if(dup){
+      // 已報名 → 顯示提示
+      showAlreadyRegistered(s,dup);
+    } else {
+      renderDynFormFull(s, false);
+    }
+  } else {
+    showEmailStep(s);
+  }
 }
 
 function showAlreadyRegistered(s,reg){
@@ -1556,7 +1522,7 @@ function adjEquip(k,delta){
   if(el)el.textContent=next;
   // 動態更新說明：已含幾件、額外幾件
   const _ed=(s?.equip||{})[k]||{};
-  const inclPerStall=Number(_ed.incl)||0;
+  const inclPerStall=getEffectiveEquipIncl(s,k,_ed);
   const inclFree=inclPerStall*(ST.stallCount||1);
   const extra=Math.max(0,next-inclFree);
   const price=Number(_ed.price)||0;
@@ -1601,7 +1567,7 @@ function updateFee(){
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
     if(v&&v.open){
-      const incl=(v.incl||0)*stalls;
+      const incl=getEffectiveEquipIncl(s,k,v)*stalls;
       const want=ST.equipQty[k]||0;
       const extra=Math.max(0, want-incl);  // 只算超過內含的部分
       equipTotal+=(v.price||0)*extra;
@@ -2008,35 +1974,6 @@ function enableDragScroll(){
     el.scrollLeft = scrollLeft - (x-startX)*1.5;
   });
 }
-
-// ── 前台啟動：一定要自動載入首頁資料 ──
-function initFrontApp(){
-  if(window.__tbFrontInited) return;
-  window.__tbFrontInited = true;
-  try{
-    history.replaceState({page:'home'}, '', location.href);
-  }catch(e){}
-  try{
-    const saved=localStorage.getItem('tb_member');
-    if(saved){
-      const d=JSON.parse(saved);
-      if(d&&d.email){ ST.memberEmail=d.email; ST.member=d.member||null; }
-    }
-  }catch(e){}
-  applySiteConfig();
-  loadHome();
-  const p=new URLSearchParams(window.location.search);
-  const deepSes=p.get('ses')||p.get('session')||p.get('sessionId');
-  if(deepSes){
-    setTimeout(()=>openSession(deepSes), 700);
-  }
-}
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded', initFrontApp);
-}else{
-  initFrontApp();
-}
-
 </script>
 </body>
 </html>
