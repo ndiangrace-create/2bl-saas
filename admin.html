@@ -933,6 +933,22 @@ function thumbHtml(url, size=36, radius=6){
 function escAttr(v){return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function safeNum(v){const n=Number(v);return Number.isFinite(n)?n:0;}
 
+// 設備內含數防呆：避免舊資料把每場都誤帶成「含 1 桌／1 椅」
+// 只有場次「基本配備說明」明確寫有桌／椅時，才承認桌椅內含數。
+// 若基本配備空白，或寫不含／沒有／不提供，桌椅內含一律視為 0。
+function getEffectiveEquipIncl(session, key, def){
+  const raw = Number(def?.incl)||0;
+  if(raw<=0) return 0;
+  const name = String(key||'');
+  const basic = String(session?.basicEquip || session?.basic_equip || session?.basicEquipText || '').trim();
+  const isTableOrChair = name.includes('桌') || name.includes('椅');
+  if(!isTableOrChair) return raw;
+  if(/不含|無附|無提供|沒有|不提供|未提供/.test(basic)) return 0;
+  if(!basic) return 0;
+  const mentionsThis = name.includes('桌') ? basic.includes('桌') : (basic.includes('椅') || basic.includes('椅子'));
+  return mentionsThis ? raw : 0;
+}
+
 const EQUIP_LIST = [
   {k:'桌',icon:'🪵',price:350},{k:'椅子',icon:'🪑',price:20},
   {k:'帳篷',icon:'⛺',price:800},{k:'野餐墊',icon:'🧺',price:50},
@@ -1763,7 +1779,7 @@ function buildEquipDefs(equipObj){
       </label>
       <div style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--lt)">每攤內含</span>
-        <input type="number" id="eq_incl_${eq.k}" value="${equipObj[eq.k]?.incl||0}" inputmode="numeric" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
+        <input type="number" id="eq_incl_${eq.k}" value="${getEffectiveEquipIncl({basicEquip:($('sm_basicEquip')?.value||'')}, eq.k, equipObj[eq.k]||{})}" inputmode="numeric" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--lt)">超過單價</span>
@@ -3344,7 +3360,7 @@ async function downloadSesData(sesId,sesName){
     const defs=ses.equip||{};
     const def=defs[name]||{};
     const fallback=(EQUIP_LIST||[]).find(x=>x.k===name)||{};
-    return {price:n(def.price||fallback.price), incl:n(def.incl)};
+    return {price:n(def.price||fallback.price), incl:getEffectiveEquipIncl(ses, name, def)};
   }
   function stallCount(r){return n(r.stallCount)||1;}
   function payAmount(r){return n(r.amount||r.totalAmount||r.payAmount);}
@@ -3504,7 +3520,7 @@ async function loadFinanceData(){
     const defs=ses.equip||{};
     const def=defs[name]||{};
     const fallback=(typeof EQUIP_LIST!=='undefined'?(EQUIP_LIST||[]):[]).find(x=>x.k===name)||{};
-    return {price:safeN(def.price||fallback.price), incl:safeN(def.incl)};
+    return {price:safeN(def.price||fallback.price), incl:getEffectiveEquipIncl(ses, name, def)};
   }
   function finEquipCharge(r){
     return finEquipEntries(r).reduce((sum,[name,qty])=>{
@@ -3557,7 +3573,7 @@ async function loadFinanceData(){
     const equipDetailRows=Object.keys(equipSummary).map(name=>{
       const totalNeed=equipSummary[name]||0;
       const def=equipDefs[name]||{};
-      const inclPerStall=safeN(def.incl)||0;
+      const inclPerStall=getEffectiveEquipIncl(ses, name, def)||0;
       const paidCount=paidRegs.length;
       // 內含 = 每攤內含 × 本場已繳費攤數合計
       const totalStalls=paidRegs.reduce((s,r)=>s+(safeN(r.stallCount)||1),0);
