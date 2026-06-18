@@ -2728,7 +2728,7 @@ function renderPaymentManagement(targetId){
     const ses=adminEsc(regSessionLabel(r));
     const dates=adminEsc(regDateLabel(r));
     const equip=adminEsc(regEquipText(r)||'-');
-    const last5=r.paymentLast5||r.payment_last5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+    const last5=(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--sh);border-left:5px solid ${isRefund?'#d94f4f':(isPending?'#f5c842':(isPaid?'#40916c':'#ddd'))}">
       <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
         <div style="min-width:0;flex:1;line-height:1.55">
@@ -2740,7 +2740,7 @@ function renderPaymentManagement(targetId){
           <div style="font-size:18px;color:var(--dk);font-weight:900">${adminEsc(r.brand||r.name||'未填品牌')}</div>
           <div style="font-size:16px;color:var(--md)">${adminEsc(r.name||'')}　${adminEsc(r.phone||'')}</div>
           <div style="font-size:16px;color:var(--md)">攤位數：<strong>${Number(r.stallCount||1)} 攤</strong>　設備：<strong>${equip}</strong></div>
-          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.paymentReportAmount||r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
+          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
           ${note?`<div style="font-size:14px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap;max-height:96px;overflow:auto">${note}</div>`:''}
           <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
         </div>
@@ -3428,7 +3428,9 @@ async function downloadSesData(sesId,sesName){
     ['押金未退',depositTotal-refundedTotal,'不列入損益']
   ];
   const regRows=regs.map(r=>[
-    finalSesName,r.id,r.name,r.brand,r.phone,r.email,stallCount(r),r.status,r.payStatus,payAmount(r),depAmount(r),r.payMethod||'',r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',r.invoiceEmail||'',r.invoiceStatus||'',equipSummaryText(r),created(r),r.adminNote||''
+    finalSesName, sesId, r.eventId||ses.eventId||'', r.sessionId||sesId, r.id, r.name, r.brand, r.sellCat||'', r.products||r.sellItem||'', r.phone, r.email,
+    Array.isArray(r.selectedDates)?r.selectedDates.join('、'):'', stallCount(r), r.status, r.payStatus, payAmount(r), depAmount(r), r.payMethod||'', r.payReportAmount||'', r.payLast5||'', r.paymentReportedAt||'',
+    r.checkin||'', r.clearStatus||'', r.depositRefunded||'', r.stallNo||'', r.taxId||'', r.invoiceTitle||'', r.invoiceEmail||'', r.invoiceCarrier||'', r.invoiceStatus||'', equipSummaryText(r), created(r), r.adminNote||''
   ]);
   const equipAllRows=buildEquipRows(regs,'全部報名');
   const equipApprovedRows=buildEquipRows(approvedRegs,'已錄取/已繳費');
@@ -3446,7 +3448,7 @@ async function downloadSesData(sesId,sesName){
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const csv='場次資訊\n'+toCSV(['欄位','內容'],infoRows)
     +'\n\n財報摘要（該場次最新資料）\n'+toCSV(['項目','金額/數量','備註'],summaryRows)
-    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
+    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','場次ID','活動ID','報名場次ID','報名ID','姓名','品牌','販售類別','本次販售商品','手機','Email','報名日期','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','回報金額','末五碼','回報時間','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','手機載具','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
     +'\n\n設備明細（全部報名，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipAllRows)
     +'\n\n設備明細（已錄取/已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipApprovedRows)
     +'\n\n設備明細（已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipPaidRows)
@@ -3826,13 +3828,13 @@ function compactPaymentConfirmHtml(r){
   const dates=adminEsc(regDateLabel(r));
   const equip=adminEsc(regEquipText(r)||'-');
   const note=adminEsc(r.adminNote||'');
-  const last5=r.paymentLast5||r.payment_last5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+  const last5=(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
   return `<div style="font-size:18px;line-height:1.55;color:var(--dk)">
     <div style="font-size:20px;font-weight:900;margin-bottom:8px">你即將確認以下付款：</div>
     <div><strong>場次：</strong>${ses}　${dates}</div>
     <div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}　<strong>電話：</strong>${adminEsc(r.phone||'-')}</div>
     <div><strong>攤位數：</strong>${Number(r.stallCount||1)} 攤　<strong>設備：</strong>${equip}</div>
-    <div><strong>繳費方式：</strong>${adminEsc(r.payMethod||'未填')}　<strong>回報金額：</strong>NT$${Number(r.paymentReportAmount||r.amount||0).toLocaleString()}</div>
+    <div><strong>繳費方式：</strong>${adminEsc(r.payMethod||'未填')}　<strong>回報金額：</strong>NT$${Number(r.amount||0).toLocaleString()}</div>
     <div><strong>末五碼／交易末五碼：</strong>${adminEsc(last5||'未填')}</div>
     ${note?`<div style="background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;font-size:14px;max-height:92px;overflow:auto;white-space:pre-wrap"><strong>備註：</strong>${note}</div>`:''}
     <div style="margin-top:10px;color:#2d6a4f;font-weight:900">確認後將改為：已繳費（手動確認）<br>並寄出：繳費確認信</div>
