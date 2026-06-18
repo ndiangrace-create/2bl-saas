@@ -1709,7 +1709,7 @@ async function memberLogin(){
   fillMemberCard(member);
   // 更新底部按鈕
   const lbl=$('botMemberLabel');
-  if(lbl) lbl.textContent='會員登出';
+  // 底部按鈕固定顯示「我的紀錄」，不隨登入狀態改變
   $('memberName').textContent=member?.name||email;
   $('memberEmail2').textContent=email;
   // 渲染會員資料卡片
