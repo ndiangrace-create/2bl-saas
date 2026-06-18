@@ -1763,7 +1763,7 @@ async function submitReg(ev){
     if(modalInner){
       const old=modalInner.querySelector('.success-screen'); if(old) old.remove();
       const div=document.createElement('div'); div.className='success-screen'; div.style.cssText='text-align:center;padding:48px 20px';
-      div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div><div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div><div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div><div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div><div style="font-size:15px;color:var(--lt)">3 秒後前往我的紀錄...</div>`;
+      div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div><div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div><div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div><div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div><div style="font-size:15px;color:var(--lt)">3 秒後自動返回...</div>`;
       const scrollArea=modalInner.querySelector('[style*="overflow-y:auto"]') || modalInner;
       scrollArea.appendChild(div);
       if(scrollArea.scrollTo) scrollArea.scrollTo(0,9999);
@@ -1778,6 +1778,57 @@ async function submitReg(ev){
     toast('❌ '+errMsg, 8000);
     restoreBtn(); return false;
   }
+}
+
+
+function fillMemberCard(member){
+  member = member || {};
+  const email = member.email || ST.memberEmail || '';
+  const brand = member.brand || member.brand_name || '';
+  const name = member.name || email;
+  const phone = member.phone || '';
+  const sellCat = member.sellCat || member.sell_category || '';
+  if($('memberName')) $('memberName').textContent = name;
+  if($('memberEmail2')) $('memberEmail2').textContent = email;
+  if($('memberBrandShow')) $('memberBrandShow').textContent = [brand, sellCat].filter(Boolean).join('｜');
+  const card=$('memberCardBody');
+  if(card){
+    const links=[];
+    const fb=member.fb||member.fb_url||'';
+    const ig=member.ig||member.ig_url||'';
+    const photo=member.photo||member.photo_url||'';
+    if(fb) links.push(`<a href="${escHtml?escHtml(fb):fb}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#1877F2;color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">FB ↗</a>`);
+    if(ig) links.push(`<a href="${escHtml?escHtml(ig):ig}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">IG ↗</a>`);
+    if(photo) links.push(`<a href="${escHtml?escHtml(photo):photo}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#555;color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">出攤照 ↗</a>`);
+    card.innerHTML=`
+      ${brand?`<div style="font-size:15px;font-weight:700;margin-bottom:4px">${escHtml?escHtml(brand):brand}</div>`:''}
+      ${sellCat?`<div style="font-size:14px;color:var(--g);font-weight:800;margin-bottom:4px">${escHtml?escHtml(sellCat):sellCat}</div>`:''}
+      ${(member.brandIntro||member.brand_intro)?`<div style="font-size:16px;color:var(--md);margin-bottom:8px">${escHtml?escHtml(member.brandIntro||member.brand_intro):member.brandIntro||member.brand_intro}</div>`:''}
+      ${links.length?`<div style="margin-bottom:8px">${links.join('')}</div>`:''}
+      ${phone?`<div style="font-size:15px;color:var(--lt)">手機：${escHtml?escHtml(phone):phone}</div>`:''}
+    `;
+  }
+}
+
+async function openMemberRecordsAfterSubmit(email){
+  const cleanEmail = (email || ST.memberEmail || '').trim();
+  if(!cleanEmail) return;
+  ST.memberEmail = cleanEmail;
+  try{ localStorage.setItem('tb_member_email', cleanEmail); localStorage.removeItem('tb_member'); }catch(e){}
+  navTo('member');
+  if($('loginEmail')) $('loginEmail').value = cleanEmail;
+  if($('memberLoginArea')) $('memberLoginArea').style.display='none';
+  if($('memberArea')) $('memberArea').style.display='block';
+  try{
+    const [member, regs] = await Promise.all([
+      api({action:'getMember', email:cleanEmail, _t:Date.now()}),
+      api({action:'getMyRegs', email:cleanEmail, _t:Date.now()})
+    ]);
+    ST.member = member && !member.error ? member : {email:cleanEmail};
+    fillMemberCard(ST.member);
+    renderMyRegs(regs || []);
+    const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄';
+  }catch(e){ console.warn('[openMemberRecordsAfterSubmit failed]', e); }
 }
 
 // ── 會員 ──
@@ -1834,66 +1885,6 @@ function memberLogout(){
   if(lbl) lbl.textContent='我的紀錄';
 }
 
-function normalizeMyRegs(regs){
-  const arr = Array.isArray(regs) ? regs : [];
-  return arr.map(r=>{
-    const total = Number(r.total ?? r.total_amount ?? r['總計'] ?? r.amount ?? r['金額'] ?? 0) || 0;
-    const amount = Number(r.amount ?? r['金額'] ?? r.total ?? r['總計'] ?? 0) || 0;
-    const deposit = Number(r.deposit ?? r['存款'] ?? 0) || 0;
-    const equip = (typeof r.equip==='string') ? (()=>{try{return JSON.parse(r.equip||'{}')}catch(e){return {}}})() : (r.equip||{});
-    const equipmentText = r.equipmentText || Object.entries(equip||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k}×${v}`).join('、');
-    return {
-      ...r,
-      id: r.id || r.regId || r.registration_id || '',
-      sessionId: r.sessionId || r.session_id || '',
-      sessionName: r.sessionName || r.sesName || r.session_name || '場次',
-      eventId: r.eventId || r.event_id || '',
-      status: r.status || r.review_status || '待審核',
-      payStatus: r.payStatus || r.payment_status || '未繳費',
-      total,
-      amount,
-      deposit,
-      stallCount: Number(r.stallCount ?? r.stall_count ?? 1) || 1,
-      selectedDates: Array.isArray(r.selectedDates) ? r.selectedDates : (Array.isArray(r.selected_dates_json) ? r.selected_dates_json : []),
-      equip,
-      equipmentText,
-      addonQty: r.addonQty || r.addon_qty_json || {},
-      stallNumber: r.stallNumber || r.stall_number || '',
-      payMethod: r.payMethod || r.payment_method || '',
-      payLast5: r.payLast5 || r.payment_last5 || '',
-      checkin: r.checkin || r.checkin_status || '未報到',
-      createdAt: r.createdAt || r.created_at || '',
-      transferStatus: r.transferStatus || r.transfer_status || ''
-    };
-  });
-}
-
-async function openMemberRecordsAfterSubmit(email){
-  const cleanEmail = String(email||'').trim();
-  if(!cleanEmail) return;
-  ST.memberEmail = cleanEmail;
-  try{ localStorage.setItem('tb_member_email', cleanEmail); localStorage.removeItem('tb_member'); }catch(e){}
-  try{
-    if($('loginEmail')) $('loginEmail').value = cleanEmail;
-    if(typeof window.goMemberPage === 'function'){
-      await window.goMemberPage();
-      return;
-    }
-    navTo('member');
-    const [member, regs] = await Promise.all([
-      api({action:'getMember', email:cleanEmail, _t:Date.now()}),
-      api({action:'getMyRegs', email:cleanEmail, _t:Date.now()})
-    ]);
-    ST.member = member && !member.error ? member : null;
-    if($('memberLoginArea')) $('memberLoginArea').style.display='none';
-    if($('memberArea')) $('memberArea').style.display='block';
-    fillMemberCard(ST.member||{email:cleanEmail});
-    if($('memberName')) $('memberName').textContent=ST.member?.name||cleanEmail;
-    if($('memberEmail2')) $('memberEmail2').textContent=cleanEmail;
-    renderMyRegs(regs||[]);
-  }catch(e){ console.warn('[openMemberRecordsAfterSubmit failed]', e); }
-}
-
 function isPaidText(v){ return String(v||'').indexOf('已繳費')>=0 || String(v||'')==='免費'; }
 function isPendingPayText(v){ return String(v||'').trim()==='待確認'; }
 function canPayReg(reg){ return reg && reg.status==='已錄取' && Number(reg.total||0)>0 && !isPaidText(reg.payStatus) && !isPendingPayText(reg.payStatus); }
@@ -1907,7 +1898,7 @@ function payBadge(reg){
 function escHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function renderMyRegs(regs){
-  ST.regs = normalizeMyRegs(regs);
+  ST.regs = Array.isArray(regs) ? regs : [];
   const el=$('myRegsList');
   if(!el) return;
   if(!ST.regs.length){
@@ -2201,6 +2192,32 @@ if(document.readyState==='loading'){
   window.goMemberPage=async function(){ navTo('member'); const email=ST.memberEmail||readEmail(); if(!email){ if($('memberLoginArea')) $('memberLoginArea').style.display='block'; if($('memberArea')) $('memberArea').style.display='none'; return; } if($('loginEmail')) $('loginEmail').value=email; await memberLogin(); };
   function bootDbFront(){ const email=readEmail(); if(email){ST.memberEmail=email; if($('loginEmail')) $('loginEmail').value=email;} loadHome(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
+})();
+
+
+// ── RECORDS NORMALIZE PATCH：我的紀錄欄位防呆 ──
+(function(){
+  function pick(o, keys, fallback=''){
+    for(const k of keys){ if(o && o[k]!==undefined && o[k]!==null && o[k]!== '') return o[k]; }
+    return fallback;
+  }
+  const oldRender = window.renderMyRegs || renderMyRegs;
+  window.renderMyRegs = function(regs){
+    const arr = Array.isArray(regs) ? regs.map(r=>{
+      const n = {...r};
+      n.sessionName = pick(r,['sessionName','sesName','場次名稱','session_name'], n.sessionName||'');
+      n.status = pick(r,['status','reviewStatus','review_status','審核狀態'], n.status||'');
+      n.payStatus = pick(r,['payStatus','paymentStatus','payment_status','付款狀態'], n.payStatus||'');
+      n.amount = Number(pick(r,['amount','金額','total','總計','total_amount'], n.amount||0))||0;
+      n.total = Number(pick(r,['total','總計','amount','金額','total_amount'], n.total||n.amount||0))||0;
+      n.deposit = Number(pick(r,['deposit','存款','保證金'], n.deposit||0))||0;
+      n.stallCount = Number(pick(r,['stallCount','stall_count','攤位數'], n.stallCount||1))||1;
+      n.equip = pick(r,['equip','equipment','equipment_json'], n.equip||{});
+      if(typeof n.equip === 'string'){ try{ n.equip=JSON.parse(n.equip||'{}'); }catch(e){ n.equip={}; } }
+      return n;
+    }) : [];
+    return oldRender(arr);
+  };
 })();
 
 </script>
