@@ -400,7 +400,7 @@ button,a,[onclick]{touch-action:manipulation}
         <div id="dynForm"></div>
       </div>
       <div class="submit-area" style="padding:0 16px 40px">
-        <button class="btn-submit" id="submitBtn" type="button" onclick="submitReg(event)">送出報名</button>
+        <button class="btn-submit" id="submitBtn" type="button" onclick="submitReg(event)" style="display:none">送出報名</button>
       </div>
     </div>
   </div>
@@ -581,7 +581,7 @@ button,a,[onclick]{touch-action:manipulation}
 // ── 系統外觀設定套用 ──
 async function applySiteConfig(){
   try{
-    const cfg = await fetch(API + '?action=getSiteConfig').then(r=>r.json());
+    const cfg = await fetch(API_BASE + '?action=getSiteConfig&tenant='+TENANT_ID).then(r=>r.json());
     if(!cfg || cfg.error) return;
     // 封面圖片
     if(cfg.heroImg){
