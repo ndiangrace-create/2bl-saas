@@ -1763,13 +1763,13 @@ async function submitReg(ev){
     if(modalInner){
       const old=modalInner.querySelector('.success-screen'); if(old) old.remove();
       const div=document.createElement('div'); div.className='success-screen'; div.style.cssText='text-align:center;padding:48px 20px';
-      div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div><div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div><div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div><div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div><div style="font-size:15px;color:var(--lt)">3 秒後自動返回...</div>`;
+      div.innerHTML=`<div style="font-size:60px;margin-bottom:12px">🎉</div><div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:8px">報名成功！</div><div style="font-size:14px;color:var(--md);margin-bottom:4px">已收到您的報名申請</div><div style="font-size:13px;color:var(--lt);margin-bottom:24px">審核結果將寄送至 ${email}</div><div style="font-size:15px;color:var(--lt)">3 秒後前往我的紀錄...</div>`;
       const scrollArea=modalInner.querySelector('[style*="overflow-y:auto"]') || modalInner;
       scrollArea.appendChild(div);
       if(scrollArea.scrollTo) scrollArea.scrollTo(0,9999);
     }else{ alert('報名成功！'); }
     ST.__submitting=false;
-    setTimeout(()=>{ closeRegFormModal(); window.scrollTo(0,0); },3000);
+    setTimeout(()=>{ closeRegFormModal(); openMemberRecordsAfterSubmit(email); window.scrollTo(0,0); },3000);
     return false;
   }catch(e){
     console.error('[submitReg fatal]', e);
@@ -1834,6 +1834,66 @@ function memberLogout(){
   if(lbl) lbl.textContent='我的紀錄';
 }
 
+function normalizeMyRegs(regs){
+  const arr = Array.isArray(regs) ? regs : [];
+  return arr.map(r=>{
+    const total = Number(r.total ?? r.total_amount ?? r['總計'] ?? r.amount ?? r['金額'] ?? 0) || 0;
+    const amount = Number(r.amount ?? r['金額'] ?? r.total ?? r['總計'] ?? 0) || 0;
+    const deposit = Number(r.deposit ?? r['存款'] ?? 0) || 0;
+    const equip = (typeof r.equip==='string') ? (()=>{try{return JSON.parse(r.equip||'{}')}catch(e){return {}}})() : (r.equip||{});
+    const equipmentText = r.equipmentText || Object.entries(equip||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k}×${v}`).join('、');
+    return {
+      ...r,
+      id: r.id || r.regId || r.registration_id || '',
+      sessionId: r.sessionId || r.session_id || '',
+      sessionName: r.sessionName || r.sesName || r.session_name || '場次',
+      eventId: r.eventId || r.event_id || '',
+      status: r.status || r.review_status || '待審核',
+      payStatus: r.payStatus || r.payment_status || '未繳費',
+      total,
+      amount,
+      deposit,
+      stallCount: Number(r.stallCount ?? r.stall_count ?? 1) || 1,
+      selectedDates: Array.isArray(r.selectedDates) ? r.selectedDates : (Array.isArray(r.selected_dates_json) ? r.selected_dates_json : []),
+      equip,
+      equipmentText,
+      addonQty: r.addonQty || r.addon_qty_json || {},
+      stallNumber: r.stallNumber || r.stall_number || '',
+      payMethod: r.payMethod || r.payment_method || '',
+      payLast5: r.payLast5 || r.payment_last5 || '',
+      checkin: r.checkin || r.checkin_status || '未報到',
+      createdAt: r.createdAt || r.created_at || '',
+      transferStatus: r.transferStatus || r.transfer_status || ''
+    };
+  });
+}
+
+async function openMemberRecordsAfterSubmit(email){
+  const cleanEmail = String(email||'').trim();
+  if(!cleanEmail) return;
+  ST.memberEmail = cleanEmail;
+  try{ localStorage.setItem('tb_member_email', cleanEmail); localStorage.removeItem('tb_member'); }catch(e){}
+  try{
+    if($('loginEmail')) $('loginEmail').value = cleanEmail;
+    if(typeof window.goMemberPage === 'function'){
+      await window.goMemberPage();
+      return;
+    }
+    navTo('member');
+    const [member, regs] = await Promise.all([
+      api({action:'getMember', email:cleanEmail, _t:Date.now()}),
+      api({action:'getMyRegs', email:cleanEmail, _t:Date.now()})
+    ]);
+    ST.member = member && !member.error ? member : null;
+    if($('memberLoginArea')) $('memberLoginArea').style.display='none';
+    if($('memberArea')) $('memberArea').style.display='block';
+    fillMemberCard(ST.member||{email:cleanEmail});
+    if($('memberName')) $('memberName').textContent=ST.member?.name||cleanEmail;
+    if($('memberEmail2')) $('memberEmail2').textContent=cleanEmail;
+    renderMyRegs(regs||[]);
+  }catch(e){ console.warn('[openMemberRecordsAfterSubmit failed]', e); }
+}
+
 function isPaidText(v){ return String(v||'').indexOf('已繳費')>=0 || String(v||'')==='免費'; }
 function isPendingPayText(v){ return String(v||'').trim()==='待確認'; }
 function canPayReg(reg){ return reg && reg.status==='已錄取' && Number(reg.total||0)>0 && !isPaidText(reg.payStatus) && !isPendingPayText(reg.payStatus); }
@@ -1847,7 +1907,7 @@ function payBadge(reg){
 function escHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function renderMyRegs(regs){
-  ST.regs = Array.isArray(regs) ? regs : [];
+  ST.regs = normalizeMyRegs(regs);
   const el=$('myRegsList');
   if(!el) return;
   if(!ST.regs.length){
