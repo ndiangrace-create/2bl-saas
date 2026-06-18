@@ -641,6 +641,7 @@ let ST = {
 };
 
 function $(id){return document.getElementById(id);}
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
@@ -747,19 +748,26 @@ function renderAnnouncements(list){
 
 
 async function loadHome(){
+  const eventsEl=$('eventsList');
+  if(eventsEl) eventsEl.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中…</div>';
   try{
-    const [events, sessions, announcements] = await Promise.all([
-      api({action:'getEvents'}),
-      api({action:'getSessions'}),
-      api({action:'getAnnouncements'}),
+    const [eventsRes, sessionsRes, annRes] = await Promise.allSettled([
+      api({action:'getEvents', _t:Date.now()}),
+      api({action:'getSessions', _t:Date.now()}),
+      api({action:'getAnnouncements', _t:Date.now()}),
     ]);
-    ST.events = Array.isArray(events) ? events : [];
-    ST.allSessionsData = Array.isArray(sessions) ? sessions.filter(s=>s.status==='報名中') : [];
+    const events = eventsRes.status==='fulfilled' ? eventsRes.value : [];
+    const sessions = sessionsRes.status==='fulfilled' ? sessionsRes.value : [];
+    const announcements = annRes.status==='fulfilled' ? annRes.value : [];
+
+    ST.events = Array.isArray(events) ? events.filter(e=>e && e.id) : [];
+    ST.allSessionsData = Array.isArray(sessions) ? sessions.filter(s=>s && (s.status==='報名中'||s.status==='開放中')) : [];
     ST.sessions = ST.allSessionsData;
     renderAnnouncements(Array.isArray(announcements) ? announcements : []);
     renderEvents();
   }catch(e){
     console.error('loadHome error:', e);
+    if(eventsEl) eventsEl.innerHTML='<div style="padding:20px;color:#c0392b;font-size:13px;text-align:center">主題活動載入失敗，請點此重試<br><span onclick="loadHome()" style="color:var(--g);font-weight:900;cursor:pointer">重新載入</span></div>';
   }
 }
 
@@ -793,9 +801,21 @@ async function filterCat(type, el){
 
 function renderEvents(){
   const el=$('eventsList');
-  if(!ST.events.length){el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中，請稍候…<br><span onclick="loadHome()" style="color:var(--g);font-weight:700;cursor:pointer">點此重新載入</span></div>';return;}
-  el.innerHTML=ST.events.map(e=>`
-    <div class="event-card" onclick="openEvent('${e.id}')" ontouchend="event.preventDefault();openEvent('${e.id}')">
+  if(!el) return;
+  let events = Array.isArray(ST.events) ? ST.events.filter(e=>e && e.id) : [];
+
+  // 若 events 資料表暫時沒有資料，但 sessions 已有開放場次，就自動產生「近期開放報名」卡，避免首頁空白。
+  if(!events.length && Array.isArray(ST.allSessionsData) && ST.allSessionsData.length){
+    events = [{id:'__all_sessions__', title:'近期開放報名', desc:'查看目前所有開放場次', location:'', cover:'', virtual:true}];
+  }
+
+  if(!events.length){
+    el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前沒有可顯示的主題活動<br><span onclick="loadHome()" style="color:var(--g);font-weight:900;cursor:pointer">重新載入</span></div>';
+    return;
+  }
+
+  el.innerHTML=events.map(e=>`
+    <div class="event-card" onclick="handleEventTap(event,'${e.id}')" ontouchend="handleEventTap(event,'${e.id}')" style="touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1)">
       <div class="event-cover">
         ${e.cover
           ?`<img src="${e.cover}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`
@@ -803,36 +823,51 @@ function renderEvents(){
         <div class="event-status-tag">報名中</div>
       </div>
       <div class="event-info">
-        <div class="event-name">${e.title}</div>
+        <div class="event-name">${e.title||'主題活動'}</div>
         ${e.location?`<div class="event-meta">📍 ${e.location}</div>`:''}
-        ${e.desc?`<div class="event-meta">${e.desc.slice(0,20)}</div>`:''}
+        ${e.desc?`<div class="event-meta">${String(e.desc).slice(0,20)}</div>`:''}
         <div class="event-more" style="font-size:16px">查看詳情 →</div>
       </div>
     </div>`).join('');
   setTimeout(enableDragScroll, 100);
 }
 
+function handleEventTap(ev,eventId){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  const key='event:'+eventId;
+  const now=Date.now();
+  if(ST._lastTapKey===key && now-(ST._lastTapAt||0)<650) return;
+  ST._lastTapKey=key; ST._lastTapAt=now;
+  openEvent(eventId);
+}
+
 // ── 活動→場次 ──
 async function openEvent(eventId){
-  const evt=ST.events.find(e=>e.id===eventId);
+  const evt=(ST.events||[]).find(e=>e.id===eventId) || (eventId==='__all_sessions__'?{id:eventId,title:'近期開放報名'}:null);
   ST.currentEvent=evt;
-  // 進入 pagePortal 顯示該活動的場次
   const title=$('portalTitle');
   if(title) title.textContent=evt?evt.title:'場次列表';
   const list=$('portalSessionList');
   if(list) list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">載入中…</div>';
-  // 根據活動名稱設定頁面背景色
+
   const _evtBgMap={'耶市集':'#E6F1ED','幻日祭':'#EBE2E5'};
   const _evtBg=evt?Object.entries(_evtBgMap).find(([k])=>(evt.title||'').includes(k)):null;
-  // 設定全頁底色（含 body，確保空白區域也有底色）
   const _bg=_evtBg?_evtBg[1]:'';
   const _portalPage=$('pagePortal');
   if(_portalPage) _portalPage.style.background=_bg;
   document.body.style.background=_bg||'var(--wh)';
   navTo('portal');
-  const sessions=await api({action:'getSessions',eventId});
-  ST.sessions=Array.isArray(sessions)?sessions:[];
-  ST.allSessionsData=[...new Map([...ST.allSessionsData,...ST.sessions].map(s=>[s.id,s])).values()];
+
+  let sessions=[];
+  if(eventId==='__all_sessions__'){
+    sessions = Array.isArray(ST.allSessionsData) ? ST.allSessionsData : [];
+  }else{
+    const res=await api({action:'getSessions',eventId,_t:Date.now()});
+    sessions=Array.isArray(res)?res:[];
+  }
+
+  ST.sessions=sessions.filter(s=>s && (s.status==='報名中'||s.status==='開放中'));
+  ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]),...ST.sessions].map(s=>[s.id,s])).values()];
   if(!list) return;
   if(!ST.sessions.length){
     list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:16px">目前無開放場次</div>';
@@ -876,7 +911,7 @@ function renderSessionCard(s){
       <span style="font-size:14px;color:#bbb;flex-shrink:0;font-weight:700">${full?'名額已滿':'已關閉'}</span>
     </div>`;
   }
-  return `<div onclick="openSession('${s.id}')" ontouchend="event.preventDefault();openSession('${s.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1)">
+  return `<div onclick="handleSessionTap(event,'${s.id}')" ontouchend="handleSessionTap(event,'${s.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1)">
     <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:nowrap;overflow:hidden">
         ${typeBadge}
@@ -1313,24 +1348,52 @@ function shareCurrentSession(){
   }
 }
 
+
+function handleSessionTap(ev,sessionId){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  const key='session:'+sessionId;
+  const now=Date.now();
+  if(ST._lastTapKey===key && now-(ST._lastTapAt||0)<650) return;
+  ST._lastTapKey=key; ST._lastTapAt=now;
+  openSession(sessionId);
+}
+
+function getCachedSession(sessionId){
+  return ((ST.sessions||[]).find(x=>x.id===sessionId) || (ST.allSessionsData||[]).find(x=>x.id===sessionId) || null);
+}
 async function openSession(sessionId){
-  // 永遠即時抓最新資料（避免費用/加購快取問題）
-  const s = await api({action:'getSession',id:sessionId});
-  if(!s||s.error){ toast('場次資料讀取失敗，請重試'); return; }
+  // 點擊後先用列表快取立即開啟表單，避免手機看起來「點了沒反應」。
+  const cached = getCachedSession(sessionId);
+  if(cached){
+    ST.currentSession=cached; ST.equipQty={}; ST.addonQty={}; ST.stallCount=1;
+    const evt=(ST.events||[]).find(e=>e.id===cached.eventId);
+    buildFormHero(cached,cached.cover||evt?.cover||'');
+    const titleEl=$('formBackTitle');
+    if(titleEl) titleEl.textContent=cached.name||'報名表';
+    openRegFormModal();
+  }else{
+    toast('正在開啟報名表…',900);
+  }
+
+  // 再即時抓最新場次資料，確保費用、加購與欄位是最新。
+  const s = await api({action:'getSession',id:sessionId,_t:Date.now()});
+  if(!s||s.error){
+    if(!cached) toast('場次資料讀取失敗，請重試');
+    return;
+  }
   ST.currentSession=s; ST.equipQty={}; ST.addonQty={}; ST.stallCount=1;
-  const evt=ST.events.find(e=>e.id===s.eventId);
+  ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]),s].map(x=>[x.id,x])).values()];
+  const evt=(ST.events||[]).find(e=>e.id===s.eventId);
   const cover=s.cover||evt?.cover||'';
   buildFormHero(s,cover);
   const titleEl=$('formBackTitle');
   if(titleEl) titleEl.textContent=s.name||'報名表';
-  openRegFormModal();
-  // 已登入 → 先查重複報名
+  if(!$('regFormModal')?.classList.contains('show')) openRegFormModal();
+
   if(ST.member && ST.memberEmail){
-    // 查詢是否已報名此場次
-    const myRegs=await api({action:'getMyRegs',email:ST.memberEmail});
+    const myRegs=await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
     const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
     if(dup){
-      // 已報名 → 顯示提示
       showAlreadyRegistered(s,dup);
     } else {
       renderDynFormFull(s, false);
@@ -1948,6 +2011,42 @@ async function submitPaymentForm(){
     if(btn){btn.disabled=false;btn.textContent='送出繳費回報';}
   }
 }
+
+// ── 啟動首頁資料：主題活動、場次、公告 ──
+function restoreMemberState(){
+  try{
+    const saved=localStorage.getItem('tb_member');
+    if(saved){
+      const d=JSON.parse(saved);
+      if(d && d.email){
+        ST.memberEmail=d.email;
+        ST.member=d.member||ST.member||null;
+      }
+    }
+  }catch(e){}
+  const bot=$('botMemberLabel');
+  if(bot) bot.textContent='我的紀錄';
+}
+
+async function bootHome(){
+  restoreMemberState();
+  try{ await applySiteConfig(); }catch(e){ console.warn('site config skipped', e); }
+  await loadHome();
+  const p=new URLSearchParams(window.location.search);
+  const sesId=p.get('ses')||p.get('sessionId');
+  if(sesId){
+    setTimeout(()=>openSessionDirect(sesId), 250);
+  }
+}
+
+(function(){
+  const run=()=>{
+    if(!history.state) history.replaceState({page:'home'}, '', location.href);
+    bootHome();
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run, {once:true});
+  else run();
+})();
 
 // ── URL 深連結：?member=1&pay=REG_xxx ──
 (async()=>{
