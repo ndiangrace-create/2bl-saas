@@ -416,6 +416,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
       <option value="已繳費">已繳費</option>
       <option value="全部">全部</option>
     </select>
+    <button class="btn btn-b btn-sm" onclick="refreshPayments(true)">↻ 重新整理</button>
   </div>
   <div id="paymentStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
   <div id="paymentsBody"></div>
@@ -955,9 +956,10 @@ let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],cur
 function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
-  const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  const withNoCache={...params,_t:Date.now()};
+  const qs=Object.entries(withNoCache).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
   try{
-    const r=await fetch(API+'?'+qs);
+    const r=await fetch(API+'?'+qs,{cache:'no-store'});
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')：請確認 Apps Script 已正確部署'); return {error:'連線失敗 '+r.status}; }
     return await r.json();
   }catch(e){ toast('⚠️ 無法連線後端，請確認部署網址'); return {error:'連線失敗'}; }
@@ -966,8 +968,9 @@ async function apiPost(body){
   try{
     const r=await fetch(API,{
       method:'POST',
-      headers:{'Content-Type':'application/json;charset=utf-8'},
-      body:JSON.stringify({...body,email:ST.email,token:ST.token})
+      headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-cache'},
+      cache:'no-store',
+      body:JSON.stringify({...body,email:ST.email,token:ST.token,_t:Date.now()})
     });
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
     return await r.json();
@@ -1527,7 +1530,7 @@ function goPage(name, opts){
     overview: ()=>{ renderOverviewCards(); },
     regs: ()=>{ renderRegs(); },
     checkin: ()=>{ fillCheckinSesFilter(); },
-    payments: async ()=>{ await loadAllRegs(); renderPaymentManagement(); },
+    payments: async ()=>{ await refreshPayments(false); },
     settings: ()=>{ loadStaff(); loadAnnounce(); loadSiteConfig(); },
   };
   if(inits[name]) inits[name]();
@@ -2439,7 +2442,7 @@ async function approveReg(){
   return withBtnLock(btn,'處理中…',async()=>{
     const res=await apiPost({action:'approveReg',regId:ST.currentReg.id,approved:true});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已核准，通知已送出');
+    toast(res.mail==='failed' ? '✅ 已核准，但錄取通知寄送失敗，請看備註' : '✅ 已核准，錄取通知已寄出');
     closeModal('regModal');
     await loadAllRegs();renderRegs();
     const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
@@ -2452,7 +2455,7 @@ async function rejectReg(){
   return withBtnLock(btn,'處理中…',async()=>{
     const res=await apiPost({action:'approveReg',regId:ST.currentReg.id,approved:false});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('已拒絕');
+    toast(res.mail==='failed' ? '已拒絕，但不錄取通知寄送失敗，請看備註' : '已拒絕，不錄取通知已寄出');
     closeModal('regModal');
     await loadAllRegs();renderRegs();
     const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
@@ -2464,7 +2467,7 @@ async function quickApprove(regId){
   return withBtnLock(btn,'處理中…',async()=>{
     const res=await apiPost({action:'approveReg',regId,approved:true});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已核准，通知已送出');
+    toast(res.mail==='failed' ? '✅ 已核准，但錄取通知寄送失敗，請看備註' : '✅ 已核准，錄取通知已寄出');
     await loadAllRegs(); renderRegs();
     const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
     ST.sdData=sd||[];renderOverview();
@@ -2478,7 +2481,7 @@ async function confirmPay(){
   return withBtnLock(btn,'確認中…',async()=>{
     const res=await apiPost({action:'confirmPayment',regId:ST.currentReg.id,method:'手動確認'});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已確認付款');closeModal('regModal');
+    toast(res.mail==='failed' ? '✅ 已確認付款，但繳費確認信寄送失敗，請看備註' : '✅ 已確認付款，繳費確認信已寄出');closeModal('regModal');
     await loadAllRegs();renderRegs();
     const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
     ST.sdData=sd||[];renderOverview();
@@ -2490,7 +2493,7 @@ async function quickPay(id){
   return withBtnLock(btn,'確認中…',async()=>{
     const res=await apiPost({action:'confirmPayment',regId:id,method:'手動確認'});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已確認付款');
+    toast(res.mail==='failed' ? '✅ 已確認付款，但繳費確認信寄送失敗，請看備註' : '✅ 已確認付款，繳費確認信已寄出');
     await loadAllRegs();renderRegs();
     const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
     ST.sdData=sd||[];renderOverview();
@@ -2581,7 +2584,7 @@ async function quickReject(regId){
   return withBtnLock(btn,'處理中…',async()=>{
     const res=await apiPost({action:'approveReg',regId,approved:false});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('已拒絕，通知已送出');
+    toast(res.mail==='failed' ? '已拒絕，但不錄取通知寄送失敗，請看備註' : '已拒絕，不錄取通知已寄出');
     await loadAllRegs(); renderRegs();
   });
 }
@@ -2597,7 +2600,7 @@ async function batchApprove(){
   return withBtnLock(btn,'批次處理中…',async()=>{
     const res=await apiPost({action:'batchUpdateStatus',regIds:ids,status:'已錄取'});
     if(res.error){toast('❌ '+res.error);return;}
-    toast(`✅ 已核准 ${ids.length} 筆`);await loadAllRegs();renderRegs();
+    toast(`✅ 已核准 ${ids.length} 筆，通知結果已寫入備註`);await loadAllRegs();renderRegs();
     const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
     ST.sdData=sd||[];renderOverview();
   });
@@ -2730,9 +2733,19 @@ function renderPaymentManagement(targetId){
   }).join('');
 }
 
+async function refreshPayments(showToast){
+  const btn=(typeof getClickBtn==='function') ? getClickBtn() : null;
+  if(btn && showToast){ btn.disabled=true; btn.textContent='更新中…'; }
+  try{
+    await loadAllRegs();
+    renderPaymentManagement();
+    if(showToast) toast('✅ 繳費資料已更新');
+  }finally{
+    if(btn && showToast){ btn.disabled=false; btn.textContent='↻ 重新整理'; }
+  }
+}
 async function loadPayments(){
-  if(!(ST.allRegs||[]).length) await loadAllRegs();
-  renderPaymentManagement();
+  await refreshPayments(false);
 }
 
 // ── 公告管理 ──
@@ -3802,7 +3815,7 @@ async function confirmPayById(payId){
   return withBtnLock(btn,'確認中…',async()=>{
     const res=await apiPost({action:'confirmPayment',regId:payId,method:'手動確認'});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已確認付款');
+    toast(res.mail==='failed' ? '✅ 已確認付款，但繳費確認信寄送失敗，請看備註' : '✅ 已確認付款，繳費確認信已寄出');
     if(typeof loadAllRegs==='function'){ await loadAllRegs(); }
     if(typeof renderPaymentManagement==='function') renderPaymentManagement();
     if(typeof renderRegs==='function') renderRegs();

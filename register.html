@@ -613,15 +613,16 @@ let ST = {
 function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
-  const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  try{ const r=await fetch(API+'?'+qs); if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'fail'};} return await r.json(); }
+  const withNoCache={...params,_t:Date.now()};
+  const qs=Object.entries(withNoCache).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  try{ const r=await fetch(API+'?'+qs,{cache:'no-store'}); if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'fail'};} return await r.json(); }
   catch(e){ toast&&toast('⚠️ 網路連線失敗'); return {error:'fail'}; }
 }
 async function apiPost(body, timeoutMs=15000){
   const ctrl = new AbortController();
   const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
   try{
-    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json;charset=utf-8'},body:JSON.stringify(body),signal:ctrl.signal});
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-cache'},cache:'no-store',body:JSON.stringify({...body,_t:Date.now()}),signal:ctrl.signal});
     const txt=await r.text();
     let data={};
     try{ data=txt?JSON.parse(txt):{}; }catch(e){ data={error:'後端回傳格式錯誤', raw:txt}; }
@@ -1966,11 +1967,22 @@ async function submitPaymentForm(){
       amount:amount,
     });
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已送出繳費回報，等待主辦確認',4000);
+    toast(res.mail==='failed' ? '✅ 已送出繳費回報，但收件確認信寄送失敗，請聯絡官方 LINE' : '✅ 已送出繳費回報，確認信已寄出，等待主辦確認',5000);
     closeModal('payModal');
+    // 先即時更新畫面，避免等後台資料刷新時看起來沒有反應。
+    if(Array.isArray(ST.regs)){
+      const target=ST.regs.find(r=>String(r.id)===String(ST_currentPayRegId));
+      if(target){
+        target.payStatus='待確認';
+        target.paymentStatus='待確認';
+        target.payMethod=method;
+      }
+      renderMyRegs(ST.regs);
+    }
     if(ST.memberEmail){
+      // 再重新抓後端最新資料；加 no-cache，避免舊資料卡住。
       const regs = await api({action:'getMyRegs',email:ST.memberEmail});
-      renderMyRegs(regs||[]);
+      renderMyRegs(regs||ST.regs||[]);
     }
   }finally{
     if(btn){btn.disabled=false;btn.textContent='我已匯款，送出回報';}
