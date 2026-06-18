@@ -98,12 +98,6 @@ img{display:block;max-width:100%}
 .event-meta{font-size:13px;color:var(--md);line-height:1.5}
 .event-more{font-size:14px;color:var(--g);font-weight:700;margin-top:6px}
 
-
-/* 主題活動：滑動不誤觸，只有按鈕可進入 */
-.event-card{cursor:default!important}
-.event-action-btn{margin-top:8px;width:100%;border:none;border-radius:10px;background:var(--g);color:#fff;font-size:15px;font-weight:900;padding:9px 10px;font-family:inherit;cursor:pointer;touch-action:manipulation}
-.event-action-btn:active{transform:scale(.97);opacity:.9}
-
 /* ── 場次頁 ── */
 .page{display:none;padding-bottom:100px;width:100%}
 .page.active{display:block}
@@ -626,8 +620,8 @@ const EQUIP_LIST_DEFS = {
 };
 
 let ST = {
-  events:[], sessions:[], allSessionsData:[], regs:[], currentEvent:null, currentSession:null,
-  member:null, memberEmail:null, equipQty:{}, addonQty:{}, stallCount:1,
+  events:[], sessions:[], currentEvent:null, currentSession:null,
+  member:null, memberEmail:null, equipQty:{}, stallCount:1,
   currentCatFilter:'市集場次',
 };
 
@@ -663,32 +657,7 @@ async function apiPost(body, timeoutMs=15000){
 function openModal(id){const el=$(id);if(el)el.classList.add('show');}
 function closeModal(id){const el=$(id);if(el)el.classList.remove('show');}
 function openLine(){window.open(LINE_URL,'_blank');}
-
-function esc(v){
-  return String(v??'')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#39;');
-}
-function getEffectiveEquipIncl(session, key, def){
-  const raw=Number(def?.incl)||0;
-  if(raw<=0) return 0;
-  const name=String(key||'');
-  const isTableOrChair=name.includes('桌')||name.includes('椅');
-  if(!isTableOrChair) return raw;
-  const basic=String(session?.basicEquip||session?.basic_equip||'').trim();
-  if(!basic) return 0;
-  if(/不含|無附|無提供|沒有|不提供|未提供|不附/.test(basic)) return 0;
-  const mentions=name.includes('桌') ? basic.includes('桌') : (basic.includes('椅')||basic.includes('椅子'));
-  return mentions ? raw : 0;
-}
-function openEventFromButton(ev,eventId){
-  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
-  if(ST._eventDragUntil && Date.now()<ST._eventDragUntil) return;
-  openEvent(eventId);
-}
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');}
 
 // ── 頁面切換 ──
 
@@ -771,9 +740,7 @@ async function loadHome(){
       api({action:'getAnnouncements'}),
     ]);
     ST.events = Array.isArray(events) ? events : [];
-    ST.allSessionsData = Array.isArray(sessions)
-      ? sessions.filter(s=>s && (s.status==='報名中'||s.status==='開放中'))
-      : [];
+    ST.allSessionsData = Array.isArray(sessions) ? sessions.filter(s=>s.status==='報名中') : [];
     ST.sessions = ST.allSessionsData;
     renderAnnouncements(Array.isArray(announcements) ? announcements : []);
     renderEvents();
@@ -800,10 +767,15 @@ async function filterCat(type, el){
   navTo('portal');
   window.scrollTo(0,0);
   // 載入場次
-  const sessions = await api({action:'getSessions', portal:type, _t:Date.now()});
-  const data = Array.isArray(sessions) ? sessions.filter(s=>s && (s.status==='報名中'||s.status==='開放中')) : [];
-  ST.sessions = data;
-  ST.allSessionsData = [...new Map([...(ST.allSessionsData||[]), ...data].map(s=>[String(s.id),s])).values()];
+  const sessions = await api({action:'getSessions', portal:type,_t:Date.now()});
+  let data = Array.isArray(sessions) ? sessions.filter(s=>s && (s.status==='報名中'||s.status==='開放中')) : [];
+  if(data.length){ ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]),...data].map(s=>[s.id,s])).values()]; }
+  if(!data.length){
+    data=(ST.allSessionsData||[]).filter(s=>{
+      const ps=Array.isArray(s.portals)?s.portals:String(s.portals||'').split(',').map(x=>x.trim()).filter(Boolean);
+      return s && (s.status==='報名中'||s.status==='開放中') && ps.includes(type);
+    });
+  }
   if(!list) return;
   if(!data.length){
     list.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前無開放場次</div>';
@@ -814,30 +786,20 @@ async function filterCat(type, el){
 
 function renderEvents(){
   const el=$('eventsList');
-  if(!el) return;
-  const events=Array.isArray(ST.events)?ST.events:[];
-  if(!events.length){
-    const fallback=(ST.allSessionsData||[]).filter(x=>x && (x.status==='報名中'||x.status==='開放中')).slice(0,8);
-    if(fallback.length){
-      el.innerHTML=fallback.map(s=>renderSessionCard(s)).join('');
-      return;
-    }
-    el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">目前沒有開放中的主題活動</div>';
-    return;
-  }
-  el.innerHTML=events.map(e=>`
-    <div class="event-card" style="cursor:default">
+  if(!ST.events.length){el.innerHTML='<div style="padding:20px;color:#aaa;font-size:13px;text-align:center">載入中，請稍候…<br><span onclick="loadHome()" style="color:var(--g);font-weight:700;cursor:pointer">點此重新載入</span></div>';return;}
+  el.innerHTML=ST.events.map(e=>`
+    <div class="event-card" onclick="openEvent('${e.id}')" ontouchend="event.preventDefault();openEvent('${e.id}')">
       <div class="event-cover">
         ${e.cover
-          ?`<img src="${esc(e.cover)}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`
+          ?`<img src="${e.cover}" alt="" onerror="this.parentElement.innerHTML='<div class=event-cover-placeholder>🎪</div>'">`
           :`<div class="event-cover-placeholder">🎪</div>`}
         <div class="event-status-tag">報名中</div>
       </div>
       <div class="event-info">
-        <div class="event-name">${esc(e.title||'')}</div>
-        ${e.location?`<div class="event-meta">📍 ${esc(e.location)}</div>`:''}
-        ${e.desc?`<div class="event-meta">${esc(String(e.desc).slice(0,20))}</div>`:''}
-        <button type="button" onclick="openEventFromButton(event,'${esc(e.id)}')" style="margin-top:8px;width:100%;border:none;border-radius:10px;background:var(--gp);color:var(--g);font-size:16px;font-weight:900;padding:9px 8px;font-family:inherit;cursor:pointer">查看場次</button>
+        <div class="event-name">${e.title}</div>
+        ${e.location?`<div class="event-meta">📍 ${e.location}</div>`:''}
+        ${e.desc?`<div class="event-meta">${e.desc.slice(0,20)}</div>`:''}
+        <button type="button" onclick="handleEventTap(event,'${e.id}')" style="margin-top:8px;width:100%;border:none;border-radius:10px;background:var(--g);color:#fff;font-size:16px;font-weight:900;padding:9px 10px;font-family:inherit;cursor:pointer">查看場次</button>
       </div>
     </div>`).join('');
   setTimeout(enableDragScroll, 100);
@@ -863,13 +825,22 @@ async function openEvent(eventId){
   navTo('portal');
   const sessions=await api({action:'getSessions',eventId});
   ST.sessions=Array.isArray(sessions)?sessions:[];
-  ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]),...ST.sessions].map(s=>[String(s.id),s])).values()];
+  ST.allSessionsData=[...new Map([...ST.allSessionsData,...ST.sessions].map(s=>[s.id,s])).values()];
   if(!list) return;
   if(!ST.sessions.length){
     list.innerHTML='<div style="padding:20px;text-align:center;color:#aaa;font-size:16px">目前無開放場次</div>';
     return;
   }
   list.innerHTML=ST.sessions.map(s=>renderSessionCard(s)).join('');
+}
+
+function handleSessionTap(ev,sessionId){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  const key='session:'+sessionId;
+  const now=Date.now();
+  if(ST._lastTapKey===key && now-(ST._lastTapAt||0)<650) return;
+  ST._lastTapKey=key; ST._lastTapAt=now;
+  openSession(sessionId);
 }
 
 function renderSessionCard(s){
@@ -907,7 +878,7 @@ function renderSessionCard(s){
       <span style="font-size:14px;color:#bbb;flex-shrink:0;font-weight:700">${full?'名額已滿':'已關閉'}</span>
     </div>`;
   }
-  return `<div role="button" tabindex="0" data-session-id="${esc(s.id)}" onclick="openSessionFromCard(event,'${esc(s.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){openSessionFromCard(event,'${esc(s.id)}')}" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1);position:relative;z-index:1">
+  return `<div onclick="openSession('${s.id}')" ontouchend="event.preventDefault();openSession('${s.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:4px solid var(--g);touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1)">
     <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:nowrap;overflow:hidden">
         ${typeBadge}
@@ -1137,7 +1108,7 @@ function renderDynFormFull(s, isNew=false){
       if(equipDefs.length>0){
         html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）請填寫總數量</div>`;
         equipDefs.forEach(([k,v])=>{
-          const incl=getEffectiveEquipIncl(s,k,v);
+          const incl=Number(v.incl)||0;
           const price=Number(v.price)||0;
           html+=`<div class="equip-row">
             <div class="equip-info"><div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
@@ -1205,13 +1176,6 @@ function adjStall(delta){
   updateFee();
 }
 
-
-
-function openSessionFromCard(ev, sessionId){
-  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
-  if(!sessionId){ toast('場次資料讀取失敗，請重新整理'); return; }
-  openSession(sessionId);
-}
 
 async function openSessionDirect(sessionId){
   const s=ST.allSessionsData&&ST.allSessionsData.find(x=>x.id===sessionId)||await api({action:'getSession',id:sessionId});
@@ -1351,69 +1315,30 @@ function shareCurrentSession(){
 }
 
 async function openSession(sessionId){
-  // 點場次必須立即有反應：先用列表快取打開報名表，再背景抓最新資料。
-  const cached = (ST.allSessionsData||[]).find(x=>String(x.id)===String(sessionId))
-    || (ST.sessions||[]).find(x=>String(x.id)===String(sessionId));
-  const openWithSession = async (s, fromFresh=false)=>{
-    if(!s || s.error){ toast('場次資料讀取失敗，請重試'); return; }
-    ST.currentSession=s;
-    ST.equipQty={};
-    ST.addonQty={};
-    ST.stallCount=1;
-    const evt=(ST.events||[]).find(e=>String(e.id)===String(s.eventId));
-    const cover=s.cover||evt?.cover||'';
-    buildFormHero(s,cover);
-    const titleEl=$('formBackTitle');
-    if(titleEl) titleEl.textContent=s.name||'報名表';
-    const modal=$('regFormModal');
-    if(!modal || !modal.classList.contains('show')) openRegFormModal();
-    if(ST.member && ST.memberEmail){
-      try{
-        const myRegs=await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
-        const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
-        if(dup) showAlreadyRegistered(s,dup);
-        else renderDynFormFull(s, false);
-      }catch(e){
-        renderDynFormFull(s, false);
-      }
-    } else {
-      showEmailStep(s);
-    }
-    updateFee();
-  };
-
-  if(cached){
-    await openWithSession(cached, false);
-    // 背景更新最新場次資料，不讓使用者覺得點了沒反應。
-    api({action:'getSession',id:sessionId,_t:Date.now()}).then(fresh=>{
-      if(!fresh || fresh.error) return;
-      ST.allSessionsData=[...new Map([...(ST.allSessionsData||[]), fresh].map(x=>[x.id,x])).values()];
-      if(ST.currentSession && String(ST.currentSession.id)===String(sessionId)){
-        ST.currentSession=fresh;
-        // 只在表單還沒進入填寫成功畫面時刷新內容。
-        const success=document.querySelector('#regFormModal .success-screen');
-        if(!success){
-          buildFormHero(fresh, fresh.cover||((ST.events||[]).find(e=>String(e.id)===String(fresh.eventId))||{}).cover||'');
-          if(ST.member && ST.memberEmail) renderDynFormFull(fresh, false);
-          else showEmailStep(fresh);
-          updateFee();
-        }
-      }
-    }).catch(()=>{});
-    return;
-  }
-
-  // 沒快取時，顯示明確載入畫面，不要無感等待。
-  const formHero=$('formHero');
-  if(formHero) formHero.innerHTML='<div class="form-hero-placeholder">🎪</div><div class="form-hero-overlay"><div class="form-hero-title">場次資料載入中…</div></div>';
+  // 永遠即時抓最新資料（避免費用/加購快取問題）
+  const s = await api({action:'getSession',id:sessionId});
+  if(!s||s.error){ toast('場次資料讀取失敗，請重試'); return; }
+  ST.currentSession=s; ST.equipQty={}; ST.addonQty={}; ST.stallCount=1;
+  const evt=ST.events.find(e=>e.id===s.eventId);
+  const cover=s.cover||evt?.cover||'';
+  buildFormHero(s,cover);
   const titleEl=$('formBackTitle');
-  if(titleEl) titleEl.textContent='報名表';
-  ST.currentSession=null;
+  if(titleEl) titleEl.textContent=s.name||'報名表';
   openRegFormModal();
-  const dyn=$('dynForm');
-  if(dyn) dyn.innerHTML='<div style="padding:24px;text-align:center;color:#777;font-size:16px">正在讀取場次資料…</div>';
-  const s = await api({action:'getSession',id:sessionId,_t:Date.now()});
-  await openWithSession(s, true);
+  // 已登入 → 先查重複報名
+  if(ST.member && ST.memberEmail){
+    // 查詢是否已報名此場次
+    const myRegs=await api({action:'getMyRegs',email:ST.memberEmail});
+    const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
+    if(dup){
+      // 已報名 → 顯示提示
+      showAlreadyRegistered(s,dup);
+    } else {
+      renderDynFormFull(s, false);
+    }
+  } else {
+    showEmailStep(s);
+  }
 }
 
 function showAlreadyRegistered(s,reg){
@@ -1598,7 +1523,7 @@ function adjEquip(k,delta){
   if(el)el.textContent=next;
   // 動態更新說明：已含幾件、額外幾件
   const _ed=(s?.equip||{})[k]||{};
-  const inclPerStall=getEffectiveEquipIncl(s,k,_ed);
+  const inclPerStall=Number(_ed.incl)||0;
   const inclFree=inclPerStall*(ST.stallCount||1);
   const extra=Math.max(0,next-inclFree);
   const price=Number(_ed.price)||0;
@@ -1643,7 +1568,7 @@ function updateFee(){
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
     if(v&&v.open){
-      const incl=getEffectiveEquipIncl(s,k,v)*stalls;
+      const incl=(v.incl||0)*stalls;
       const want=ST.equipQty[k]||0;
       const extra=Math.max(0, want-incl);  // 只算超過內含的部分
       equipTotal+=(v.price||0)*extra;
@@ -1839,7 +1764,7 @@ function memberLogout(){
   $('memberLoginArea').style.display='block';
   $('memberArea').style.display='none';
   const lbl=$('botMemberLabel');
-  if(lbl) lbl.textContent='我的紀錄';
+  if(lbl) lbl.textContent='會員登入';
 }
 
 function isPaidText(v){ return String(v||'').indexOf('已繳費')>=0 || String(v||'')==='免費'; }
@@ -2017,42 +1942,6 @@ async function submitPaymentForm(){
   }
 }
 
-
-// ── 前台正式啟動：首頁資料與會員資料都必須從資料庫回抓 ──
-async function bootApp(){
-  if(window.__TB_BOOT_DONE) return;
-  window.__TB_BOOT_DONE = true;
-  try{ history.replaceState({page:'home'}, '', location.href); }catch(e){}
-  try{ applySiteConfig(); }catch(e){ console.warn('applySiteConfig skipped', e); }
-  try{
-    const saved = JSON.parse(localStorage.getItem('tb_member')||'null');
-    const email = (saved && saved.email) ? String(saved.email).trim() : '';
-    if(email){
-      ST.memberEmail = email;
-      api({action:'getMember', email, _t:Date.now()}).then(m=>{
-        if(m && !m.error){
-          ST.member = m;
-          try{ localStorage.setItem('tb_member', JSON.stringify({email})); }catch(e){}
-          const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄';
-        }
-      }).catch(()=>{});
-    }
-  }catch(e){}
-  await loadHome();
-  setTimeout(enableDragScroll, 150);
-  try{
-    const p = new URLSearchParams(window.location.search);
-    const ses = p.get('ses');
-    if(ses) setTimeout(()=>openSession(ses), 350);
-  }catch(e){}
-}
-
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded', bootApp, {once:true});
-}else{
-  bootApp();
-}
-
 // ── URL 深連結：?member=1&pay=REG_xxx ──
 (async()=>{
   const _p = new URLSearchParams(window.location.search);
@@ -2085,19 +1974,6 @@ function enableDragScroll(){
     const x=e.pageX-el.offsetLeft;
     el.scrollLeft = scrollLeft - (x-startX)*1.5;
   });
-  let touchStartX=0, touchStartY=0;
-  el.addEventListener('touchstart', e=>{
-    const t=e.touches&&e.touches[0]; if(!t) return;
-    touchStartX=t.clientX; touchStartY=t.clientY; ST._eventDragMoved=false;
-  }, {passive:true});
-  el.addEventListener('touchmove', e=>{
-    const t=e.touches&&e.touches[0]; if(!t) return;
-    const dx=Math.abs(t.clientX-touchStartX), dy=Math.abs(t.clientY-touchStartY);
-    if(dx>12 && dx>dy){ ST._eventDragMoved=true; ST._eventDragUntil=Date.now()+450; }
-  }, {passive:true});
-  el.addEventListener('touchend', ()=>{
-    if(ST._eventDragMoved) ST._eventDragUntil=Date.now()+450;
-  }, {passive:true});
 }
 </script>
 </body>
