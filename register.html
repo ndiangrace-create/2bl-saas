@@ -548,16 +548,21 @@ button,a,[onclick]{touch-action:manipulation}
   <div class="modal-box">
     <div class="modal-title">取消報名確認</div>
     <div style="font-size:18px;font-weight:700;color:var(--dk);margin-bottom:12px" id="cancelModalSesName"></div>
-    <div style="background:var(--rdp);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.9;color:var(--dk)">
+    <!-- 退款說明（已繳費才顯示）-->
+    <div id="cancelRefundPolicy" style="background:var(--rdp);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.9;color:var(--dk)">
       <div style="font-weight:700;margin-bottom:6px;color:var(--rd)">取消報名前請先確認以下退款原則：</div>
       <div>1. 活動前 7 日以上取消<br><span style="color:var(--md)">酌收行政處理費 NT$500，餘額退還。</span></div>
       <div style="margin-top:6px">2. 活動前 3～6 日取消<br><span style="color:var(--md)">退還報名費 50%，保證金不退還。</span></div>
       <div style="margin-top:6px">3. 活動前 3 日內取消或活動當日未出席<br><span style="color:var(--md)">報名費與保證金皆不退還。</span></div>
       <div style="margin-top:6px">4. 因天災、疫情或其他不可抗力因素導致活動取消<br><span style="color:var(--md)">主辦單位將依實際情況安排延期，或辦理部分退費。</span></div>
     </div>
+    <!-- 未繳費直接取消說明 -->
+    <div id="cancelDirectPolicy" style="display:none;background:#f8f8f8;border-radius:12px;padding:14px;margin-bottom:14px;font-size:15px;line-height:1.8;color:var(--dk)">
+      尚未完成付款，取消後此報名紀錄將保留，不涉及金流。
+    </div>
     <label style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1.5px solid #e8b5b5;border-radius:10px;cursor:pointer;font-size:13px;color:var(--dk);margin-bottom:14px">
       <input type="checkbox" id="cancelConfirmCheck" onchange="onCancelCheckChange()" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--rd);margin-top:1px">
-      我已了解取消與退款規則，仍要送出取消申請
+      <span id="cancelConfirmLabel">我已了解取消與退款規則，仍要送出取消申請</span>
     </label>
     <div class="modal-actions">
       <button class="btn-s2" onclick="closeModal('cancelModal')" style="flex:1;padding:12px;font-size:14px">返回，不取消</button>
@@ -1843,7 +1848,14 @@ async function cancelMyReg(regId, sesName, isRefund){
   $('cancelModalSesName').textContent=(isRefund?'申請取消／退款：':'取消報名：')+'「'+sesName+'」';
   $('cancelConfirmCheck').checked=false;
   $('cancelSubmitBtn').disabled=true;
-  $('cancelSubmitBtn').textContent=isRefund?'送出退款申請':'我已了解，送出取消申請';
+  $('cancelSubmitBtn').textContent=isRefund?'送出退款申請':'確認取消報名';
+  // 依是否已繳費切換說明區塊
+  const refundPolicy=$('cancelRefundPolicy');
+  const directPolicy=$('cancelDirectPolicy');
+  const confirmLabel=$('cancelConfirmLabel');
+  if(refundPolicy) refundPolicy.style.display=isRefund?'block':'none';
+  if(directPolicy) directPolicy.style.display=isRefund?'none':'block';
+  if(confirmLabel) confirmLabel.textContent=isRefund?'我已了解取消與退款規則，仍要送出退款申請':'我確認要取消此報名';
   ST._pendingCancelRegId=regId;
   ST._pendingCancelSesName=sesName;
   ST._pendingCancelIsRefund=!!isRefund;
