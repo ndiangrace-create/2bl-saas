@@ -2168,6 +2168,88 @@ if(document.readyState==='loading'){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
 })();
 
+
+// ────────────────────────────────────────────────────────────────
+// AA6 HOTFIX：會員我的紀錄防爆核心（補回遺失函式＋錯誤顯示）
+// ────────────────────────────────────────────────────────────────
+function fillMemberCard(member){
+  member = member || {};
+  const email = (member.email || ST.memberEmail || (typeof readEmail==='function'?readEmail():'') || '').trim();
+  const name = member.name || member.full_name || email || '會員';
+  const brand = member.brand || member.brand_name || member.store_name || '';
+  const phone = member.phone || '';
+  if($('memberName')) $('memberName').textContent = name;
+  if($('memberEmail2')) $('memberEmail2').textContent = email;
+  const body = $('memberCardBody');
+  if(body){
+    body.innerHTML = `
+      ${brand?`<div style="font-size:15px;font-weight:800;margin-bottom:4px">${escHtml(brand)}</div>`:''}
+      ${phone?`<div style="font-size:14px;opacity:.85">${escHtml(phone)}</div>`:''}
+      <div style="font-size:14px;opacity:.85;margin-top:4px">✏️ 資料可隨時更新，下次報名自動帶入</div>
+    `;
+  }
+}
+
+function openMemberEditModal(){
+  if(typeof openMemberEdit==='function') return openMemberEdit();
+  toast('會員資料編輯功能準備中');
+}
+
+let __logoHoldTimer=null;
+function startLogoHold(e){
+  if(e && e.preventDefault) e.preventDefault();
+  stopLogoHold();
+  __logoHoldTimer=setTimeout(()=>{
+    try{ location.href='admin.html?tenant='+encodeURIComponent(TENANT_ID||'tuibile'); }
+    catch(_){ location.href='admin.html'; }
+  },1200);
+}
+function stopLogoHold(){
+  if(__logoHoldTimer){ clearTimeout(__logoHoldTimer); __logoHoldTimer=null; }
+}
+
+async function memberLoginCore(){
+  const email=(($('loginEmail')&&$('loginEmail').value)||ST.memberEmail||(typeof readEmail==='function'?readEmail():'')||'').trim();
+  if(!email||!/\S+@\S+\.\S+/.test(email)){ toast('請輸入有效 Email'); return; }
+  const btn=$('loginBtn');
+  if(btn){ btn.disabled=true; btn.textContent='查詢中…'; }
+  ST.memberEmail=email;
+  try{ if(typeof saveEmail==='function') saveEmail(email); else localStorage.setItem('tb_member_email',email); }catch(_){ }
+  if($('memberLoginArea')) $('memberLoginArea').style.display='none';
+  if($('memberArea')) $('memberArea').style.display='block';
+  if($('myRegsList')) $('myRegsList').innerHTML='<div style="color:#aaa;font-size:16px;text-align:center;padding:20px">報名紀錄載入中…</div>';
+  fillMemberCard({email});
+  try{
+    const [member, regs] = await Promise.all([
+      api({action:'getMember', email, _t:Date.now()}),
+      api({action:'getMyRegs', email, _t:Date.now()})
+    ]);
+    if(member && !member.error){ ST.member=member; fillMemberCard(member); }
+    else { ST.member={email}; fillMemberCard(ST.member); }
+    if(regs && regs.error){ renderMyRegs(regs); }
+    else { renderMyRegs(Array.isArray(regs)?regs:[]); }
+  }catch(err){
+    console.error('[memberLoginCore]', err);
+    const el=$('myRegsList');
+    if(el) el.innerHTML='<div style="background:#fff7ed;color:#9a3412;border-radius:12px;padding:14px 16px;font-size:16px;line-height:1.6;text-align:left">目前無法讀取我的紀錄。<br><span style="font-size:14px;color:#b45309">'+escHtml(err && err.message ? err.message : String(err))+'</span><br><button onclick="memberLogin()" style="margin-top:10px;background:var(--g);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:15px;font-weight:800">重新查詢</button></div>';
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='登入 / 查詢報名'; }
+  }
+}
+
+window.memberLogin = memberLoginCore;
+window.goMemberPage = async function(){
+  navTo('member');
+  const email=(ST.memberEmail||(typeof readEmail==='function'?readEmail():'')||'').trim();
+  if(!email){
+    if($('memberLoginArea')) $('memberLoginArea').style.display='block';
+    if($('memberArea')) $('memberArea').style.display='none';
+    return;
+  }
+  if($('loginEmail')) $('loginEmail').value=email;
+  await memberLoginCore();
+};
+
 </script>
 </body>
 </html>
