@@ -1402,24 +1402,17 @@ async function openSession(sessionId){
     buildFormHero(s,cover);
     const titleEl=$('formBackTitle');
     if(titleEl) titleEl.textContent=s.name||'報名表';
-    // 先檢查是否已報名（不管 ST.member 是否載入）
-    const emailToCheck = ST.memberEmail || localStorage.getItem('tb_member_email') || '';
-    if(emailToCheck){
-      try{
-        const myRegs=await api({action:'getMyRegs',email:emailToCheck,_t:Date.now()});
-        const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
-        if(dup){
-          const modal=$('regFormModal');
-          if(!modal || !modal.classList.contains('show')) openRegFormModal();
-          showAlreadyRegistered(s,dup);
-          return;
-        }
-      }catch(e){}
-    }
     const modal=$('regFormModal');
     if(!modal || !modal.classList.contains('show')) openRegFormModal();
     if(ST.member && ST.memberEmail){
-      renderDynFormFull(s, false);
+      try{
+        const myRegs=await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
+        const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
+        if(dup) showAlreadyRegistered(s,dup);
+        else renderDynFormFull(s, false);
+      }catch(e){
+        renderDynFormFull(s, false);
+      }
     } else {
       showEmailStep(s);
     }
@@ -1464,9 +1457,7 @@ function showAlreadyRegistered(s,reg){
   const dynEl=$('dynForm');
   const submitBtn=$('submitBtn');
   if(submitBtn) submitBtn.style.display='none';
-  // 隱藏所有費用與表單相關元素
-  document.querySelectorAll('.fee-box,#feeBox').forEach(el=>el.style.display='none');
-  document.querySelectorAll('.fcard').forEach(el=>{ if(!el.closest('#dynForm')) el.style.display='none'; });
+  const feeBox=$('feeBox'); if(feeBox) feeBox.style.display='none';
   if(!dynEl) return;
   const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',已取消:'#aaa'}[reg.status]||'#555';
   dynEl.innerHTML=`
@@ -1547,8 +1538,13 @@ function adjAddon(i,delta){
 }
 
 function frontEffectiveEquipIncl(name, def, basicEquipText){
-  // 直接以後台設備欄位的 incl 數字為準，不依賴 basic_equip 文字
-  return Number(def&&def.incl)||0;
+  const raw=String(basicEquipText||'').trim();
+  const n=Number(def&&def.incl)||0;
+  if(!n) return 0;
+  const neg=/(不含|沒有|無提供|不提供|未提供|不附|無附|自備)/;
+  if(!raw || neg.test(raw)) return 0;
+  if(name && !raw.includes(name)) return 0;
+  return n;
 }
 function adjEquip(k,delta){
   const cur=ST.equipQty[k]||0;
@@ -1789,7 +1785,7 @@ async function memberLogin(){
       ${member.phone?`<div style="font-size:15px;color:var(--lt)">手機：${member.phone}</div>`:''}
     `;
   }
-  renderMyRegs(regs||[]);
+  if(regs && regs.error){ renderMyRegsError(regs.error); } else { renderMyRegs(regs||[]); }
   restoreBtn();
   // 持久化登入狀態到 localStorage
   try {
@@ -1819,6 +1815,15 @@ function payBadge(reg){
   return {t:'未繳費',bg:'#fdecea',c:'#c0392b'};
 }
 function escHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function renderMyRegsError(msg){
+  const el=$('myRegsList');
+  if(!el) return;
+  el.innerHTML=`<div style="background:#fff3f3;color:#9f1d1d;border-radius:14px;padding:16px;margin:12px 0;font-size:16px;line-height:1.7;font-weight:800">
+    ⚠️ 我的紀錄載入失敗<br>
+    <span style="font-size:14px;font-weight:600;color:#7f1d1d">${escHtml(msg||'請稍後再試，或截圖給官方 LINE。')}</span>
+  </div>`;
+}
 
 function renderMyRegs(regs){
   ST.regs = Array.isArray(regs) ? regs : [];
@@ -1855,16 +1860,7 @@ function handlePendingPayLink(regs){
   const regId = window._pendingPayRegId || '';
   if(!regId) return;
   const reg = (Array.isArray(regs)?regs:[]).find(r=>String(r.id)===String(regId));
-  if(!reg){
-    api({action:'getRegLink',regId,_t:Date.now()}).then(linkReg=>{
-      if(linkReg && !linkReg.error && linkReg.email){
-        ST.memberEmail = linkReg.email;
-        try{ localStorage.setItem('tb_member_email', linkReg.email); localStorage.removeItem('tb_member'); }catch(e){}
-        if(!ST.regs.some(x=>String(x.id)===String(linkReg.id))){ ST.regs=[linkReg,...ST.regs]; renderMyRegs(ST.regs); }
-      }
-    }).catch(()=>{});
-    return;
-  }
+  if(!reg) return;
   window._pendingPayRegId = '';
   setTimeout(()=>{ if(canPayReg(reg)) showPayPage(reg.id, reg.sessionName||reg.sesName||'場次', Number(reg.total||0)); else openRegDetail(reg.id); }, 300);
 }
@@ -1998,18 +1994,14 @@ async function submitPaymentForm(){
   if(_p.get('member')==='1'){
     const _payRegId = _p.get('pay');
     if(_payRegId) window._pendingPayRegId = _payRegId;
-    // 信件按鈕進來時，先用報名編號回查 Email，避免不同手機沒有 localStorage 而看不到紀錄。
-    setTimeout(async()=>{
-      if(_payRegId){
-        try{
-          const linkReg = await api({action:'getRegLink',regId:_payRegId,_t:Date.now()});
-          if(linkReg && !linkReg.error && linkReg.email){
-            ST.memberEmail = linkReg.email;
-            try{ localStorage.setItem('tb_member_email', linkReg.email); localStorage.removeItem('tb_member'); }catch(e){}
-            if($('loginEmail')) $('loginEmail').value = linkReg.email;
-          }
-        }catch(e){}
-      }
+    // 信件按鈕進來時，若本機沒有 Email，先用報名編號向後端取回 Email，再載入我的紀錄。
+    if(_payRegId && !readEmail()){
+      try{
+        const rr = await api({action:'getRegById',regId:_payRegId,_t:Date.now()});
+        if(rr && rr.email){ saveEmail(rr.email); ST.memberEmail=rr.email; if($('loginEmail')) $('loginEmail').value=rr.email; }
+      }catch(e){ console.warn('[getRegById failed]',e); }
+    }
+    setTimeout(()=>{
       goMemberPage();
       const ml=$('memberLoginArea');
       if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
@@ -2126,7 +2118,7 @@ if(document.readyState==='loading'){
   window.openEvent=async function(eventId){ const evt=asArr(ST.events).find(e=>String(e.id)===String(eventId)); const list=$('portalSessionList'); const title=$('portalTitle'); if(title) title.textContent=evt?evt.title:'場次列表'; navTo('portal'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; let data=uniqueSessions(ST.allSessionsData).filter(s=>String(s.eventId||s.event_id||'')===String(eventId)&&openSess(s)); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',eventId,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
   window.filterCat=async function(type,el){ ST.currentCatFilter=type; document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); if(el) el.classList.add('active'); const title=$('portalTitle'); if(title) title.textContent=type; const list=$('portalSessionList'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; navTo('portal'); const allow=portalTypeMap[type]||[]; let data=uniqueSessions(ST.allSessionsData).filter(s=>openSess(s)&&((asArr(s.portals).includes(type))||allow.includes(s.type))); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',portal:type,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
   const _oldCheckMemberStep=window.checkMemberStep; window.checkMemberStep=async function(){ const email=(($('step1Email')&&$('step1Email').value)||'').trim(); if(email) saveEmail(email); return _oldCheckMemberStep?_oldCheckMemberStep():undefined; };
-  window.memberLogin=async function(){ const email=($('loginEmail')?.value||readEmail()||'').trim(); if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;} const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';} ST.memberEmail=email; saveEmail(email); try{ const [member,regs]=await Promise.all([api({action:'getMember',email,_t:Date.now()}),api({action:'getMyRegs',email,_t:Date.now()})]); ST.member=member&&!member.error?member:null; if($('memberLoginArea')) $('memberLoginArea').style.display='none'; if($('memberArea')) $('memberArea').style.display='block'; fillMemberCard(ST.member||{email}); if($('memberName')) $('memberName').textContent=ST.member?.name||email; if($('memberEmail2')) $('memberEmail2').textContent=email; const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄'; renderMyRegs(asArr(regs)); } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} } };
+  window.memberLogin=async function(){ const email=($('loginEmail')?.value||readEmail()||'').trim(); if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;} const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';} ST.memberEmail=email; saveEmail(email); try{ const [member,regs]=await Promise.all([api({action:'getMember',email,_t:Date.now()}),api({action:'getMyRegs',email,_t:Date.now()})]); ST.member=member&&!member.error?member:null; if($('memberLoginArea')) $('memberLoginArea').style.display='none'; if($('memberArea')) $('memberArea').style.display='block'; fillMemberCard(ST.member||{email}); if($('memberName')) $('memberName').textContent=ST.member?.name||email; if($('memberEmail2')) $('memberEmail2').textContent=email; const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄'; if(regs&&regs.error){renderMyRegsError(regs.error)}else{renderMyRegs(asArr(regs))}; } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} } };
   window.goMemberPage=async function(){ navTo('member'); const email=ST.memberEmail||readEmail(); if(!email){ if($('memberLoginArea')) $('memberLoginArea').style.display='block'; if($('memberArea')) $('memberArea').style.display='none'; return; } if($('loginEmail')) $('loginEmail').value=email; await memberLogin(); };
   function bootDbFront(){ const email=readEmail(); if(email){ST.memberEmail=email; if($('loginEmail')) $('loginEmail').value=email;} loadHome(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
