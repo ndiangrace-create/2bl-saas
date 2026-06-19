@@ -1057,20 +1057,27 @@ function renderDynFormFull(s, isNew=false){
         </div>
       </div>`;
 
-      // 所有設備說明（不管有沒有開放加購都顯示）
-      if(equipAll.length>0){
+      // 設備說明（依邏輯顯示）
+      const equipDisplay=equipAll.filter(([k,v])=>{
+        const incl=frontEffectiveEquipIncl(k,v,s.basicEquip||s.basic_equip||'');
+        const isOpen=v.open===true||v.open==='true';
+        // 內含=0 且未開放 → 不顯示（純需自備不提示）
+        // 其他都顯示
+        return !(incl===0 && !isOpen);
+      });
+      if(equipDisplay.length>0){
         html+=`<div style="margin-bottom:12px;padding:10px 12px;background:#f0f7f4;border-radius:10px;font-size:14px;color:var(--dk)">`;
         html+=`<div style="font-weight:700;margin-bottom:6px;color:var(--g)">📦 本場次設備說明</div>`;
-        equipAll.forEach(([k,v])=>{
+        equipDisplay.forEach(([k,v])=>{
           const incl=frontEffectiveEquipIncl(k,v,s.basicEquip||s.basic_equip||'');
           const isOpen=v.open===true||v.open==='true';
           const price=Number(v.price)||0;
           let note='';
-          if(incl>0 && isOpen) note=`每攤內含 ${incl} 件，可加租（NT$${price}/件）`;
-          else if(incl>0)       note=`每攤內含 ${incl} 件`;
-          else if(isOpen)       note=`未提供，可加租（NT$${price}/件）`;
-          else                  note=`未提供，需自備或租借`;
-          html+=`<div style="margin:4px 0">・${esc(k)}：${note}</div>`;
+          if(incl>0 && isOpen)  note=`提供 ${incl} ${k}，可加租（NT$${price}/件）`;
+          else if(incl>0)        note=`提供 ${incl} ${k}`;
+          else if(isOpen)        note=`需自備，可加租（NT$${price}/件）`;
+          else                   note=`需自備`;
+          html+=`<div style="margin:4px 0">・${note}</div>`;
         });
         html+=`</div>`;
       }
