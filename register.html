@@ -1538,13 +1538,8 @@ function adjAddon(i,delta){
 }
 
 function frontEffectiveEquipIncl(name, def, basicEquipText){
-  const raw=String(basicEquipText||'').trim();
-  const n=Number(def&&def.incl)||0;
-  if(!n) return 0;
-  const neg=/(不含|沒有|無提供|不提供|未提供|不附|無附|自備)/;
-  if(!raw || neg.test(raw)) return 0;
-  if(name && !raw.includes(name)) return 0;
-  return n;
+  // 直接以後台設備欄位的 incl 數字為準，不依賴 basic_equip 文字
+  return Number(def&&def.incl)||0;
 }
 function adjEquip(k,delta){
   const cur=ST.equipQty[k]||0;
