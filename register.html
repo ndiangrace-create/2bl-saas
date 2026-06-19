@@ -1613,7 +1613,7 @@ function updateFee(){
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
     if(v&&v.open){
-      const incl=frontEffectiveEquipIncl(k,v,s?.basicEquip||s?.basic_equip||'')*stalls;
+      const incl=frontEffectiveEquipIncl(k,v)*stalls;
       const want=ST.equipQty[k]||0;
       const extra=Math.max(0, want-incl);  // 只算超過內含的部分
       equipTotal+=(v.price||0)*extra;

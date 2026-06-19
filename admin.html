@@ -975,7 +975,7 @@ async function apiPost(body){
     const r=await fetch(API,{
       method:'POST',
       headers:{'Content-Type':'application/json;charset=utf-8'},
-      body:JSON.stringify({...body,email:ST.email,token:ST.token})
+      body:JSON.stringify({...body,email:ST.email,token:ST.token,tenantId:TENANT_ID})
     });
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
     return await r.json();
