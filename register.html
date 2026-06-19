@@ -1015,6 +1015,25 @@ function renderDynFormFull(s, isNew=false){
   html+=`<input type="hidden" id="f_email" value="${esc(email)}">`;
   html+=`<div style="padding:6px 16px 0;font-size:16px;color:var(--md)">報名 Email：<strong style="color:var(--g)">${esc(email)}</strong></div>`;
 
+  // ── 日期選擇（如有多日，預設不勾選）──
+  if(s.dates && s.dates.length>1){
+    html+=`<div class="fcard"><div class="fcard-t">📅 選擇參加日期</div><div class="fcard-body">`;
+    s.dates.forEach((d,i)=>{
+      html+=`<label style="display:flex;align-items:center;gap:12px;margin:12px 0;cursor:pointer;font-size:17px;font-weight:500">
+        <input type="checkbox" id="dp_${i}" onchange="updateFee()" style="width:24px;height:24px;accent-color:var(--g);flex-shrink:0">
+        <span>${d.date||''} ${d.start||''}${d.end?'–'+d.end:''} <strong style="color:var(--g);font-size:16px">${d.fee?'NT$'+d.fee:''}</strong></span>
+      </label>`;
+    });
+    // 全報優惠提示（全選日期時顯示）
+    if(s.fee>0){
+      html+=`<div id="fullPkgHint" style="display:none;background:linear-gradient(135deg,#d4edda,#c3e6cb);border-radius:10px;padding:10px 14px;margin-top:8px;font-size:14px;font-weight:700;color:#155724">
+        🎉 全程參加優惠價 NT$${s.fee*1} / 攤（全報省 NT$${(s.dates||[]).reduce((acc,d)=>acc+(Number(d.fee)||0),0)-(s.fee||0)} 元）
+      </div>`;
+    }
+    html+=`</div></div>`;
+  }
+
+
   // ── 卡片B：攤位 + 加購 + 費用 ──
   {
     const sType=s.type||'市集場次';
@@ -1083,25 +1102,6 @@ function renderDynFormFull(s, isNew=false){
 
       html+=`</div></div>`;  // end fcard-body, fcard B
     }
-  }
-
-
-  // ── 日期選擇（如有多日，預設不勾選）──
-  if(s.dates && s.dates.length>1){
-    html+=`<div class="fcard"><div class="fcard-t">📅 選擇參加日期</div><div class="fcard-body">`;
-    s.dates.forEach((d,i)=>{
-      html+=`<label style="display:flex;align-items:center;gap:12px;margin:12px 0;cursor:pointer;font-size:17px;font-weight:500">
-        <input type="checkbox" id="dp_${i}" onchange="updateFee()" style="width:24px;height:24px;accent-color:var(--g);flex-shrink:0">
-        <span>${d.date||''} ${d.start||''}${d.end?'–'+d.end:''} <strong style="color:var(--g);font-size:16px">${d.fee?'NT$'+d.fee:''}</strong></span>
-      </label>`;
-    });
-    // 全報優惠提示（全選日期時顯示）
-    if(s.fee>0){
-      html+=`<div id="fullPkgHint" style="display:none;background:linear-gradient(135deg,#d4edda,#c3e6cb);border-radius:10px;padding:10px 14px;margin-top:8px;font-size:14px;font-weight:700;color:#155724">
-        🎉 全程參加優惠價 NT$${s.fee*1} / 攤（全報省 NT$${(s.dates||[]).reduce((acc,d)=>acc+(Number(d.fee)||0),0)-(s.fee||0)} 元）
-      </div>`;
-    }
-    html+=`</div></div>`;
   }
 
 
