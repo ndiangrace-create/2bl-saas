@@ -2153,6 +2153,203 @@ if(document.readyState==='loading'){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
 })();
 
+
+
+/* ===== AA6 HOTFIX: member records must not blank out ===== */
+(function(){
+  function $(id){return document.getElementById(id)}
+  function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+  function arr(v){return Array.isArray(v)?v:[]}
+
+  window.fillMemberCard = function(member){
+    member = member || {};
+    const email = member.email || window.ST?.memberEmail || '';
+    const name = member.name || member.displayName || member.display_name || email || '會員';
+    const brand = member.brand || member.brand_name || '';
+    const nameEl = $('memberName'); if(nameEl) nameEl.textContent = name;
+    const emailEl = $('memberEmail2'); if(emailEl) emailEl.textContent = email;
+    const card = $('memberCardBody');
+    if(card){
+      card.innerHTML = `
+        <div style="font-size:20px;font-weight:900;margin-bottom:6px">${esc(name)}</div>
+        ${email?`<div style="font-size:18px;color:rgba(255,255,255,.92);margin-bottom:6px">${esc(email)}</div>`:''}
+        ${brand?`<div style="font-size:19px;font-weight:800;margin-bottom:6px">${esc(brand)}</div>`:''}
+        <div style="font-size:17px;color:rgba(255,255,255,.75)">✏️ 資料可隨時更新，下次報名自動帶入</div>
+      `;
+    }
+  };
+
+  async function safeGetMyRegs(email){
+    const el=$('myRegsList');
+    if(el) el.innerHTML='<div style="color:#aaa;font-size:16px;text-align:center;padding:20px">報名紀錄載入中…</div>';
+    try{
+      const regs = await api({action:'getMyRegs', email, _t:Date.now()});
+      if(regs && regs.error){ throw new Error(regs.message || regs.error); }
+      renderMyRegs(arr(regs));
+    }catch(e){
+      console.error('[getMyRegs failed]', e);
+      if(el) el.innerHTML=`<div style="color:#c0392b;font-size:16px;text-align:center;padding:20px;line-height:1.7">報名紀錄載入失敗<br>${esc(e.message||e)}</div>`;
+    }
+  }
+
+  window.memberLogin = async function(){
+    const email = (($('loginEmail')&&$('loginEmail').value) || (typeof readEmail==='function'?readEmail():'') || window.ST?.memberEmail || '').trim();
+    if(!email || !/\S+@\S+\.\S+/.test(email)){ if(typeof toast==='function') toast('請輸入有效 Email'); return; }
+    const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';}
+    try{
+      window.ST = window.ST || {};
+      ST.memberEmail=email;
+      try{ localStorage.setItem('tb_member_email', email); }catch(e){}
+      let member=null;
+      try{
+        member = await api({action:'getMember', email, _t:Date.now()});
+        if(member && member.error) member=null;
+      }catch(e){ console.warn('[getMember failed]', e); }
+      ST.member = member || {email};
+      if($('memberLoginArea')) $('memberLoginArea').style.display='none';
+      if($('memberArea')) $('memberArea').style.display='block';
+      fillMemberCard(ST.member);
+      const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄';
+      await safeGetMyRegs(email);
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';}
+    }
+  };
+
+  window.goMemberPage = async function(){
+    if(typeof navTo==='function') navTo('member');
+    let email = window.ST?.memberEmail || '';
+    if(!email){ try{ email = localStorage.getItem('tb_member_email') || ''; }catch(e){} }
+    if(email && $('loginEmail')) $('loginEmail').value = email;
+    if(!email){
+      if($('memberLoginArea')) $('memberLoginArea').style.display='block';
+      if($('memberArea')) $('memberArea').style.display='none';
+      return;
+    }
+    await window.memberLogin();
+  };
+})();
+/* ===== /AA6 HOTFIX ===== */
+
+
+
+/* ===== AA7 FRONT STABILITY GUARD: member page + DB records must always render ===== */
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function esc(v){ return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function toArr(v){
+    if(Array.isArray(v)) return v;
+    if(v && Array.isArray(v.data)) return v.data;
+    if(v && Array.isArray(v.rows)) return v.rows;
+    return [];
+  }
+  function getSavedEmail(){
+    const fromST = (window.ST && ST.memberEmail) || '';
+    if(fromST) return String(fromST).trim();
+    const input = $('loginEmail') && $('loginEmail').value;
+    if(input) return String(input).trim();
+    try { return String(localStorage.getItem('tb_member_email') || '').trim(); } catch(e) { return ''; }
+  }
+  function showMemberShell(email){
+    if($('memberLoginArea')) $('memberLoginArea').style.display = email ? 'none' : 'block';
+    if($('memberArea')) $('memberArea').style.display = email ? 'block' : 'none';
+    if(email && $('loginEmail')) $('loginEmail').value = email;
+    if(email && window.ST){ ST.memberEmail = email; }
+    const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄';
+  }
+  window.fillMemberCard = function(member){
+    member = member || {};
+    const email = member.email || getSavedEmail();
+    const name = member.name || member.displayName || member.display_name || email || '會員';
+    const brand = member.brand || member.brand_name || member.brandName || '';
+    const nameEl = $('memberName'); if(nameEl) nameEl.textContent = name;
+    const emailEl = $('memberEmail2'); if(emailEl) emailEl.textContent = email;
+    const card = $('memberCardBody');
+    if(card){
+      card.innerHTML = `
+        <div style="font-size:20px;font-weight:900;margin-bottom:6px">${esc(name)}</div>
+        ${email ? `<div style="font-size:18px;color:rgba(255,255,255,.92);margin-bottom:6px">${esc(email)}</div>` : ''}
+        ${brand ? `<div style="font-size:19px;font-weight:800;margin-bottom:6px">${esc(brand)}</div>` : ''}
+        <div style="font-size:17px;color:rgba(255,255,255,.75)">✏️ 資料可隨時更新，下次報名自動帶入</div>
+      `;
+    }
+  };
+  window.__loadMyRegsStable = async function(email){
+    email = String(email || getSavedEmail() || '').trim();
+    const el = $('myRegsList');
+    if(!email){
+      showMemberShell('');
+      return;
+    }
+    showMemberShell(email);
+    fillMemberCard((window.ST && ST.member) || {email});
+    if(el && !String(el.innerHTML || '').trim()){
+      el.innerHTML = '<div style="color:#aaa;font-size:16px;text-align:center;padding:20px">報名紀錄載入中…</div>';
+    }
+    try{
+      const regs = await api({action:'getMyRegs', email, _t:Date.now()});
+      if(regs && regs.error) throw new Error(regs.message || regs.error);
+      const list = toArr(regs);
+      if(typeof renderMyRegs === 'function'){
+        renderMyRegs(list);
+      }else if(el){
+        el.innerHTML = '<div style="color:#c0392b;font-size:16px;text-align:center;padding:20px">前台缺少 renderMyRegs，請更新 register.html</div>';
+      }
+    }catch(e){
+      console.error('[AA7 getMyRegs failed]', e);
+      if(el){
+        el.innerHTML = `<div style="color:#c0392b;font-size:16px;text-align:center;padding:20px;line-height:1.7">報名紀錄載入失敗<br>${esc(e.message || e)}</div>`;
+      }
+    }
+  };
+  window.memberLogin = async function(){
+    const email = getSavedEmail();
+    if(!email || !/\S+@\S+\.\S+/.test(email)){
+      if(typeof toast === 'function') toast('請輸入有效 Email');
+      return;
+    }
+    try{ localStorage.setItem('tb_member_email', email); }catch(e){}
+    if(window.ST) ST.memberEmail = email;
+    const btn=$('loginBtn'); if(btn){ btn.disabled=true; btn.textContent='查詢中…'; }
+    try{
+      let member = null;
+      try{
+        member = await api({action:'getMember', email, _t:Date.now()});
+        if(member && member.error) member = null;
+      }catch(e){ member = null; }
+      if(window.ST) ST.member = member || {email};
+      await window.__loadMyRegsStable(email);
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='登入 / 查詢報名'; }
+    }
+  };
+  window.goMemberPage = async function(){
+    if(typeof navTo === 'function') navTo('member');
+    const email = getSavedEmail();
+    if(!email){
+      showMemberShell('');
+      return;
+    }
+    await window.memberLogin();
+  };
+  // 防止會員頁已顯示但紀錄區空白：自動補載一次。
+  let guardCount = 0;
+  const guardTimer = setInterval(function(){
+    guardCount++;
+    const page = $('pageMember');
+    const el = $('myRegsList');
+    const email = getSavedEmail();
+    const active = page && page.classList && page.classList.contains('active');
+    const blank = el && !String(el.innerHTML || '').trim();
+    if(active && email && blank && !window.__aa7LoadingRegs){
+      window.__aa7LoadingRegs = true;
+      window.__loadMyRegsStable(email).finally(()=>{ window.__aa7LoadingRegs = false; });
+    }
+    if(guardCount > 80) clearInterval(guardTimer);
+  }, 1000);
+})();
+/* ===== /AA7 FRONT STABILITY GUARD ===== */
+
 </script>
 </body>
 </html>
