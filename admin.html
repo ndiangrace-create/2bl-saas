@@ -1493,7 +1493,6 @@ function renderOverviewSessionsFn(){
         <div class="ov-metric"><div class="label">已收費用</div><div class="num" style="font-size:18px">NT$${(s.revenue||0).toLocaleString()}</div></div>
         <div class="ov-metric"><div class="label">押金</div><div class="num" style="font-size:18px;color:#854F0B">NT$${(s.depositTotal||0).toLocaleString()}</div></div>
         <div class="ov-metric"><div class="label">已報到</div><div class="num" style="color:#185FA5">${s.seated||0}</div></div>
-        ${(s.refundReq||0)>0?`<div class="ov-metric" style="border:1.5px solid #fca5a5;background:#fef2f2"><div class="label" style="color:#b91c1c">退款申請</div><div class="num" style="color:#b91c1c" onclick="goPage('payments');ST._payFilterSesId='${s.id}';$('paymentStatusFilter').value='申請退費';setTimeout(()=>renderPaymentManagement(),80)">${s.refundReq}</div></div>`:''}
       </div>
       <div class="ov-equips"><strong>設備：</strong>${equipText}</div>
       <div class="ov-actions">
@@ -2685,13 +2684,8 @@ function regDateLabel(r){
 }
 function regEquipText(r){
   if(r.equipmentText) return r.equipmentText;
-  let eq = {};
-  try{
-    const raw = r.equip;
-    if(raw && typeof raw==='object') eq = raw;
-    else if(raw && typeof raw==='string') eq = JSON.parse(raw);
-  }catch(e){ eq={}; }
-  return Object.entries(eq||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k} ×${v}`).join('、');
+  const eq=(r.actualEquip&&typeof r.actualEquip==='object')?r.actualEquip:(()=>{try{return JSON.parse(r.equip||'{}')}catch(e){return {}}})();
+  return Object.entries(eq||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k} ${v} 張`).join('、');
 }
 function renderPaymentManagement(targetId){
   const el=$(targetId||'paymentsBody');
@@ -2755,18 +2749,13 @@ function renderPaymentManagement(targetId){
           <div style="font-size:16px;color:var(--md)">${adminEsc(r.name||'')}　${adminEsc(r.phone||'')}</div>
           <div style="font-size:16px;color:var(--md)">攤位數：<strong>${Number(r.stallCount||1)} 攤</strong>　設備：<strong>${equip}</strong></div>
           <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
+          ${String(r.transferStatus||'')==='已退費'?`<div style="font-size:15px;color:#7f1d1d;background:#fff1f2;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5"><strong>已退費：</strong>退款 NT$${Number(r.refundAmount||0).toLocaleString()}　行政費 NT$${Number(r.refundAdminFee||0).toLocaleString()}　轉帳手續費 NT$${Number(r.refundTransferFee||0).toLocaleString()}</div>`:''}
           ${note?`<div style="font-size:14px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap;max-height:96px;overflow:auto">${note}</div>`:''}
-          <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
+          <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}${r.refundedAt?'　退費：'+String(r.refundedAt).slice(0,16):''}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-          ${isPending?(()=>{
-            const shotDone = r.paymentScreenshotStatus==='已收到匯款截圖';
-            return shotDone
-              ? `<div style="font-size:13px;color:#2e7d32;font-weight:900;text-align:center;padding:4px 8px;background:#e8f5e9;border-radius:8px">📷 已收到截圖</div>`
-              : `<button class="btn btn-sm" onclick="markScreenshotById('${r.id}')" style="background:#fff3cd;color:#856404;border:1.5px solid #ffc107;border-radius:8px;font-size:14px;font-weight:900;padding:6px 10px;cursor:pointer;white-space:nowrap">已收到匯款截圖</button>`;
-          })():''}
           ${isPending?`<button class="btn btn-g btn-sm" onclick="confirmPayById('${r.id}')">確認付款</button>`:''}
-          ${isRefund?`<button class="btn btn-r btn-sm" onclick="confirmRefundById('${r.id}')">確認退款</button>`:''}
+          ${isRefund?`<button class="btn btn-r btn-sm" onclick="confirmRefundById('${r.id}')">同意退費</button>`:''}
           <button class="btn btn-b btn-sm" onclick="openRegDetail('${r.id}')">看明細</button>
         </div>
       </div>
@@ -3388,12 +3377,20 @@ async function downloadSesData(sesId,sesName){
       return sum+(chargeQty*def.price);
     },0);
   }
+  const refundedRegs=paidRegs.filter(r=>clean(r.transferStatus)==='已退費');
+  const activePaidRegs=paidRegs.filter(r=>clean(r.transferStatus)!=='已退費');
   const totalReceived=paidRegs.reduce((sum,r)=>sum+payAmount(r),0);
-  const depositTotal=paidRegs.reduce((sum,r)=>sum+depAmount(r),0);
-  const refundedTotal=paidRegs.filter(r=>clean(r.depositRefunded).includes('已退')).reduce((sum,r)=>sum+depAmount(r),0);
-  const businessIncome=Math.max(0,totalReceived-depositTotal);
-  const equipmentIncome=paidRegs.reduce((sum,r)=>sum+equipChargeAmount(r),0);
-  const activityIncome=Math.max(0,businessIncome-equipmentIncome);
+  const refundAmountTotal=refundedRegs.reduce((sum,r)=>sum+n(r.refundAmount),0);
+  const refundAdminFeeTotal=refundedRegs.reduce((sum,r)=>sum+n(r.refundAdminFee),0);
+  const refundTransferFeeTotal=refundedRegs.reduce((sum,r)=>sum+n(r.refundTransferFee),0);
+  const refundRetainedIncome=refundAdminFeeTotal+refundTransferFeeTotal;
+  const netReceivedAfterRefund=Math.max(0,totalReceived-refundAmountTotal);
+  const depositTotal=activePaidRegs.reduce((sum,r)=>sum+depAmount(r),0);
+  const refundedTotal=activePaidRegs.filter(r=>clean(r.depositRefunded).includes('已退')).reduce((sum,r)=>sum+depAmount(r),0);
+  const activeBusinessIncome=activePaidRegs.reduce((sum,r)=>sum+Math.max(0,payAmount(r)-depAmount(r)),0);
+  const equipmentIncome=activePaidRegs.reduce((sum,r)=>sum+equipChargeAmount(r),0);
+  const activityIncome=Math.max(0,activeBusinessIncome-equipmentIncome);
+  const businessIncome=activeBusinessIncome+refundRetainedIncome;
   const manualIncome=finItems.filter(i=>clean(i['類型']||i.type)==='income' || clean(i['類型']||i.type)==='收入').reduce((sum,i)=>sum+n(i['金額']||i.amount),0);
   const manualExpense=finItems.filter(i=>clean(i['類型']||i.type)==='expense' || clean(i['類型']||i.type)==='支出').reduce((sum,i)=>sum+n(i['金額']||i.amount),0);
   const totalIncome=businessIncome+manualIncome;
@@ -3438,9 +3435,13 @@ async function downloadSesData(sesId,sesName){
     ['已繳費筆數',paidRegs.length,'列入已收費用'],
     ['待確認繳費',pendingPay.length,'付款狀態為待確認/待核款'],
     ['前台已收總額',totalReceived,'活動費／設備／加購與押金合計'],
-    ['活動／攤位收入',activityIncome,'已收總額扣除押金與設備後'],
-    ['設備租金收入',equipmentIncome,'依設備設定扣除每攤內含後計算'],
-    ['列入損益收入',businessIncome,'前台已收總額扣除押金'],
+    ['已退費金額',refundAmountTotal,'已完成退費的實際退款金額'],
+    ['退費後前台實收',netReceivedAfterRefund,'前台已收總額扣除已退費金額'],
+    ['行政費收入',refundAdminFeeTotal,'退款扣項，轉為該場次收入'],
+    ['轉帳手續費扣項',refundTransferFeeTotal,'退款扣項，若主辦吸收可為 0'],
+    ['活動／攤位收入',activityIncome,'未退費報名：已收總額扣除押金與設備後'],
+    ['設備租金收入',equipmentIncome,'未退費報名：依設備設定扣除每攤內含後計算'],
+    ['列入損益收入',businessIncome,'未退費營業收入＋退費保留收入'],
     ['手動收入',manualIncome,'財報明細收入項目'],
     ['手動支出',manualExpense,'財報明細支出項目'],
     ['收入合計',totalIncome,'列入損益收入＋手動收入'],
@@ -3451,11 +3452,11 @@ async function downloadSesData(sesId,sesName){
     ['押金未退',depositTotal-refundedTotal,'不列入損益']
   ];
   const regRows=regs.map(r=>[
-    finalSesName,r.id,r.name,r.brand,r.phone,r.email,stallCount(r),r.status,r.payStatus,payAmount(r),depAmount(r),r.payMethod||'',r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',r.invoiceEmail||'',r.invoiceStatus||'',equipSummaryText(r),created(r),r.adminNote||''
+    finalSesName,r.id,r.name,r.brand,r.phone,r.email,stallCount(r),r.status,r.payStatus,payAmount(r),depAmount(r),r.payMethod||'',r.transferStatus||'',r.refundAmount||0,r.refundAdminFee||0,r.refundTransferFee||0,r.refundRuleLabel||'',r.refundedAt||'',r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',r.invoiceEmail||'',r.invoiceStatus||'',equipSummaryText(r),created(r),r.adminNote||''
   ]);
   const equipAllRows=buildEquipRows(regs,'全部報名');
   const equipApprovedRows=buildEquipRows(approvedRegs,'已錄取/已繳費');
-  const equipPaidRows=buildEquipRows(paidRegs,'已繳費');
+  const equipPaidRows=buildEquipRows(activePaidRegs,'已繳費（未退費）');
   const finRows=finItems.map(i=>[
     finalSesName,
     clean(i['類型']||i.type)==='income'?'收入':(clean(i['類型']||i.type)==='expense'?'支出':clean(i['類型']||i.type)),
@@ -3469,7 +3470,7 @@ async function downloadSesData(sesId,sesName){
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const csv='場次資訊\n'+toCSV(['欄位','內容'],infoRows)
     +'\n\n財報摘要（該場次最新資料）\n'+toCSV(['項目','金額/數量','備註'],summaryRows)
-    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
+    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','退費狀態','退款金額','行政費','轉帳手續費','適用退費規則','退費完成時間','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
     +'\n\n設備明細（全部報名，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipAllRows)
     +'\n\n設備明細（已錄取/已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipApprovedRows)
     +'\n\n設備明細（已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipPaidRows)
@@ -3510,7 +3511,14 @@ async function loadFinanceData(){
   const regs=Array.isArray(_rr)?_rr:[];
   ST_finItems=Array.isArray(_fr)?_fr:[];
   const paidRegs=regs.filter(r=>isPaidText(r.payStatus));
+  const refundedRegs=paidRegs.filter(r=>String(r.transferStatus||'')==='已退費');
+  const activePaidRegs=paidRegs.filter(r=>String(r.transferStatus||'')!=='已退費');
   const totalReceived=paidRegs.reduce((sum,r)=>sum+safeN(r.amount||r.totalAmount||r.payAmount),0);
+  const refundAmountTotal=refundedRegs.reduce((sum,r)=>sum+safeN(r.refundAmount),0);
+  const refundAdminFeeTotal=refundedRegs.reduce((sum,r)=>sum+safeN(r.refundAdminFee),0);
+  const refundTransferFeeTotal=refundedRegs.reduce((sum,r)=>sum+safeN(r.refundTransferFee),0);
+  const refundRetainedIncome=refundAdminFeeTotal+refundTransferFeeTotal;
+  const netReceivedAfterRefund=Math.max(0,totalReceived-refundAmountTotal);
   function finStallCount(r){return safeN(r.stallCount)||1;}
   function finRegDeposit(r){
     const direct=safeN(r.deposit||r.depositAmount);
@@ -3537,14 +3545,15 @@ async function loadFinanceData(){
       return sum+(chargeQty*def.price);
     },0);
   }
-  const depositTotal=paidRegs.reduce((sum,r)=>sum+finRegDeposit(r),0);
-  const refundedTotal=paidRegs.filter(r=>String(r.depositRefunded||'').includes('已退')).reduce((sum,r)=>sum+finRegDeposit(r),0);
+  const depositTotal=activePaidRegs.reduce((sum,r)=>sum+finRegDeposit(r),0);
+  const refundedTotal=activePaidRegs.filter(r=>String(r.depositRefunded||'').includes('已退')).reduce((sum,r)=>sum+finRegDeposit(r),0);
   const depositLeft=depositTotal-refundedTotal;
-  const businessIncome=Math.max(0,totalReceived-depositTotal);
-  const equipmentIncome=paidRegs.reduce((sum,r)=>sum+finEquipCharge(r),0);
-  const activityIncome=Math.max(0,businessIncome-equipmentIncome);
+  const activeBusinessIncome=activePaidRegs.reduce((sum,r)=>sum+Math.max(0,safeN(r.amount||r.totalAmount||r.payAmount)-finRegDeposit(r)),0);
+  const equipmentIncome=activePaidRegs.reduce((sum,r)=>sum+finEquipCharge(r),0);
+  const activityIncome=Math.max(0,activeBusinessIncome-equipmentIncome);
+  const businessIncome=activeBusinessIncome+refundRetainedIncome;
   const equipSummary={};
-  paidRegs.forEach(r=>{finEquipEntries(r).forEach(([name,qty])=>{if(qty>0)equipSummary[name]=(equipSummary[name]||0)+qty;});});
+  activePaidRegs.forEach(r=>{finEquipEntries(r).forEach(([name,qty])=>{if(qty>0)equipSummary[name]=(equipSummary[name]||0)+qty;});});
   const manualIncome=ST_finItems.filter(i=>(i['類型']||i.type)==='income');
   const manualExpense=ST_finItems.filter(i=>(i['類型']||i.type)==='expense');
   const manualIncomeTotal=manualIncome.reduce((s,i)=>s+safeN(i['金額']||i.amount),0);
@@ -3556,7 +3565,7 @@ async function loadFinanceData(){
   const taxCfg={enabled:tax.enabled!==false,rate:Number(tax.rate)||5,stall:tax.stall!==false,equip:tax.equip!==false,addon:tax.addon!==false,extra:!!tax.extra};
   const taxableTotal=taxCfg.enabled ? businessIncome + (taxCfg.extra?manualIncomeTotal:0) : 0;
   const taxSplit=splitTaxIncluded(taxableTotal,taxCfg.rate);
-  ST_invoiceData=paidRegs.map(r=>{
+  ST_invoiceData=activePaidRegs.map(r=>{
     const dep=finRegDeposit(r);
     const amt=Math.max(0,safeN(r.amount||r.totalAmount||r.payAmount)-dep);
     const sp=splitTaxIncluded(amt,taxCfg.rate);
@@ -3565,10 +3574,14 @@ async function loadFinanceData(){
   if($('f-income-section')) $('f-income-section').innerHTML=`
     <div style="border-radius:12px;padding:12px 14px;background:#F7FBF8;border:1px solid #D7EBDD;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span>前台已收總額</span><b>NT$${totalReceived.toLocaleString()}</b></div>
-      <div style="font-size:11px;color:#777;margin-top:3px">${paidRegs.length}筆已繳費，包含活動費／設備／加購與押金；押金不列入損益。</div>
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-top:4px;color:#b91c1c"><span>已退費金額</span><b>－NT$${refundAmountTotal.toLocaleString()}</b></div>
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-top:4px"><span>退費後前台實收</span><b>NT$${netReceivedAfterRefund.toLocaleString()}</b></div>
+      <div style="font-size:11px;color:#777;margin-top:3px">${paidRegs.length}筆已繳費，${refundedRegs.length}筆已退費；退款扣除之行政費／轉帳手續費列入該場收入。</div>
     </div>`+renderFinSection('收入',[
-    {name:'活動／攤位收入',note:'已收總額扣除押金與設備後',amt:activityIncome,auto:true},
+    {name:'活動／攤位收入',note:'未退費報名：已收總額扣除押金與設備後',amt:activityIncome,auto:true},
     equipmentIncome>0?{name:'設備租金收入',note:Object.entries(equipSummary).map(([k,v])=>k+' x '+v).join('、')||'設備加租',amt:equipmentIncome,auto:true}:null,
+    refundAdminFeeTotal>0?{name:'行政費收入',note:'已退費報名扣除之行政費',amt:refundAdminFeeTotal,auto:true}:null,
+    refundTransferFeeTotal>0?{name:'轉帳手續費扣項',note:'已退費報名扣除之轉帳手續費；主辦吸收時為 0',amt:refundTransferFeeTotal,auto:true}:null,
     Object.keys(equipSummary).length?{name:'設備數量統計',note:Object.entries(equipSummary).map(([k,v])=>k+' x '+v).join('、'),amt:0,auto:true}:null,
     ...manualIncome.map(i=>({name:i['品項']||i.name,amt:safeN(i['金額']||i.amount),auto:false,id:i['ID']||i.id}))
   ].filter(Boolean),totalIncome,'income');
@@ -3856,9 +3869,9 @@ function compactPaymentConfirmHtml(r){
     <div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}　<strong>電話：</strong>${adminEsc(r.phone||'-')}</div>
     <div><strong>攤位數：</strong>${Number(r.stallCount||1)} 攤　<strong>設備：</strong>${equip}</div>
     <div><strong>繳費方式：</strong>${adminEsc(r.payMethod||'未填')}　<strong>回報金額：</strong>NT$${Number(r.amount||0).toLocaleString()}</div>
-    <div><strong>末五碼／交易末五碼：</strong>${adminEsc(last5||'未填')}</div>
+    <div><strong>末五碼：</strong>${adminEsc(last5||'未填')}</div>
     ${note?`<div style="background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;font-size:14px;max-height:92px;overflow:auto;white-space:pre-wrap"><strong>備註：</strong>${note}</div>`:''}
-    <div style="margin-top:10px;color:#2d6a4f;font-weight:900">確認後將改為：已繳費（手動確認）<br>並寄出：繳費確認信</div>
+    <div style="margin-top:10px;color:#2d6a4f;font-weight:900">確認後將改為：已繳費<br>並寄出：繳費確認信</div>
   </div>`;
 }
 function showConfirmDialog(html, onOk){
@@ -3869,14 +3882,6 @@ function showConfirmDialog(html, onOk){
   modal.querySelector('#cfCancel').onclick=()=>modal.remove();
   modal.querySelector('#cfOk').onclick=async()=>{ const btn=modal.querySelector('#cfOk'); btn.disabled=true; btn.textContent='確認中…'; await onOk(); modal.remove(); };
 }
-async function markScreenshotById(regId){
-  const res = await apiPost({action:'markScreenshot', regId});
-  if(res.error){ toast('❌ '+res.error); return; }
-  toast('✅ 已標記收到匯款截圖');
-  await loadAllRegs();
-  renderPaymentManagement();
-}
-
 async function confirmPayById(payId){
   const r=(ST.allRegs||[]).find(x=>String(x.id)===String(payId));
   if(!r){toast('找不到付款資料');return;}
@@ -3894,15 +3899,73 @@ async function confirmPayById(payId){
 async function confirmRefundById(regId){
   const r=(ST.allRegs||[]).find(x=>String(x.id)===String(regId));
   if(!r){toast('找不到退款資料');return;}
-  const html=`<div style="font-size:18px;line-height:1.55;color:var(--dk)"><div style="font-size:20px;font-weight:900;margin-bottom:8px;color:var(--rd)">確認退款申請</div><div><strong>場次：</strong>${adminEsc(regSessionLabel(r))}　${adminEsc(regDateLabel(r))}</div><div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}</div><div><strong>已繳金額：</strong>NT$${Number(r.amount||0).toLocaleString()}　<strong>攤位：</strong>${Number(r.stallCount||1)} 攤</div><div style="margin-top:8px;color:var(--rd);font-weight:900">確認後將標記為：已退費，並寄出退費完成信。</div></div>`;
+  let sug=null;
+  try{
+    sug=await apiPost({action:'getRefundSuggestion',regId,email:ST.email,token:ST.token});
+  }catch(e){ console.warn('getRefundSuggestion failed',e); }
+  if(!sug || sug.error){
+    const paid=Number(r.amount||0)||0;
+    sug={paidAmount:paid,refundAdminFee:500,refundTransferFee:0,refundAmount:Math.max(0,paid-500),refundRuleLabel:'建議值載入失敗，請主辦手動確認',daysBefore:null,eventDate:'',requestDate:''};
+    if(sug.error) toast('退費規則載入失敗，已先帶入可手動調整的預設值');
+  }
+  const paidAmount=Number(sug.paidAmount||r.amount||0)||0;
+  const modalId='refundModal_'+String(regId).replace(/[^a-zA-Z0-9_-]/g,'');
+  const html=`<div id="${modalId}" style="font-size:18px;line-height:1.55;color:var(--dk)">
+    <div style="font-size:22px;font-weight:900;margin-bottom:8px;color:var(--rd)">同意退費</div>
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px;margin-bottom:10px;color:#7c2d12">
+      <div><strong>系統判斷：</strong>${sug.daysBefore===null||sug.daysBefore===undefined?'無法判斷活動倒數天數':'距離活動 '+sug.daysBefore+' 天'}</div>
+      <div><strong>適用規則：</strong>${adminEsc(sug.refundRuleLabel||'主辦手動確認')}</div>
+      ${sug.eventDate?`<div><strong>活動日期：</strong>${adminEsc(String(sug.eventDate).slice(0,10))}</div>`:''}
+    </div>
+    <div><strong>場次：</strong>${adminEsc(regSessionLabel(r))}　${adminEsc(regDateLabel(r))}</div>
+    <div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}</div>
+    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px">
+      <label style="display:block;font-weight:900">原已繳金額<br><div style="font-size:24px;color:var(--g);font-weight:900">NT$${paidAmount.toLocaleString()}</div></label>
+      <label style="display:block;font-weight:900">行政費<br><input id="refundAdminFeeInput" type="number" min="0" step="1" value="${Number(sug.refundAdminFee||0)}" style="width:100%;box-sizing:border-box;font-size:20px;padding:11px;border:1.5px solid #ddd;border-radius:10px;margin-top:5px"></label>
+      <label style="display:block;font-weight:900">轉帳手續費<br><input id="refundTransferFeeInput" type="number" min="0" step="1" value="${Number(sug.refundTransferFee||0)}" style="width:100%;box-sizing:border-box;font-size:20px;padding:11px;border:1.5px solid #ddd;border-radius:10px;margin-top:5px"></label>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px">
+        <div style="font-size:14px;font-weight:900;color:#166534">退款金額（自動計算）</div>
+        <div id="refundAmountPreview" style="font-size:28px;font-weight:900;color:#166534">NT$0</div>
+        <div id="refundWarn" style="font-size:13px;color:#b91c1c;font-weight:800;margin-top:4px;display:none">扣項不可大於原已繳金額</div>
+      </div>
+      <label style="display:block;font-weight:900">退費備註<br><textarea id="refundNoteInput" placeholder="例如：7日前取消，扣行政費500，轉帳手續費由主辦吸收。" style="width:100%;box-sizing:border-box;min-height:86px;font-size:17px;padding:10px;border:1.5px solid #ddd;border-radius:10px;margin-top:5px"></textarea></label>
+    </div>
+    <div style="margin-top:8px;color:var(--rd);font-weight:900">確認後將標記為：已退費，並寄出退費完成信。</div>
+  </div>`;
   showConfirmDialog(html, async()=>{
-    const res=await apiPost({action:'confirmRefund',regId});
+    const adminFee=Number(document.getElementById('refundAdminFeeInput')?.value||0)||0;
+    const transferFee=Number(document.getElementById('refundTransferFeeInput')?.value||0)||0;
+    const note=document.getElementById('refundNoteInput')?.value||'';
+    if(adminFee<0 || transferFee<0){toast('❌ 金額不可小於 0');return;}
+    if(adminFee+transferFee>paidAmount){toast('❌ 行政費與轉帳手續費不可大於原已繳金額');return;}
+    const res=await apiPost({action:'confirmRefund',regId,email:ST.email,token:ST.token,refundAdminFee:adminFee,refundTransferFee:transferFee,refundRuleLabel:sug.refundRuleLabel||'',refundNote:note});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已標記退款完成');
+    toast('✅ 已完成退費，退款金額 NT$'+Number(res.refundAmount||0).toLocaleString());
     await loadAllRegs();
     renderPaymentManagement();
+    if(typeof renderRegs==='function') renderRegs();
+    try{ const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token,_t:Date.now()}); ST.sdData=sd||[];renderOverview(); }catch(e){}
   });
+  const adminInput=document.getElementById('refundAdminFeeInput');
+  const transInput=document.getElementById('refundTransferFeeInput');
+  const preview=document.getElementById('refundAmountPreview');
+  const warn=document.getElementById('refundWarn');
+  const okBtn=document.getElementById('cfOk');
+  if(okBtn) okBtn.textContent='確認退費';
+  function updateRefundPreview(){
+    const a=Number(adminInput?.value||0)||0;
+    const t=Number(transInput?.value||0)||0;
+    const refund=Math.max(0,paidAmount-a-t);
+    if(preview) preview.textContent='NT$'+refund.toLocaleString();
+    const bad=a<0||t<0||(a+t>paidAmount);
+    if(warn) warn.style.display=bad?'block':'none';
+    if(okBtn) okBtn.disabled=bad;
+  }
+  adminInput?.addEventListener('input',updateRefundPreview);
+  transInput?.addEventListener('input',updateRefundPreview);
+  updateRefundPreview();
 }
+
 
 
 
