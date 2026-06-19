@@ -1771,15 +1771,15 @@ function buildEquipDefs(equipObj){
       </label>
       <div style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--lt)">每攤內含</span>
-        <input type="number" id="eq_incl_${eq.k}" value="${equipObj[eq.k]?.incl||0}" inputmode="numeric" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
+        <input type="number" id="eq_incl_${eq.k}" value="${equipObj[eq.k]?.incl||0}" inputmode="numeric" min="0" step="1" placeholder="0" style="width:50px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--lt)">超過單價</span>
-        <input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" inputmode="numeric" placeholder="單價" style="width:60px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
+        <input type="number" id="eq_price_${eq.k}" value="${equipObj[eq.k]?.price||eq.price}" inputmode="numeric" min="0" step="1" placeholder="單價" style="width:60px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--lt)">每攤上限</span>
-        <input type="number" id="eq_maxPerStall_${eq.k}" value="${equipObj[eq.k]?.maxPerStall||0}" inputmode="numeric" placeholder="0=不限" style="width:55px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
+        <input type="number" id="eq_maxPerStall_${eq.k}" value="${equipObj[eq.k]?.maxPerStall||0}" inputmode="numeric" min="0" step="1" placeholder="0=不限" style="width:55px;padding:5px;border:1px solid #d0e8d8;border-radius:6px;font-size:13px;text-align:center">
         <span style="font-size:10px;color:var(--lt)">0=不限</span>
       </div>
     </div>`).join('');

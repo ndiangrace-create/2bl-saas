@@ -689,10 +689,10 @@ function goMemberPage(){
   const memberArea=$('memberArea');
   if(!loginArea||!memberArea) return;
   if(!ST.memberEmail){
-    // 再嘗試從 localStorage 讀一次
+    // 從 localStorage 讀上次的 email
     try{
-      const saved=null; // V5: 只從 DB 回抓，不從 localStorage 讀取 member 資料
-      if(saved){const d=JSON.parse(saved);if(d&&d.email){ST.memberEmail=d.email;ST.member=null;}}
+      const saved=localStorage.getItem('tb_member_email');
+      if(saved){ ST.memberEmail=saved; ST.member=null; }
     }catch(e){}
   }
   if(!ST.memberEmail){
@@ -1041,6 +1041,7 @@ function renderDynFormFull(s, isNew=false){
     const isCollab=sType==='合作申請';
     const stallUnit=isMkt?'攤':sType==='活動報名'?'份':'份';
     const equipDefs=Object.entries(s.equip||{}).filter(([k,v])=>v&&(v.open===true||v.open==='true'));
+    const equipAll=Object.entries(s.equip||{}).filter(([k,v])=>!!v); // 所有設備（含未開放）
     const addons=(s.addons||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.open===true||a.open==='true');
 
     if(!isCollab){
@@ -1056,15 +1057,33 @@ function renderDynFormFull(s, isNew=false){
         </div>
       </div>`;
 
-      // 設備加購
+      // 所有設備說明（不管有沒有開放加購都顯示）
+      if(equipAll.length>0){
+        html+=`<div style="margin-bottom:12px;padding:10px 12px;background:#f0f7f4;border-radius:10px;font-size:14px;color:var(--dk)">`;
+        html+=`<div style="font-weight:700;margin-bottom:6px;color:var(--g)">📦 本場次設備說明</div>`;
+        equipAll.forEach(([k,v])=>{
+          const incl=frontEffectiveEquipIncl(k,v,s.basicEquip||s.basic_equip||'');
+          const isOpen=v.open===true||v.open==='true';
+          const price=Number(v.price)||0;
+          let note='';
+          if(incl>0 && isOpen) note=`每攤內含 ${incl} 件，可加租（NT$${price}/件）`;
+          else if(incl>0)       note=`每攤內含 ${incl} 件`;
+          else if(isOpen)       note=`未提供，可加租（NT$${price}/件）`;
+          else                  note=`未提供，需自備或租借`;
+          html+=`<div style="margin:4px 0">・${esc(k)}：${note}</div>`;
+        });
+        html+=`</div>`;
+      }
+
+      // 設備加購控制（只顯示開放的）
       if(equipDefs.length>0){
-        html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）請填寫總數量</div>`;
+        html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）</div>`;
         equipDefs.forEach(([k,v])=>{
           const incl=frontEffectiveEquipIncl(k,v,s.basicEquip||s.basic_equip||'');
           const price=Number(v.price)||0;
           html+=`<div class="equip-row">
             <div class="equip-info"><div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
-            <div class="equip-price">NT$ ${price}/件${incl>0?' ・含 '+incl+' 件/攤 超過加租':''}</div></div>
+            <div class="equip-price">NT$ ${price}/件${incl>0?' ・含 '+incl+' 件/攤，超過加租':''}</div></div>
             <div class="equip-ctrl">
               <button class="eq-btn" type="button" onclick="adjEquip('${k}',-1)">−</button>
               <div class="eq-num" id="eq_num_${k}">0</div>
@@ -1272,6 +1291,42 @@ function openRegFormModal(){
   const inner=modal.querySelector('[style*="overflow-y:auto"]');
   if(inner) inner.scrollTop=0;
   window.scrollTo(0,0);
+}
+
+function saveMemberEdit(){
+  const btn=$('saveMemberBtn');
+  if(btn){ btn.disabled=true; btn.textContent='儲存中…'; }
+  const restore=()=>{ if(btn){ btn.disabled=false; btn.textContent='儲存資料'; } };
+  const email = ST.memberEmail||'';
+  if(!email){ toast('請先登入'); restore(); return; }
+  const body = {
+    action:'saveMember', email,
+    name:        ($('editName')?.value||'').trim(),
+    phone:       ($('editPhone')?.value||'').trim(),
+    brand:       ($('editBrand')?.value||'').trim(),
+    brandIntro:  ($('editBrandIntro')?.value||'').trim(),
+    fb:          ($('editFb')?.value||'').trim(),
+    ig:          ($('editIg')?.value||'').trim(),
+    collabUrl:   ($('editCollabUrl')?.value||'').trim(),
+    photo:       ($('editPhoto')?.value||'').trim(),
+    lineId:      ($('editLineId')?.value||'').trim(),
+    invoiceCarrier:($('editInvoiceCarrier')?.value||'').trim(),
+    taxId:       ($('editTaxId')?.value||'').trim(),
+    company:     ($('editCompany')?.value||'').trim(),
+    invoiceEmail:($('editInvoiceEmail')?.value||'').trim(),
+  };
+  apiPost(body).then(res=>{
+    if(res&&!res.error){
+      ST.member={...(ST.member||{}),...body};
+      if(typeof fillMemberCard==='function') fillMemberCard(ST.member);
+      const msg=$('saveSuccessMsg');
+      if(msg){ msg.style.display='block'; setTimeout(()=>msg.style.display='none',2000); }
+      toast('✅ 資料已更新');
+    } else {
+      toast('❌ 儲存失敗：'+(res?.error||'請稍後再試'));
+    }
+    restore();
+  }).catch(()=>{ toast('❌ 網路錯誤'); restore(); });
 }
 
 function closeRegFormModal(){
