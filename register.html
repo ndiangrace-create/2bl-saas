@@ -1820,9 +1820,14 @@ function payBadge(reg){
 function escHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function renderMyRegs(regs){
-  ST.regs = Array.isArray(regs) ? regs : [];
   const el=$('myRegsList');
   if(!el) return;
+  if(regs && regs.error){
+    ST.regs = [];
+    el.innerHTML='<div style="background:#fff7ed;color:#9a3412;border-radius:12px;padding:14px 16px;font-size:16px;line-height:1.6;text-align:left">目前無法讀取我的紀錄。<br><span style="font-size:14px;color:#b45309">'+escHtml(regs.error)+'</span><br><button onclick="memberLogin()" style="margin-top:10px;background:var(--g);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:15px;font-weight:800">重新查詢</button></div>';
+    return;
+  }
+  ST.regs = Array.isArray(regs) ? regs : [];
   if(!ST.regs.length){
     el.innerHTML='<div style="color:#aaa;font-size:16px;text-align:center;padding:20px">目前無報名紀錄</div>';
     handlePendingPayLink(ST.regs);
@@ -2028,14 +2033,25 @@ async function copyPaymentCard(){
   if(_p.get('member')==='1'){
     const _payRegId = _p.get('pay');
     if(_payRegId) window._pendingPayRegId = _payRegId;
-    // 信件按鈕進來時，直接切到會員中心；若本機已登入，會自動載入紀錄並開啟付款。
-    setTimeout(()=>{
+    // 信件按鈕進來時，直接切到會員中心；若本機沒有 Email，先用報名編號回查 Email。
+    setTimeout(async()=>{
+      try{
+        if(_payRegId && !(ST.memberEmail||readStoredEmailSafe())){
+          const info = await api({action:'getRegById',regId:_payRegId,_t:Date.now()});
+          if(info && info.email){
+            ST.memberEmail = info.email;
+            try{ localStorage.setItem('tb_member_email', info.email); localStorage.removeItem('tb_member'); }catch(e){}
+            if($('loginEmail')) $('loginEmail').value = info.email;
+          }
+        }
+      }catch(e){}
       goMemberPage();
       const ml=$('memberLoginArea');
       if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
     }, 800);
   }
 })();
+function readStoredEmailSafe(){ try{return localStorage.getItem('tb_member_email')||'';}catch(e){return '';} }
 
 
 
@@ -2146,7 +2162,7 @@ if(document.readyState==='loading'){
   window.openEvent=async function(eventId){ const evt=asArr(ST.events).find(e=>String(e.id)===String(eventId)); const list=$('portalSessionList'); const title=$('portalTitle'); if(title) title.textContent=evt?evt.title:'場次列表'; navTo('portal'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; let data=uniqueSessions(ST.allSessionsData).filter(s=>String(s.eventId||s.event_id||'')===String(eventId)&&openSess(s)); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',eventId,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
   window.filterCat=async function(type,el){ ST.currentCatFilter=type; document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); if(el) el.classList.add('active'); const title=$('portalTitle'); if(title) title.textContent=type; const list=$('portalSessionList'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; navTo('portal'); const allow=portalTypeMap[type]||[]; let data=uniqueSessions(ST.allSessionsData).filter(s=>openSess(s)&&((asArr(s.portals).includes(type))||allow.includes(s.type))); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',portal:type,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
   const _oldCheckMemberStep=window.checkMemberStep; window.checkMemberStep=async function(){ const email=(($('step1Email')&&$('step1Email').value)||'').trim(); if(email) saveEmail(email); return _oldCheckMemberStep?_oldCheckMemberStep():undefined; };
-  window.memberLogin=async function(){ const email=($('loginEmail')?.value||readEmail()||'').trim(); if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;} const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';} ST.memberEmail=email; saveEmail(email); try{ const [member,regs]=await Promise.all([api({action:'getMember',email,_t:Date.now()}),api({action:'getMyRegs',email,_t:Date.now()})]); ST.member=member&&!member.error?member:null; if($('memberLoginArea')) $('memberLoginArea').style.display='none'; if($('memberArea')) $('memberArea').style.display='block'; fillMemberCard(ST.member||{email}); if($('memberName')) $('memberName').textContent=ST.member?.name||email; if($('memberEmail2')) $('memberEmail2').textContent=email; const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄'; renderMyRegs(asArr(regs)); } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} } };
+  window.memberLogin=async function(){ const email=($('loginEmail')?.value||readEmail()||'').trim(); if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;} const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';} ST.memberEmail=email; saveEmail(email); try{ const [member,regs]=await Promise.all([api({action:'getMember',email,_t:Date.now()}),api({action:'getMyRegs',email,_t:Date.now()})]); ST.member=member&&!member.error?member:null; if($('memberLoginArea')) $('memberLoginArea').style.display='none'; if($('memberArea')) $('memberArea').style.display='block'; fillMemberCard(ST.member||{email}); if($('memberName')) $('memberName').textContent=ST.member?.name||email; if($('memberEmail2')) $('memberEmail2').textContent=email; const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄'; renderMyRegs(regs); } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} } };
   window.goMemberPage=async function(){ navTo('member'); const email=ST.memberEmail||readEmail(); if(!email){ if($('memberLoginArea')) $('memberLoginArea').style.display='block'; if($('memberArea')) $('memberArea').style.display='none'; return; } if($('loginEmail')) $('loginEmail').value=email; await memberLogin(); };
   function bootDbFront(){ const email=readEmail(); if(email){ST.memberEmail=email; if($('loginEmail')) $('loginEmail').value=email;} loadHome(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
