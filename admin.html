@@ -2684,8 +2684,13 @@ function regDateLabel(r){
 }
 function regEquipText(r){
   if(r.equipmentText) return r.equipmentText;
-  const eq=(r.actualEquip&&typeof r.actualEquip==='object')?r.actualEquip:(()=>{try{return JSON.parse(r.equip||'{}')}catch(e){return {}}})();
-  return Object.entries(eq||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k} ${v} 張`).join('、');
+  let eq = {};
+  try{
+    const raw = r.equip;
+    if(raw && typeof raw==='object') eq = raw;
+    else if(raw && typeof raw==='string') eq = JSON.parse(raw);
+  }catch(e){ eq={}; }
+  return Object.entries(eq||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k} ×${v}`).join('、');
 }
 function renderPaymentManagement(targetId){
   const el=$(targetId||'paymentsBody');
