@@ -501,6 +501,7 @@ button,a,[onclick]{touch-action:manipulation}
     <div class="modal-title" id="payModalTitle">前往繳費</div>
     <div id="payModalInfo" style="background:var(--gp);border-radius:10px;padding:12px;margin-bottom:12px;font-size:18px;line-height:1.6"></div>
 
+    <!-- 層一：選付款方式 + 立即付款 -->
     <div id="payFormArea">
       <label style="font-size:17px;color:var(--md);font-weight:800">付款方式</label>
       <select id="payMethod" onchange="onPayMethodChange()" style="width:100%;padding:12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:18px;margin:4px 0 10px;background:#fff">
@@ -513,17 +514,26 @@ button,a,[onclick]{touch-action:manipulation}
         <div style="font-weight:900;font-size:18px;margin-bottom:4px">ATM 轉帳</div>
         <div id="bankInfoDisplay" style="color:#aaa;font-size:15px">付款資訊載入中…</div>
       </div>
-      <div id="payLastFiveWrap">
-        <label style="font-size:17px;color:var(--md);font-weight:800">帳號末五碼 *</label>
-        <input type="text" id="payLastFive" placeholder="例如 12345" inputmode="numeric" maxlength="5" style="margin:4px 0 10px;font-size:18px;padding:12px">
-      </div>
       <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px">
         <button type="button" id="immediatePayBtn" onclick="openExternalPay()" class="btn-p" style="width:100%;font-size:18px;padding:13px">立即付款</button>
-        <button type="button" id="reportPaymentBtn" onclick="submitPaymentForm()" style="width:100%;background:#40916c;color:#fff;border:none;border-radius:10px;padding:13px;font-size:18px;font-weight:900;cursor:pointer">我已完成付款，回報付款</button>
+        <button type="button" onclick="showPayReportArea()" style="width:100%;background:#40916c;color:#fff;border:none;border-radius:10px;padding:13px;font-size:18px;font-weight:900;cursor:pointer">我已完成付款，回報付款</button>
       </div>
       <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;font-size:17px;padding:12px;margin-top:8px">取消</button>
     </div>
 
+    <!-- 層二：回報登記（ATM 才顯示末五碼）-->
+    <div id="payReportArea" style="display:none">
+      <div style="font-size:19px;font-weight:900;color:var(--dk);margin-bottom:12px">📋 回報付款資訊</div>
+      <div id="payReportMethodLabel" style="font-size:17px;color:var(--md);margin-bottom:12px"></div>
+      <div id="payLastFiveWrap">
+        <label style="font-size:17px;color:var(--md);font-weight:800">帳號末五碼 *</label>
+        <input type="text" id="payLastFive" placeholder="例如 12345" inputmode="numeric" maxlength="5" style="margin:4px 0 14px;font-size:18px;padding:12px;width:100%;box-sizing:border-box;border:1.5px solid #d0e8d8;border-radius:10px">
+      </div>
+      <button type="button" id="reportPaymentBtn" onclick="submitPaymentForm()" style="width:100%;background:#40916c;color:#fff;border:none;border-radius:10px;padding:13px;font-size:18px;font-weight:900;cursor:pointer;margin-bottom:8px">確認送出回報</button>
+      <button class="btn-s2" onclick="showPayFormArea()" style="width:100%;font-size:17px;padding:12px">← 返回</button>
+    </div>
+
+    <!-- 層三：回報成功 + 付款卡片 -->
     <div id="paySuccessArea" style="display:none">
       <div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:4px">✅ 已收到您的付款回報</div>
       <div style="font-size:17px;color:var(--dk);font-weight:800;margin-bottom:12px">接下來只需要最後一步即可完成付款確認。</div>
@@ -1885,6 +1895,7 @@ function showPayPage(regId, sesName, amount){
   if(payLastEl) payLastEl.value = '';
   if(methodEl) methodEl.value = 'ATM 轉帳';
   $('payFormArea').style.display='block';
+  $('payReportArea').style.display='none';
   $('paySuccessArea').style.display='none';
   onPayMethodChange();
   $('payModal').classList.add('show');
@@ -1901,7 +1912,7 @@ function onPayMethodChange(){
   const bankBox=$('bankPayBox'); if(bankBox) bankBox.style.display=isBank?'block':'none';
   const lastWrap=$('payLastFiveWrap'); if(lastWrap) lastWrap.style.display=isBank?'block':'none';
   const btn=$('immediatePayBtn');
-  if(btn) btn.textContent = isBank ? '查看轉帳資訊' : '立即付款';
+  if(btn){ btn.style.display = isBank ? 'none' : 'block'; btn.textContent = '立即付款'; }
 }
 function openExternalPay(){
   const method = $('payMethod')?.value || 'ATM 轉帳';
@@ -1939,12 +1950,32 @@ async function submitPaymentForm(){
     if(btn){ btn.disabled=false; btn.textContent='我已完成付款，回報付款'; }
   }
 }
+function showPayFormArea(){
+  $('payFormArea').style.display   = 'block';
+  $('payReportArea').style.display = 'none';
+  $('paySuccessArea').style.display= 'none';
+  $('payModalTitle').textContent   = '前往繳費';
+}
+function showPayReportArea(){
+  const method = $('payMethod')?.value || 'ATM 轉帳';
+  const isBank = method.includes('ATM') || method.includes('銀行') || method.includes('轉帳') || method.includes('匯款');
+  const lastFiveWrap = $('payLastFiveWrap');
+  if(lastFiveWrap) lastFiveWrap.style.display = isBank ? 'block' : 'none';
+  if($('payLastFive')) $('payLastFive').value = '';
+  const lbl = $('payReportMethodLabel');
+  if(lbl) lbl.innerHTML = `付款方式：<strong>${method}</strong>`;
+  $('payFormArea').style.display   = 'none';
+  $('payReportArea').style.display = 'block';
+  $('paySuccessArea').style.display= 'none';
+  $('payModalTitle').textContent   = '回報付款';
+}
 function showPaymentSuccess(cardText){
-  $('payModalTitle').textContent='付款回報';
-  $('payFormArea').style.display='none';
-  $('paySuccessArea').style.display='block';
-  const card=$('paymentCopyCard');
-  if(card) card.textContent=cardText||'';
+  $('payModalTitle').textContent   = '付款回報完成';
+  $('payFormArea').style.display   = 'none';
+  $('payReportArea').style.display = 'none';
+  $('paySuccessArea').style.display= 'block';
+  const card = $('paymentCopyCard');
+  if(card) card.textContent = cardText || '';
 }
 async function copyPaymentCard(){
   const text = $('paymentCopyCard')?.textContent || ST_currentPaymentCard || '';
