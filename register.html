@@ -523,12 +523,12 @@ button,a,[onclick]{touch-action:manipulation}
       <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;font-size:17px;padding:12px;margin-top:8px">取消</button>
     </div>
     <div id="paySuccessArea" style="display:none">
-      <div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:4px">✅ 已收到您的付款回報</div>
-      <div style="font-size:17px;color:var(--dk);font-weight:800;margin-bottom:12px">接下來只需要最後一步即可完成付款確認。</div>
+      <div style="font-size:22px;font-weight:900;color:#b45309;margin-bottom:4px">⚠️ 付款回報已送出，尚未完成付款確認</div>
+      <div style="font-size:17px;color:var(--dk);font-weight:900;margin-bottom:12px;line-height:1.55">請不要直接關閉此畫面。請先複製下方付款卡片，並連同付款截圖一起傳至官方 LINE。主辦確認入帳後，狀態才會更新為「已繳費」。</div>
       <pre id="paymentCopyCard" onclick="copyPaymentCard()" style="white-space:pre-wrap;background:#fff;border:1.5px solid #d0e8d8;border-radius:14px;padding:14px;font-size:17px;line-height:1.55;color:#1a1a18;font-family:inherit;cursor:pointer;margin:0 0 12px"></pre>
       <div style="font-size:16px;color:var(--md);font-weight:800;margin-bottom:12px">請複製此張卡片與付款截圖一起傳至官方 LINE。</div>
-      <button type="button" onclick="openLine()" style="width:100%;background:#06C755;color:#fff;border:none;border-radius:10px;padding:13px;font-size:18px;font-weight:900;cursor:pointer">LINE 客服</button>
-      <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;font-size:17px;padding:12px;margin-top:8px">關閉</button>
+      <button type="button" onclick="openLine()" style="width:100%;background:#06C755;color:#fff;border:none;border-radius:10px;padding:13px;font-size:18px;font-weight:900;cursor:pointer">前往 LINE 客服</button>
+      <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;font-size:17px;padding:12px;margin-top:8px">我已傳 LINE，關閉</button>
     </div>
   </div>
 </div>
@@ -1271,8 +1271,9 @@ function renderDynFormFull(s, isNew=false){
   if(mods.adult||mods.child){
     html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">`;
     if(mods.adult) html+=`<div><label>大人人數 *</label><input type="number" id="f_adult" value="1" min="0" inputmode="numeric"></div>`;
-    if(mods.child) html+=`<div><label>小孩人數</label><input type="number" id="f_child" value="0" min="0" inputmode="numeric"></div>`;
+    if(mods.child) html+=`<div><label>小孩人數</label><input type="number" id="f_child" value="0" min="0" inputmode="numeric" oninput="updateChildAgeFields()" onchange="updateChildAgeFields()"></div>`;
     html+=`</div>`;
+    if(mods.child) html+=`<div id="childAgeArea" style="display:none;margin-top:10px;background:#fff8ed;border:1px solid #f5d48a;border-radius:12px;padding:12px"></div>`;
   }
   if(s.customFields&&s.customFields.length){
     s.customFields.forEach((cf,i)=>{
@@ -1287,6 +1288,7 @@ function renderDynFormFull(s, isNew=false){
   }
   html+=`</div></div>`;  // end fcard-body, fcard A
   $('dynForm').innerHTML=html;
+  try{ updateChildAgeFields(); }catch(e){}
   // 隱藏外部 feeBox（費用已整合進卡片）
   document.querySelectorAll('.fee-box').forEach(el=>{ if(el.id==='feeBox'&&!el.closest('#dynForm')) el.style.display='none'; });
   const submitBtn=$('submitBtn');
@@ -1391,11 +1393,55 @@ function openRegFormModal(){
   window.scrollTo(0,0);
 }
 
-function saveMemberEdit(){
+
+function setEditValue(id, value){
+  const el=$(id);
+  if(el) el.value = value == null ? '' : String(value);
+}
+async function openMemberEditModal(){
+  const email = String(ST.memberEmail || memberSafeEmail() || '').trim();
+  if(!email){ toast('請先登入會員'); return; }
+  const modal=$('memberEditModal');
+  if(!modal){ toast('找不到會員編輯視窗'); return; }
+  modal.classList.add('show');
+  const btn=$('saveMemberBtn');
+  if(btn){ btn.disabled=false; btn.textContent='儲存資料'; }
+  const msg=$('saveSuccessMsg'); if(msg) msg.style.display='none';
+
+  let m = ST.member || {email};
+  try{
+    const fresh = await api({action:'getMember', email, _t:Date.now()});
+    if(fresh && !fresh.error){
+      m = {...m, ...fresh, email:fresh.email||email};
+      ST.member = m;
+      fillMemberCard(m);
+    }
+  }catch(e){ console.warn('[openMemberEditModal getMember failed]', e); }
+
+  setEditValue('editName', m.name || '');
+  setEditValue('editPhone', m.phone || '');
+  setEditValue('editBrand', m.brand || m.brandName || m.brand_name || '');
+  setEditValue('editBrandIntro', m.brandIntro || m.brand_intro || '');
+  setEditValue('editFb', m.fb || m.fb_url || '');
+  setEditValue('editIg', m.ig || m.ig_url || '');
+  setEditValue('editCollabUrl', m.collabUrl || m.collab_url || '');
+  setEditValue('editPhoto', m.photo || m.photo_url || '');
+  setEditValue('editLineId', m.lineId || m.line_id || '');
+  setEditValue('editInvoiceCarrier', m.invoiceCarrier || m.invoice_carrier || '');
+  setEditValue('editTaxId', m.taxId || m.tax_id || '');
+  setEditValue('editCompany', m.company || m.invoiceTitle || m.invoice_title || '');
+  setEditValue('editInvoiceEmail', m.invoiceEmail || m.invoice_email || email);
+}
+function closeMemberEditModal(){
+  const modal=$('memberEditModal');
+  if(modal) modal.classList.remove('show');
+}
+
+async function saveMemberEdit(){
   const btn=$('saveMemberBtn');
   if(btn){ btn.disabled=true; btn.textContent='儲存中…'; }
   const restore=()=>{ if(btn){ btn.disabled=false; btn.textContent='儲存資料'; } };
-  const email = ST.memberEmail||'';
+  const email = String(ST.memberEmail||memberSafeEmail()||'').trim();
   if(!email){ toast('請先登入'); restore(); return; }
   const body = {
     action:'saveMember', email,
@@ -1413,18 +1459,26 @@ function saveMemberEdit(){
     company:     ($('editCompany')?.value||'').trim(),
     invoiceEmail:($('editInvoiceEmail')?.value||'').trim(),
   };
-  apiPost(body).then(res=>{
-    if(res&&!res.error){
-      ST.member={...(ST.member||{}),...body};
-      if(typeof fillMemberCard==='function') fillMemberCard(ST.member);
-      const msg=$('saveSuccessMsg');
-      if(msg){ msg.style.display='block'; setTimeout(()=>msg.style.display='none',2000); }
-      toast('✅ 資料已更新');
-    } else {
-      toast('❌ 儲存失敗：'+(res?.error||'請稍後再試'));
+  try{
+    const res=await apiPost(body);
+    if(!res || res.error){ toast('❌ 儲存失敗：'+(res?.error||'請稍後再試')); restore(); return; }
+    const fresh=await api({action:'getMember', email, _t:Date.now()});
+    if(fresh && !fresh.error){
+      ST.member={...(ST.member||{}),...fresh,email:fresh.email||email};
+    }else{
+      ST.member={...(ST.member||{}),...body,email};
     }
+    fillMemberCard(ST.member);
+    const msg=$('saveSuccessMsg');
+    if(msg){ msg.style.display='block'; setTimeout(()=>msg.style.display='none',1800); }
+    toast('✅ 會員資料已更新');
+    setTimeout(()=>closeMemberEditModal(),500);
+  }catch(e){
+    console.warn('[saveMemberEdit failed]',e);
+    toast('❌ 網路錯誤，請稍後再試');
+  }finally{
     restore();
-  }).catch(()=>{ toast('❌ 網路錯誤'); restore(); });
+  }
 }
 
 function closeRegFormModal(){
@@ -1592,9 +1646,72 @@ function selectStall(el,n){
   updateFee();
 }
 
-function toggleChildAge(val){
+function getParticipantCountValue(id, fallback){
+  const el=$(id);
+  const n=parseInt(el?.value ?? fallback ?? 0,10);
+  return Number.isFinite(n) && n>0 ? n : 0;
+}
+function updateChildAgeFields(){
+  const childEl=$('f_child');
   const area=$('childAgeArea');
-  if(area) area.style.display=(parseInt(val)>0)?'block':'none';
+  if(!childEl || !area) return;
+  let count=parseInt(childEl.value||'0',10);
+  if(!Number.isFinite(count) || count<0) count=0;
+  if(count>12) count=12;
+  if(String(count)!==String(childEl.value||'0')) childEl.value=String(count);
+  const old=[];
+  area.querySelectorAll('input[data-child-age="1"]').forEach(inp=>old.push(inp.value));
+  if(count<=0){ area.style.display='none'; area.innerHTML=''; return; }
+  area.style.display='block';
+  let html='<div style="font-size:15px;font-weight:900;color:#92400e;margin-bottom:8px">請填寫每位小孩年齡</div>';
+  for(let i=0;i<count;i++){
+    const val=old[i]||'';
+    html+=`<label style="font-size:14px;color:#92400e;margin-top:${i?8:0}px">小孩 ${i+1} 年齡 *</label><input data-child-age="1" type="number" id="f_child_age_${i}" min="0" max="18" inputmode="numeric" value="${escHtml(val)}" placeholder="例如 6" style="width:100%;padding:12px;border:1.5px solid #f5d48a;border-radius:10px;font-size:16px;background:#fff">`;
+  }
+  area.innerHTML=html;
+}
+function toggleChildAge(){ updateChildAgeFields(); }
+function collectParticipantsForSubmit(showFormError, restoreBtn){
+  const hasAdult=!!$('f_adult');
+  const hasChild=!!$('f_child');
+  if(!hasAdult && !hasChild) return {adultCount:0, childCount:0, childAges:[], totalCount:0};
+  const adultCount=hasAdult ? getParticipantCountValue('f_adult',1) : 0;
+  const childCount=hasChild ? getParticipantCountValue('f_child',0) : 0;
+  const childAges=[];
+  for(let i=0;i<childCount;i++){
+    const raw=String($('f_child_age_'+i)?.value||'').trim();
+    const ageNum=Number(raw);
+    if(raw==='' || !Number.isFinite(ageNum) || ageNum<0 || ageNum>18){
+      const msg=`請填寫小孩 ${i+1} 的年齡`;
+      toast(msg);
+      if(showFormError) showFormError(msg);
+      $('f_child_age_'+i)?.focus();
+      if(restoreBtn) restoreBtn();
+      return null;
+    }
+    childAges.push(ageNum);
+  }
+  if((adultCount+childCount)<=0){
+    const msg='請至少填寫 1 位參加者';
+    toast(msg);
+    if(showFormError) showFormError(msg);
+    if(restoreBtn) restoreBtn();
+    return null;
+  }
+  return {adultCount, childCount, childAges, totalCount:adultCount+childCount};
+}
+function participantTextFromData(p){
+  if(!p) return '';
+  if(typeof p==='string'){
+    try{ p=JSON.parse(p); }catch(e){ return p; }
+  }
+  const adult=Number(p.adultCount||p.adult||0)||0;
+  const child=Number(p.childCount||p.child||0)||0;
+  const ages=Array.isArray(p.childAges)?p.childAges:[];
+  const parts=[];
+  if(adult) parts.push(`大人 ${adult} 位`);
+  if(child) parts.push(`小孩 ${child} 位${ages.length?'（'+ages.join('、')+' 歲）':''}`);
+  return parts.join('，');
 }
 async function quickMemberLogin(){
   const email=prompt('請輸入您的 Email：');
@@ -1791,13 +1908,15 @@ async function submitReg(ev){
       if(!/^\d{8}$/.test(tax)){ toast('請填寫正確 8 碼統一編號'); showFormError('請填寫正確 8 碼統一編號'); restoreBtn(); return false; }
       if(!title){ toast('請填寫公司抬頭'); showFormError('請填寫公司抬頭'); restoreBtn(); return false; }
     }
+    const participants = collectParticipantsForSubmit(showFormError, restoreBtn);
+    if(!participants) return false;
     ST.__submitting=true;
     if(btn){ btn.disabled=true; btn.textContent='送出中…'; }
     const M=ST.member||{};
     const body={
       action:'register',sessionId:s.id,email,name,phone,stallCount:ST.stallCount||1,invoiceType,
       invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),taxId:($('f_taxId')?.value||'').trim(),invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),selectedDates,
-      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:(M.sellCat||M.sell_category||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:(M.sellCat||M.sell_category||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',participantsJson:participants,adultCount:participants.adultCount,childCount:participants.childCount,childAges:participants.childAges,customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     };
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
@@ -1898,6 +2017,7 @@ function renderMyRegs(regs){
       <div style="font-size:17px;color:var(--md);font-weight:700">審核：${escHtml(r.status||'')}　攤位數：${r.stallCount||1} 攤</div>
       <div style="font-size:18px;color:var(--g);font-weight:900;margin-top:3px">${r.total>0?'NT$ '+Number(r.total||0).toLocaleString():r.payStatus==='免費'?'免費':''}</div>
       ${r.equipmentText?`<div style="font-size:16px;color:var(--md);margin-top:3px">設備：${escHtml(r.equipmentText)}</div>`:''}
+      ${participantTextFromData(r.participants)?`<div style="font-size:16px;color:var(--md);margin-top:3px">參加者：${escHtml(participantTextFromData(r.participants))}</div>`:''}
       ${waitMsg}${refundBtn}${transfer}${payBtn}
     </div>`;
   }).join('');
@@ -2070,15 +2190,19 @@ async function copyPaymentCard(){
   catch(e){ toast('請長按卡片文字複製'); }
 }
 
-// ── URL 深連結：?member=1&pay=REG_xxx ──
+// ── URL 深連結：信件按鈕 / 查看報名紀錄 / 前往繳費 ──
 (async()=>{
   const _p = new URLSearchParams(window.location.search);
-  if(_p.get('member')==='1'){
-    const _payRegId = _p.get('pay');
-    if(_payRegId) window._pendingPayRegId = _payRegId;
-    // 信件按鈕進來時，直接切到會員中心；若本機已登入，會自動載入紀錄並開啟付款。
+  const isMemberLink = _p.get('member')==='1' || _p.get('page')==='member' || _p.get('view')==='records';
+  const _payRegId = _p.get('pay') || _p.get('reg') || _p.get('regId') || '';
+  const _email = (_p.get('email') || _p.get('mail') || '').trim();
+  if(_payRegId) window._pendingPayRegId = _payRegId;
+  if(_email){ ST.memberEmail=_email; memberSaveEmail(_email); if($('loginEmail')) $('loginEmail').value=_email; }
+  if(isMemberLink || _payRegId){
     setTimeout(()=>{
-      goMemberPage();
+      const email = _email || ST.memberEmail || memberSafeEmail();
+      if(email) safeLoadMemberPage(email,{navOptions:{noPush:true}});
+      else goMemberPage();
       const ml=$('memberLoginArea');
       if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
     }, 800);
