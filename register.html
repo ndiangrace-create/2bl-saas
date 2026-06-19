@@ -523,6 +523,7 @@ button,a,[onclick]{touch-action:manipulation}
       </div>
       <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;font-size:17px;padding:12px;margin-top:8px">取消</button>
     </div>
+
     <div id="paySuccessArea" style="display:none">
       <div style="font-size:22px;font-weight:900;color:var(--g);margin-bottom:4px">✅ 已收到您的付款回報</div>
       <div style="font-size:17px;color:var(--dk);font-weight:800;margin-bottom:12px">接下來只需要最後一步即可完成付款確認。</div>
@@ -1808,7 +1809,7 @@ function memberLogout(){
 }
 
 function isPaidText(v){ return String(v||'').indexOf('已繳費')>=0 || String(v||'')==='免費'; }
-function isPendingPayText(v){ const s=String(v||'').trim(); return ['待確認','付款待確認','已回報','待核款'].includes(s); }
+function isPendingPayText(v){ return String(v||'').trim()==='待確認'; }
 function canPayReg(reg){ return reg && reg.status==='已錄取' && Number(reg.total||0)>0 && !isPaidText(reg.payStatus) && !isPendingPayText(reg.payStatus); }
 function canRefundReg(reg){ return reg && isPaidText(reg.payStatus) && String(reg.payStatus||'')!=='免費' && String(reg.transferStatus||'')!=='申請退費' && String(reg.transferStatus||'')!=='已退費'; }
 function payBadge(reg){
@@ -1820,14 +1821,9 @@ function payBadge(reg){
 function escHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function renderMyRegs(regs){
+  ST.regs = Array.isArray(regs) ? regs : [];
   const el=$('myRegsList');
   if(!el) return;
-  if(regs && regs.error){
-    ST.regs = [];
-    el.innerHTML='<div style="background:#fff7ed;color:#9a3412;border-radius:12px;padding:14px 16px;font-size:16px;line-height:1.6;text-align:left">目前無法讀取我的紀錄。<br><span style="font-size:14px;color:#b45309">'+escHtml(regs.error)+'</span><br><button onclick="memberLogin()" style="margin-top:10px;background:var(--g);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:15px;font-weight:800">重新查詢</button></div>';
-    return;
-  }
-  ST.regs = Array.isArray(regs) ? regs : [];
   if(!ST.regs.length){
     el.innerHTML='<div style="color:#aaa;font-size:16px;text-align:center;padding:20px">目前無報名紀錄</div>';
     handlePendingPayLink(ST.regs);
@@ -1996,11 +1992,11 @@ async function submitPaymentForm(){
   try{
     const res = await apiPost({action:'submitPayment',regId:ST_currentPayRegId,method,lastFive,amount,email:ST.member?.email||ST.memberEmail||''});
     if(res.error){toast('❌ '+res.error);return;}
-    ST_currentPaymentCard = res.lineCardText || buildLocalPaymentCard(method, amount);
+    ST_currentPaymentCard = res.lineCardText || res.paymentLineCardText || buildLocalPaymentCard(method, amount);
     showPaymentSuccess(ST_currentPaymentCard);
     if(ST.memberEmail){
       const regs = await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
-      if(Array.isArray(regs)) ST.regs=regs;
+      if(Array.isArray(regs)){ ST.regs=regs; renderMyRegs(regs); }
     }
   }finally{
     if(btn){btn.disabled=false;btn.textContent='我已完成付款，回報付款';}
@@ -2008,10 +2004,10 @@ async function submitPaymentForm(){
 }
 function buildLocalPaymentCard(method, amount){
   const r=ST_currentPayReg||{};
-  const equip=r.equipmentText||'';
-  const line3=['攤位 '+(r.stallCount||1)+' 攤', equip].filter(Boolean).join('、');
+  const eq=(r.equipmentText||'').replace(/椅子/g,'椅');
+  const line3=['攤位 '+(r.stallCount||1)+' 攤', eq].filter(Boolean).join('、');
   const dep=Number(r.deposit||0)||0;
-  return [r.sessionName||'場次', [r.brand,r.name].filter(Boolean).join('／')||r.name||r.brand||'未填姓名', line3, dep>0?'保證金 NT$'+dep.toLocaleString():'', '', '付款金額：NT$'+Number(amount||0).toLocaleString()+'（'+method+'）'].filter((x,i)=>x!==''||i===4).join('\n');
+  return [r.sessionName||'場次', [r.brand,r.name].filter(Boolean).join('／')||r.name||r.brand||'未填資料', line3, dep>0?'保證金 NT$'+dep.toLocaleString():'', '', '付款金額：NT$'+Number(amount||0).toLocaleString()+'（'+method+'）'].filter((x,i)=>x!==''||i===4).join('\n');
 }
 function showPaymentSuccess(cardText){
   $('payModalTitle').textContent='付款回報';
@@ -2033,25 +2029,14 @@ async function copyPaymentCard(){
   if(_p.get('member')==='1'){
     const _payRegId = _p.get('pay');
     if(_payRegId) window._pendingPayRegId = _payRegId;
-    // 信件按鈕進來時，直接切到會員中心；若本機沒有 Email，先用報名編號回查 Email。
-    setTimeout(async()=>{
-      try{
-        if(_payRegId && !(ST.memberEmail||readStoredEmailSafe())){
-          const info = await api({action:'getRegById',regId:_payRegId,_t:Date.now()});
-          if(info && info.email){
-            ST.memberEmail = info.email;
-            try{ localStorage.setItem('tb_member_email', info.email); localStorage.removeItem('tb_member'); }catch(e){}
-            if($('loginEmail')) $('loginEmail').value = info.email;
-          }
-        }
-      }catch(e){}
+    // 信件按鈕進來時，直接切到會員中心；若本機已登入，會自動載入紀錄並開啟付款。
+    setTimeout(()=>{
       goMemberPage();
       const ml=$('memberLoginArea');
       if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
     }, 800);
   }
 })();
-function readStoredEmailSafe(){ try{return localStorage.getItem('tb_member_email')||'';}catch(e){return '';} }
 
 
 
@@ -2162,93 +2147,11 @@ if(document.readyState==='loading'){
   window.openEvent=async function(eventId){ const evt=asArr(ST.events).find(e=>String(e.id)===String(eventId)); const list=$('portalSessionList'); const title=$('portalTitle'); if(title) title.textContent=evt?evt.title:'場次列表'; navTo('portal'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; let data=uniqueSessions(ST.allSessionsData).filter(s=>String(s.eventId||s.event_id||'')===String(eventId)&&openSess(s)); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',eventId,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
   window.filterCat=async function(type,el){ ST.currentCatFilter=type; document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); if(el) el.classList.add('active'); const title=$('portalTitle'); if(title) title.textContent=type; const list=$('portalSessionList'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; navTo('portal'); const allow=portalTypeMap[type]||[]; let data=uniqueSessions(ST.allSessionsData).filter(s=>openSess(s)&&((asArr(s.portals).includes(type))||allow.includes(s.type))); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',portal:type,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
   const _oldCheckMemberStep=window.checkMemberStep; window.checkMemberStep=async function(){ const email=(($('step1Email')&&$('step1Email').value)||'').trim(); if(email) saveEmail(email); return _oldCheckMemberStep?_oldCheckMemberStep():undefined; };
-  window.memberLogin=async function(){ const email=($('loginEmail')?.value||readEmail()||'').trim(); if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;} const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';} ST.memberEmail=email; saveEmail(email); try{ const [member,regs]=await Promise.all([api({action:'getMember',email,_t:Date.now()}),api({action:'getMyRegs',email,_t:Date.now()})]); ST.member=member&&!member.error?member:null; if($('memberLoginArea')) $('memberLoginArea').style.display='none'; if($('memberArea')) $('memberArea').style.display='block'; fillMemberCard(ST.member||{email}); if($('memberName')) $('memberName').textContent=ST.member?.name||email; if($('memberEmail2')) $('memberEmail2').textContent=email; const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄'; renderMyRegs(regs); } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} } };
+  window.memberLogin=async function(){ const email=($('loginEmail')?.value||readEmail()||'').trim(); if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;} const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';} ST.memberEmail=email; saveEmail(email); try{ const [member,regs]=await Promise.all([api({action:'getMember',email,_t:Date.now()}),api({action:'getMyRegs',email,_t:Date.now()})]); ST.member=member&&!member.error?member:null; if($('memberLoginArea')) $('memberLoginArea').style.display='none'; if($('memberArea')) $('memberArea').style.display='block'; fillMemberCard(ST.member||{email}); if($('memberName')) $('memberName').textContent=ST.member?.name||email; if($('memberEmail2')) $('memberEmail2').textContent=email; const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄'; renderMyRegs(asArr(regs)); } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} } };
   window.goMemberPage=async function(){ navTo('member'); const email=ST.memberEmail||readEmail(); if(!email){ if($('memberLoginArea')) $('memberLoginArea').style.display='block'; if($('memberArea')) $('memberArea').style.display='none'; return; } if($('loginEmail')) $('loginEmail').value=email; await memberLogin(); };
   function bootDbFront(){ const email=readEmail(); if(email){ST.memberEmail=email; if($('loginEmail')) $('loginEmail').value=email;} loadHome(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
 })();
-
-
-// ────────────────────────────────────────────────────────────────
-// AA6 HOTFIX：會員我的紀錄防爆核心（補回遺失函式＋錯誤顯示）
-// ────────────────────────────────────────────────────────────────
-function fillMemberCard(member){
-  member = member || {};
-  const email = (member.email || ST.memberEmail || (typeof readEmail==='function'?readEmail():'') || '').trim();
-  const name = member.name || member.full_name || email || '會員';
-  const brand = member.brand || member.brand_name || member.store_name || '';
-  const phone = member.phone || '';
-  if($('memberName')) $('memberName').textContent = name;
-  if($('memberEmail2')) $('memberEmail2').textContent = email;
-  const body = $('memberCardBody');
-  if(body){
-    body.innerHTML = `
-      ${brand?`<div style="font-size:15px;font-weight:800;margin-bottom:4px">${escHtml(brand)}</div>`:''}
-      ${phone?`<div style="font-size:14px;opacity:.85">${escHtml(phone)}</div>`:''}
-      <div style="font-size:14px;opacity:.85;margin-top:4px">✏️ 資料可隨時更新，下次報名自動帶入</div>
-    `;
-  }
-}
-
-function openMemberEditModal(){
-  if(typeof openMemberEdit==='function') return openMemberEdit();
-  toast('會員資料編輯功能準備中');
-}
-
-let __logoHoldTimer=null;
-function startLogoHold(e){
-  if(e && e.preventDefault) e.preventDefault();
-  stopLogoHold();
-  __logoHoldTimer=setTimeout(()=>{
-    try{ location.href='admin.html?tenant='+encodeURIComponent(TENANT_ID||'tuibile'); }
-    catch(_){ location.href='admin.html'; }
-  },1200);
-}
-function stopLogoHold(){
-  if(__logoHoldTimer){ clearTimeout(__logoHoldTimer); __logoHoldTimer=null; }
-}
-
-async function memberLoginCore(){
-  const email=(($('loginEmail')&&$('loginEmail').value)||ST.memberEmail||(typeof readEmail==='function'?readEmail():'')||'').trim();
-  if(!email||!/\S+@\S+\.\S+/.test(email)){ toast('請輸入有效 Email'); return; }
-  const btn=$('loginBtn');
-  if(btn){ btn.disabled=true; btn.textContent='查詢中…'; }
-  ST.memberEmail=email;
-  try{ if(typeof saveEmail==='function') saveEmail(email); else localStorage.setItem('tb_member_email',email); }catch(_){ }
-  if($('memberLoginArea')) $('memberLoginArea').style.display='none';
-  if($('memberArea')) $('memberArea').style.display='block';
-  if($('myRegsList')) $('myRegsList').innerHTML='<div style="color:#aaa;font-size:16px;text-align:center;padding:20px">報名紀錄載入中…</div>';
-  fillMemberCard({email});
-  try{
-    const [member, regs] = await Promise.all([
-      api({action:'getMember', email, _t:Date.now()}),
-      api({action:'getMyRegs', email, _t:Date.now()})
-    ]);
-    if(member && !member.error){ ST.member=member; fillMemberCard(member); }
-    else { ST.member={email}; fillMemberCard(ST.member); }
-    if(regs && regs.error){ renderMyRegs(regs); }
-    else { renderMyRegs(Array.isArray(regs)?regs:[]); }
-  }catch(err){
-    console.error('[memberLoginCore]', err);
-    const el=$('myRegsList');
-    if(el) el.innerHTML='<div style="background:#fff7ed;color:#9a3412;border-radius:12px;padding:14px 16px;font-size:16px;line-height:1.6;text-align:left">目前無法讀取我的紀錄。<br><span style="font-size:14px;color:#b45309">'+escHtml(err && err.message ? err.message : String(err))+'</span><br><button onclick="memberLogin()" style="margin-top:10px;background:var(--g);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:15px;font-weight:800">重新查詢</button></div>';
-  }finally{
-    if(btn){ btn.disabled=false; btn.textContent='登入 / 查詢報名'; }
-  }
-}
-
-window.memberLogin = memberLoginCore;
-window.goMemberPage = async function(){
-  navTo('member');
-  const email=(ST.memberEmail||(typeof readEmail==='function'?readEmail():'')||'').trim();
-  if(!email){
-    if($('memberLoginArea')) $('memberLoginArea').style.display='block';
-    if($('memberArea')) $('memberArea').style.display='none';
-    return;
-  }
-  if($('loginEmail')) $('loginEmail').value=email;
-  await memberLoginCore();
-};
 
 </script>
 </body>
