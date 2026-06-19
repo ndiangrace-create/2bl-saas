@@ -1057,45 +1057,39 @@ function renderDynFormFull(s, isNew=false){
         </div>
       </div>`;
 
-      // 設備說明（依邏輯顯示）
-      const equipDisplay=equipAll.filter(([k,v])=>{
+      // 租借設備：有內含或有開放才顯示
+      const equipShow=equipAll.filter(([k,v])=>{
         const incl=frontEffectiveEquipIncl(k,v,s.basicEquip||s.basic_equip||'');
         const isOpen=v.open===true||v.open==='true';
-        // 內含=0 且未開放 → 不顯示（純需自備不提示）
-        // 其他都顯示
-        return !(incl===0 && !isOpen);
+        return incl>0 || isOpen;
       });
-      if(equipDisplay.length>0){
-        html+=`<div style="margin-bottom:12px;padding:10px 12px;background:#f0f7f4;border-radius:10px;font-size:14px;color:var(--dk)">`;
-        html+=`<div style="font-weight:700;margin-bottom:6px;color:var(--g)">📦 本場次設備說明</div>`;
-        equipDisplay.forEach(([k,v])=>{
+      if(equipShow.length>0){
+        html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 租借設備（選填）</div>`;
+        equipShow.forEach(([k,v])=>{
           const incl=frontEffectiveEquipIncl(k,v,s.basicEquip||s.basic_equip||'');
           const isOpen=v.open===true||v.open==='true';
           const price=Number(v.price)||0;
-          let note='';
-          if(incl>0 && isOpen)  note=`提供 ${incl} ${k}，可加租（NT$${price}/件）`;
-          else if(incl>0)        note=`提供 ${incl} ${k}`;
-          else if(isOpen)        note=`需自備，可加租（NT$${price}/件）`;
-          else                   note=`需自備`;
-          html+=`<div style="margin:4px 0">・${note}</div>`;
-        });
-        html+=`</div>`;
-      }
-
-      // 設備加購控制（只顯示開放的）
-      if(equipDefs.length>0){
-        html+=`<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;color:var(--md);margin-bottom:8px">🪑 設備加購（選填）</div>`;
-        equipDefs.forEach(([k,v])=>{
-          const incl=frontEffectiveEquipIncl(k,v,s.basicEquip||s.basic_equip||'');
-          const price=Number(v.price)||0;
-          html+=`<div class="equip-row">
-            <div class="equip-info"><div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
-            <div class="equip-price">NT$ ${price}/件${incl>0?' ・含 '+incl+' 件/攤，超過加租':''}</div></div>
-            <div class="equip-ctrl">
-              <button class="eq-btn" type="button" onclick="adjEquip('${k}',-1)">−</button>
-              <div class="eq-num" id="eq_num_${k}">0</div>
-              <button class="eq-btn" type="button" onclick="adjEquip('${k}',1)">＋</button>
-            </div></div>`;
+          if(isOpen){
+            // 有開放加購：顯示本次提供數量 + 加購控制
+            html+=`<div class="equip-row">
+              <div class="equip-info">
+                <div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
+                <div class="equip-price">本次提供 ${incl}　NT$${price}/件</div>
+              </div>
+              <div class="equip-ctrl">
+                <button class="eq-btn" type="button" onclick="adjEquip('${k}',-1)">−</button>
+                <div class="eq-num" id="eq_num_${k}">0</div>
+                <button class="eq-btn" type="button" onclick="adjEquip('${k}',1)">＋</button>
+              </div></div>`;
+          } else {
+            // 未開放加購但有內含：純提示
+            html+=`<div class="equip-row">
+              <div class="equip-info">
+                <div class="equip-name" style="font-size:15px;font-weight:700">${esc(k)}</div>
+                <div class="equip-price">本次提供 ${incl}</div>
+              </div>
+            </div>`;
+          }
         });
         html+=`</div>`;
       }
