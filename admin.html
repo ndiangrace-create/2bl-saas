@@ -661,31 +661,26 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
     <div style="font-size:11px;color:var(--lt);margin-top:2px">（活動日全選才適用此優惠價）例：7/18 NT$1000 + 7/19 NT$800，多日優惠填 NT$1700</div>
     <div class="form-row">
       <div>
-  <label>攤位管理</label>
+  <label>開放選位（付費選項）</label>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
     <input type="checkbox" id="sm_enableStalls" onchange="toggleStallConfig(this.checked)" style="width:18px;height:18px;accent-color:var(--g)">
-    <span style="font-size:13px;font-weight:800;color:var(--g)">啟用本場攤位管理</span>
+    <span style="font-size:13px">開放攤主自選攤位（付款後鎖定，未付款2日內釋出）</span>
   </div>
-  <div id="sm_stallsConfig" style="display:none;margin-top:8px;padding:12px;background:#f7faf8;border-radius:10px;border:1px solid #d8efe3">
-    <label style="font-size:12px;color:var(--md);margin-top:0">場地位置圖圖片網址</label>
-    <input type="url" id="sm_stallMapUrl" placeholder="https://...（貼場地圖圖片連結）" style="margin-bottom:8px">
-    <label style="font-size:12px;color:var(--md)">本場攤位清單（依順序自動配位，可逗號或換行）</label>
-    <textarea id="sm_stallNumbers" placeholder="A1,A2,A3,B1,B2
-或每行一個攤位" rows="4" style="margin-top:4px"></textarea>
+  <div id="sm_stallsConfig" style="display:none;margin-top:8px;padding:10px;background:#f7faf8;border-radius:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <label style="font-size:12px;color:var(--md)">攤位號碼（逗號分隔，例：A1,A2,A3）</label>
+      <button class="btn btn-g btn-xs" onclick="addStallItem()" type="button">＋ 新增</button>
+    </div>
+    <div style="font-size:11px;color:var(--lt);margin-bottom:6px">例：A1、A2、B1、B2...</div>
+    <div id="stallItemsList"></div>
+    <input type="text" id="sm_stallNumbers" placeholder="A1,A2,A3,B1,B2" style="margin-top:8px">
     <div id="stallPreview" style="margin-top:6px;font-size:12px;color:var(--md)"></div>
-    <div class="form-row" style="margin-top:8px">
-      <div><label style="font-size:12px;color:var(--md)">自由選位資格費（NT$）</label><input type="number" id="sm_stallFee" value="0" inputmode="numeric" placeholder="0=不開放付費自由選位"></div>
-      <div><label style="font-size:12px;color:var(--md)">自由選位截止時間</label><input type="datetime-local" id="sm_stallSelectDeadline"></div>
+    <div style="margin-top:8px">
+      <label style="font-size:12px;color:var(--md)">每攤選位加購費用（NT$）</label>
+      <input type="number" id="sm_stallFee" value="0" inputmode="numeric" placeholder="0=不加收" style="margin-top:4px">
     </div>
-    <label style="font-size:12px;color:var(--md)">自動配位時間</label>
-    <input type="datetime-local" id="sm_stallAutoAssignAt">
-    <div style="font-size:12px;color:#854F0B;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.6">
-      有加購者：付款後可於截止前自由選位；逾期未選不退選位費。<br>
-      未加購者：到自動配位時間後，依付款完成時間分配剩餘攤位。
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-b btn-sm" type="button" onclick="autoAssignCurrentSession()">🪄 立即自動配位</button><button class="btn btn-y btn-sm" type="button" onclick="lockStallPrompt()">🔒 保留／解除攤位</button></div>
   </div>
-  <input type="hidden" id="sm_maxStalls" value="0"><div id="stallItemsList" style="display:none"></div>
+  <input type="hidden" id="sm_maxStalls" value="0">
 </div>
     </div>
     <div class="form-row">
@@ -1578,14 +1573,7 @@ function filterRegsBySes(sesId){
 
 async function loadAllRegs(){
   const regs=await api({action:'getRegs',email:ST.email,token:ST.token,_t:Date.now()});
-  if(regs && regs.error){
-    ST.allRegs=[]; ST.regs=[];
-    const el=$('regsCardList');
-    if(el) el.innerHTML='<div style="background:#fff3f3;color:#9f1d1d;border-radius:14px;padding:16px;margin:12px 0;font-size:16px;font-weight:800;line-height:1.7">⚠️ 報名資料載入失敗<br><span style="font-size:14px">'+escAttr(regs.error)+'</span></div>';
-    toast('報名資料載入失敗：'+regs.error);
-    return;
-  }
-  ST.allRegs=Array.isArray(regs)?regs:[];
+  ST.allRegs=regs||[];
   ST.regs=ST.allRegs;
 }
 
@@ -1678,20 +1666,6 @@ function renderEventsWithSessions(){
       </div>`:''}
     </div>`;
   }).join('');
-}
-
-
-function toDatetimeLocal(v){
-  if(!v) return '';
-  const d=new Date(v);
-  if(isNaN(d)) return String(v).slice(0,16);
-  const pad=n=>String(n).padStart(2,'0');
-  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
-}
-function fromDatetimeLocal(v){
-  if(!v) return '';
-  const d=new Date(v);
-  return isNaN(d)?'':d.toISOString();
 }
 
 function toInputDate(v){
@@ -1875,7 +1849,6 @@ function resetSesModal(){
   $('sm_basicEquip').value='';$('sm_desc').value='';$('sm_cover').value='';
   $('sesCoverPreview').style.display='none';
   $('sm_review').checked=true;$('sm_type').value='市集場次';
-  $('sm_enableStalls').checked=false; $('sm_stallsConfig').style.display='none'; $('sm_stallNumbers').value=''; $('sm_stallMapUrl').value=''; $('sm_stallFee').value=0; $('sm_stallSelectDeadline').value=''; $('sm_stallAutoAssignAt').value=''; if($('stallPreview')) $('stallPreview').innerHTML='';
   ['portal_market','portal_activity','portal_dept','portal_collab'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.checked=false;
   });
@@ -2093,10 +2066,7 @@ async function editSes(id){
   // 攤位清單
   $('stallItemsList').innerHTML='';stallItemIdx=0;
   (s.stallList||[]).forEach(name=>addStallItem(name));
-  $('sm_stallFee').value=s.stallSelectFee||s.stallFee||0;
-  $('sm_stallMapUrl').value=s.stallMapUrl||'';
-  $('sm_stallSelectDeadline').value=toDatetimeLocal(s.stallSelectDeadline||'');
-  $('sm_stallAutoAssignAt').value=toDatetimeLocal(s.stallAutoAssignAt||'');
+  $('sm_stallFee').value=s.stallFee||0;
   $('sm_review').checked=s.needReview!==false;
   // 日期
   $('dateSlots').innerHTML='';dateSlotIdx=0;
@@ -2248,12 +2218,7 @@ async function saveSession(btn){
       customFields:customFields,
       addons:addons,
       stallList:stallList,
-      stallManageEnabled:!!getVal('sm_enableStalls',false),
-      stallMapUrl:String(getVal('sm_stallMapUrl','')).trim(),
-      stallSelectFee:parseInt(getVal('sm_stallFee','0'))||0,
       stallFee:parseInt(getVal('sm_stallFee','0'))||0,
-      stallSelectDeadline:fromDatetimeLocal(getVal('sm_stallSelectDeadline','')),
-      stallAutoAssignAt:fromDatetimeLocal(getVal('sm_stallAutoAssignAt','')),
       invoiceTax:invoiceTax,
       status:'報名中'
     };
@@ -2266,9 +2231,12 @@ async function saveSession(btn){
     if(res.error){ showFail(res.error); return; }
 
     const savedId = res.id || id;
-    if(savedId && Array.isArray(body.stallList) && body.stallList.length){
-      const stallRes = await apiPost({action:'saveStallConfig',sessionId:savedId,stalls:body.stallList});
-      if(stallRes && stallRes.error){ alert('場次已儲存，但攤位清單未同步：\n' + stallRes.error); }
+    if(!id && savedId && Array.isArray(body.stallList) && body.stallList.length){
+      const stallNumbers = body.stallList.join(',');
+      const stallRes = await apiPost({action:'initStalls',sessionId:savedId,stallNumbers});
+      if(stallRes && stallRes.error){
+        alert('場次已儲存，但攤位清單未建立：\n' + stallRes.error);
+      }
     }
 
     try{ toast('✅ 場次已儲存', 3000); }catch(e){}
@@ -2370,15 +2338,14 @@ function renderRegs(){
     const matchKw=!kw||[r.brand,r.name,r.email,r.phone,r.fb,r.ig].some(v=>(v||'').toLowerCase().includes(kw));
     const matchSes=!sesId||(String(r.sessionId)===String(sesId));
     const statusFilter=ST._filterStatusFilter||'';
-    // 報名審核頁預設顯示全部狀態，避免已錄取/備取/未繳費資料被誤判為「沒有報名」。
-    const matchStatus=statusFilter ? String(r.status||'')===String(statusFilter) : true;
+    const matchStatus=ST._showAllRegStatus?true:(statusFilter?r.status===statusFilter:r.status==='待審核');
     return matchKw&&matchSes&&matchStatus;
   });
   // 依報名時間倒序
   ST._filterStatusFilter=null; // 用完清除
   list.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
   const cnt=$('regCount');
-  if(cnt) cnt.textContent=`共 ${list.length} 筆` + (sesId?'（已篩選場次）':'');
+  if(cnt) cnt.textContent=`共 ${list.length} 筆`;
   const el=$('regsCardList');
   if(!el) return;
   if(!list.length){el.innerHTML='<div style="color:#aaa;text-align:center;padding:24px">無報名資料</div>';return;}
@@ -2405,12 +2372,11 @@ function renderRegs(){
           <span style="background:${paidOk?'#e6f9f0':'#fff3cd'};color:${paidOk?'#1D9E75':'#856404'};padding:3px 8px;border-radius:20px;font-size:12px;font-weight:800">${escAttr(pay)}</span>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(5,minmax(90px,1fr));gap:8px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(90px,1fr));gap:8px;margin-bottom:10px">
         <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">租幾攤</div><div style="font-size:16px;font-weight:900">${Number(r.stallCount||1)||1} 攤</div></div>
         <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">設備</div><div style="font-size:13px;font-weight:800;line-height:1.45">${escAttr(equipStr)}</div></div>
         <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">加購</div><div style="font-size:13px;font-weight:800;line-height:1.45">${escAttr(addonStr)}</div></div>
         <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">總計繳費金額</div><div style="font-size:16px;font-weight:900;color:#1D9E75">NT$${amount.toLocaleString()}</div></div>
-        <div style="background:#f8fbf9;border-radius:10px;padding:8px 10px"><div style="font-size:11px;color:#777">攤位</div><div style="font-size:16px;font-weight:900;color:#185FA5">${escAttr(r.stallNo||r.stallNumber||'-')}</div><div style="font-size:11px;color:#999">${escAttr(r.stallSource|| (r.stallSelectPaid?'自選資格':'') || '')}</div></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,minmax(90px,1fr));gap:8px;font-size:13px;color:#333;line-height:1.5;margin-bottom:12px">
         <div><div style="font-size:11px;color:#999">品牌編號</div><strong>${escAttr(r.brand||'-')}</strong></div>
@@ -2422,7 +2388,6 @@ function renderRegs(){
         ${r.status!=='已錄取'?`<button onclick="quickApprove('${esc(r.id)}')" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">錄取</button>`:''}
         ${r.status!=='不錄取'?`<button onclick="quickReject('${esc(r.id)}')" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">不錄取</button>`:''}
         ${r.status!=='備取'?`<button onclick="quickWaitlist('${esc(r.id)}')" style="background:#e2e3ff;color:#383d8a;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">備取</button>`:''}
-        <button onclick="changeRegStall('${esc(r.id)}')" style="background:#e8f0fe;color:#185FA5;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">換位</button>
         <button onclick="openRegDetail('${esc(r.id)}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">明細</button>
       </div>
     </div>`;
@@ -2607,8 +2572,6 @@ async function openRegDetail(regId){
       <hr style="border:none;border-top:1px solid #eee;margin:6px 0">
       <div><strong>審核狀態：</strong>${reg.status||'待審核'}</div>
       <div><strong>付款狀態：</strong>${reg.payStatus||'未繳費'}</div>
-      <div><strong>攤位：</strong>${reg.stallNo||reg.stallNumber||'尚未分配'} ${reg.stallSource?`（${reg.stallSource}）`:''}</div>
-      <div><strong>自由選位：</strong>${reg.stallSelectPaid?'已加購':'未加購'}</div>
       <div><strong>報名時間：</strong>${(reg.createdAt||'').slice(0,16)}</div>
     </div>`;
   const regNoteEl=$('regNote');
@@ -2618,39 +2581,6 @@ async function openRegDetail(regId){
   openModal('regModal');
 }
 
-
-
-async function changeRegStall(regId){
-  const reg=(ST.allRegs||[]).find(r=>r.id===regId);
-  if(!reg){toast('找不到報名');return;}
-  const sesId=reg.sessionId;
-  const target=prompt('輸入要更換到的攤位號碼：', reg.stallNo||reg.stallNumber||'');
-  if(!target)return;
-  const swap=confirm('如果「'+target+'」已有人使用，是否與對方交換位置？\n按「確定」=交換；按「取消」=只允許換到空位。');
-  const res=await apiPost({action:'adminChangeStall',regId,stallNumber:target,swap});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast(res.swapped?'✅ 已交換攤位':'✅ 已更換攤位');
-  await loadAllRegs(); renderRegs();
-}
-async function autoAssignCurrentSession(){
-  const id=$('sm_id')?.value||ST._filterSesId||$('regSesFilter')?.value||'';
-  if(!id){toast('請先選擇／儲存場次');return;}
-  if(!confirm('確認立即依付款時間，為尚未有攤位的已付款攤商自動配位？\n已自選、已手動安排的攤位不會被移動。')) return;
-  const res=await apiPost({action:'autoAssignStalls',sessionId:id});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 已自動配位 '+(res.assigned||0)+' 筆');
-  await loadAllData(); await loadAllRegs(); renderRegs();
-}
-async function lockStallPrompt(){
-  const id=$('sm_id')?.value||'';
-  if(!id){toast('請先儲存場次');return;}
-  const no=prompt('輸入要保留／解除保留的攤位號碼：');
-  if(!no)return;
-  const unlock=confirm('按「確定」=解除保留\n按「取消」=設為保留');
-  const res=await apiPost({action:'lockStall',sessionId:id,stallNumber:no,unlock});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('✅ 攤位 '+no+' 已更新為 '+res.status);
-}
 
 async function quickReject(regId){
   const btn=getClickBtn();
@@ -2807,6 +2737,9 @@ function renderPaymentManagement(targetId){
     const dates=adminEsc(regDateLabel(r));
     const equip=adminEsc(regEquipText(r)||'-');
     const last5=r.payLast5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+    const shot=String(r.paymentScreenshotStatus||'');
+    const lineCard=adminEsc(r.paymentLineCardText||'');
+    const reportAmount=Number(r.payReportAmount||r.amount||0);
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--sh);border-left:5px solid ${isRefund?'#d94f4f':(isPending?'#f5c842':(isPaid?'#40916c':'#ddd'))}">
       <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
         <div style="min-width:0;flex:1;line-height:1.55">
@@ -2818,11 +2751,14 @@ function renderPaymentManagement(targetId){
           <div style="font-size:18px;color:var(--dk);font-weight:900">${adminEsc(r.brand||r.name||'未填品牌')}</div>
           <div style="font-size:16px;color:var(--md)">${adminEsc(r.name||'')}　${adminEsc(r.phone||'')}</div>
           <div style="font-size:16px;color:var(--md)">攤位數：<strong>${Number(r.stallCount||1)} 攤</strong>　設備：<strong>${equip}</strong></div>
-          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
+          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${reportAmount.toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
+          ${isPending?`<div style="font-size:15px;color:${shot==='已收到截圖'?'#2d6a4f':'#b45309'};font-weight:900;margin-top:4px">截圖狀態：${adminEsc(shot||'等待截圖')}</div>`:''}
+          ${lineCard?`<pre style="white-space:pre-wrap;background:#f7faf8;border:1px solid #d8efe3;border-radius:10px;padding:9px 10px;margin-top:7px;font-size:14px;line-height:1.45;color:#333;font-family:inherit">${lineCard}</pre>`:''}
           ${note?`<div style="font-size:14px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap;max-height:96px;overflow:auto">${note}</div>`:''}
-          <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
+          <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.payReportedAt?'　回報：'+String(r.payReportedAt).slice(0,16):''}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          ${isPending && shot!=='已收到截圖'?`<button class="btn btn-y btn-sm" onclick="markScreenshotById('${r.id}')">已收到截圖</button>`:''}
           ${isPending?`<button class="btn btn-g btn-sm" onclick="confirmPayById('${r.id}')">確認付款</button>`:''}
           ${isRefund?`<button class="btn btn-r btn-sm" onclick="confirmRefundById('${r.id}')">確認退款</button>`:''}
           <button class="btn btn-b btn-sm" onclick="openRegDetail('${r.id}')">看明細</button>
@@ -3926,6 +3862,14 @@ function showConfirmDialog(html, onOk){
   document.body.appendChild(modal);
   modal.querySelector('#cfCancel').onclick=()=>modal.remove();
   modal.querySelector('#cfOk').onclick=async()=>{ const btn=modal.querySelector('#cfOk'); btn.disabled=true; btn.textContent='確認中…'; await onOk(); modal.remove(); };
+}
+
+async function markScreenshotById(regId){
+  const res=await apiPost({action:'markPaymentScreenshot',regId});
+  if(res.error){toast('❌ '+res.error);return;}
+  toast('✅ 已標記收到截圖');
+  await loadAllRegs();
+  renderPaymentManagement();
 }
 async function confirmPayById(payId){
   const r=(ST.allRegs||[]).find(x=>String(x.id)===String(payId));
