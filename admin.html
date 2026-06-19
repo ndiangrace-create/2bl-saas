@@ -2737,8 +2737,6 @@ function renderPaymentManagement(targetId){
     const dates=adminEsc(regDateLabel(r));
     const equip=adminEsc(regEquipText(r)||'-');
     const last5=r.payLast5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
-    const lineCard=adminEsc(r.paymentLineCardText||'');
-    const screenshotStatus=adminEsc(r.paymentScreenshotStatus||'');
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--sh);border-left:5px solid ${isRefund?'#d94f4f':(isPending?'#f5c842':(isPaid?'#40916c':'#ddd'))}">
       <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
         <div style="min-width:0;flex:1;line-height:1.55">
@@ -2750,14 +2748,17 @@ function renderPaymentManagement(targetId){
           <div style="font-size:18px;color:var(--dk);font-weight:900">${adminEsc(r.brand||r.name||'未填品牌')}</div>
           <div style="font-size:16px;color:var(--md)">${adminEsc(r.name||'')}　${adminEsc(r.phone||'')}</div>
           <div style="font-size:16px;color:var(--md)">攤位數：<strong>${Number(r.stallCount||1)} 攤</strong>　設備：<strong>${equip}</strong></div>
-          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.paymentReportAmount||r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
-          ${screenshotStatus?`<div style="font-size:14px;color:#854F0B;background:#fff7ed;border-radius:8px;padding:6px 8px;margin-top:6px;font-weight:800">付款截圖：${screenshotStatus}</div>`:''}
-          ${lineCard?`<pre style="white-space:pre-wrap;background:#f7faf8;border:1px solid #d8efe3;border-radius:10px;padding:9px 10px;margin-top:6px;font-size:15px;line-height:1.45;color:#333;font-family:inherit">${lineCard}</pre>`:''}
+          <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
           ${note?`<div style="font-size:14px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap;max-height:96px;overflow:auto">${note}</div>`:''}
           <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-          ${isPending && String(r.paymentScreenshotStatus||'')!=='已收到截圖'?`<button class="btn btn-y btn-sm" onclick="markPaymentScreenshotById('${r.id}')">已收到截圖</button>`:''}
+          ${isPending?(()=>{
+            const shotDone = r.paymentScreenshotStatus==='已收到匯款截圖';
+            return shotDone
+              ? `<div style="font-size:13px;color:#2e7d32;font-weight:900;text-align:center;padding:4px 8px;background:#e8f5e9;border-radius:8px">📷 已收到截圖</div>`
+              : `<button class="btn btn-sm" onclick="markScreenshotById('${r.id}')" style="background:#fff3cd;color:#856404;border:1.5px solid #ffc107;border-radius:8px;font-size:14px;font-weight:900;padding:6px 10px;cursor:pointer;white-space:nowrap">已收到匯款截圖</button>`;
+          })():''}
           ${isPending?`<button class="btn btn-g btn-sm" onclick="confirmPayById('${r.id}')">確認付款</button>`:''}
           ${isRefund?`<button class="btn btn-r btn-sm" onclick="confirmRefundById('${r.id}')">確認退款</button>`:''}
           <button class="btn btn-b btn-sm" onclick="openRegDetail('${r.id}')">看明細</button>
@@ -3862,14 +3863,12 @@ function showConfirmDialog(html, onOk){
   modal.querySelector('#cfCancel').onclick=()=>modal.remove();
   modal.querySelector('#cfOk').onclick=async()=>{ const btn=modal.querySelector('#cfOk'); btn.disabled=true; btn.textContent='確認中…'; await onOk(); modal.remove(); };
 }
-async function markPaymentScreenshotById(regId){
-  await withBtnLock(getClickBtn(),'處理中…',async()=>{
-    const res=await apiPost({action:'markPaymentScreenshot',regId});
-    if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已標記收到截圖');
-    await loadAllRegs();
-    renderPaymentManagement();
-  });
+async function markScreenshotById(regId){
+  const res = await apiPost({action:'markScreenshot', regId});
+  if(res.error){ toast('❌ '+res.error); return; }
+  toast('✅ 已標記收到匯款截圖');
+  await loadAllRegs();
+  renderPaymentManagement();
 }
 
 async function confirmPayById(payId){
