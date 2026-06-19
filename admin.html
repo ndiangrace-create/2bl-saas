@@ -962,23 +962,29 @@ let ST = {email:'',token:'',role:'',events:[],sessions:[],regs:[],allRegs:[],cur
 function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
+  params = {...(params||{})};
   if (!params.tenant && !params.tenantId) params.tenant = TENANT_ID;
+  if (!params._t) params._t = Date.now();
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
   try{
-    const r=await fetch(API+'?'+qs);
+    const r=await fetch(API+'?'+qs,{cache:'no-store'});
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')：請確認 Worker 是否正常運作'); return {error:'連線失敗 '+r.status}; }
     return await r.json();
   }catch(e){ toast('⚠️ 無法連線後端，請確認部署網址'); return {error:'連線失敗'}; }
 }
 async function apiPost(body){
   try{
-    const r=await fetch(API,{
+    const r=await fetch(API+'?_t='+Date.now(),{
       method:'POST',
-      headers:{'Content-Type':'application/json;charset=utf-8'},
-      body:JSON.stringify({...body,email:ST.email,token:ST.token})
+      headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-store'},
+      body:JSON.stringify({...body,email:ST.email,token:ST.token}),
+      cache:'no-store'
     });
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
-    return await r.json();
+    const data = await r.json();
+    const act = String(body && body.action || '');
+    if(data && !data.error && !/^get/.test(act) && !['testEmail'].includes(act)) scheduleAdminDbSync('post:'+act, 180);
+    return data;
   }catch(e){ toast('⚠️ 無法連線後端'); return {error:'連線失敗'}; }
 }
 function closeModal(id){$(id).classList.remove('show');}
@@ -1082,6 +1088,7 @@ function initAdmin(name,role){
   $('staffName').textContent=name||ST.email;
   if(role==='superadmin') $('nav-staff').style.display='flex';
   initAdminHistory();
+  startAdminDbSync();
   loadAllData();
 }
 
@@ -1539,6 +1546,7 @@ function goPage(name, opts){
     settings: ()=>{ loadStaff(); loadAnnounce(); loadSiteConfig(); },
   };
   if(inits[name]) inits[name]();
+  if(['overview','regs','payments','checkin'].includes(name)) scheduleAdminDbSync('goPage:'+name, 350);
 }
 
 // ── 全資料載入 ──
@@ -1575,6 +1583,54 @@ async function loadAllRegs(){
   const regs=await api({action:'getRegs',email:ST.email,token:ST.token,_t:Date.now()});
   ST.allRegs=regs||[];
   ST.regs=ST.allRegs;
+}
+
+function currentAdminPage(){
+  const p=document.querySelector('.tab-page.active');
+  return p ? String(p.id||'').replace(/^page-/,'') : 'overview';
+}
+async function syncActiveAdminPageFromDb(reason){
+  if(!ST.email || !ST.token || ST.__syncing) return;
+  ST.__syncing=true;
+  try{
+    const page=currentAdminPage();
+    console.log('[AA9 admin db sync]', reason||'manual', page);
+    if(page==='payments'){
+      await loadAllRegs();
+      renderPaymentManagement();
+      const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+      ST.sdData=sd||[];
+      renderOverview();
+    }else if(page==='regs'){
+      await loadAllRegs();
+      renderRegs();
+      const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
+      ST.sdData=sd||[];
+      renderOverview();
+    }else if(page==='checkin'){
+      await loadAllRegs();
+      fillCheckinSesFilter();
+      loadCheckinRegs();
+    }else if(page==='overview'){
+      await loadAllData();
+    }
+  }catch(e){
+    console.warn('[AA9 admin sync failed]', e);
+  }finally{
+    ST.__syncing=false;
+  }
+}
+function scheduleAdminDbSync(reason, delay=250){
+  clearTimeout(ST.__syncTimer);
+  ST.__syncTimer=setTimeout(()=>syncActiveAdminPageFromDb(reason), delay);
+}
+function startAdminDbSync(){
+  if(ST.__syncStarted) return;
+  ST.__syncStarted=true;
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) scheduleAdminDbSync('visibility',150); });
+  window.addEventListener('focus',()=>scheduleAdminDbSync('focus',250));
+  window.addEventListener('pageshow',()=>scheduleAdminDbSync('pageshow',250));
+  setInterval(()=>{ if(!document.hidden && ST.email && ST.token){ const page=currentAdminPage(); if(['overview','regs','payments','checkin'].includes(page)) scheduleAdminDbSync('interval',100); } },30000);
 }
 
 function fillEventSelects(){

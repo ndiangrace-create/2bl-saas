@@ -632,9 +632,11 @@ let ST = {
 function $(id){return document.getElementById(id);}
 function toast(msg,dur=2500){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function api(params){
+  params = {...(params||{})};
   if (!params.tenant && !params.tenantId) params.tenant = TENANT_ID;
+  if (!params._t) params._t = Date.now();
   const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  try{ const r=await fetch(API_BASE+'?'+qs); if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'fail'};} return await r.json(); }
+  try{ const r=await fetch(API_BASE+'?'+qs,{cache:'no-store'}); if(!r.ok){toast&&toast('⚠️ 連線失敗，請稍後再試');return{error:'fail'};} return await r.json(); }
   catch(e){ toast&&toast('⚠️ 網路連線失敗'); return {error:'fail'}; }
 }
 async function apiPost(body, timeoutMs=15000){
@@ -642,7 +644,7 @@ async function apiPost(body, timeoutMs=15000){
   const ctrl = new AbortController();
   const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
   try{
-    const r=await fetch(API_BASE,{method:'POST',headers:{'Content-Type':'application/json;charset=utf-8'},body:JSON.stringify(body),signal:ctrl.signal});
+    const r=await fetch(API_BASE+'?_t='+Date.now(),{method:'POST',headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-store'},body:JSON.stringify(body),signal:ctrl.signal,cache:'no-store'});
     const txt=await r.text();
     let data={};
     try{ data=txt?JSON.parse(txt):{}; }catch(e){ data={error:'後端回傳格式錯誤', raw:txt}; }
@@ -784,6 +786,26 @@ function goMemberPage(){
 window.safeLoadMemberPage=safeLoadMemberPage;
 window.memberLogin=memberLogin;
 window.goMemberPage=goMemberPage;
+
+function isMemberPageActive(){
+  const p=$('pageMember');
+  return !!(p && p.classList.contains('active'));
+}
+async function syncMemberRecordsFromDb(reason){
+  const email=String(ST.memberEmail||memberSafeEmail()||'').trim();
+  if(!email || !isMemberPageActive()) return [];
+  console.log('[AA9 sync myRegs]', reason||'manual');
+  return safeGetMyRegs(email);
+}
+function scheduleMemberRecordsSync(reason, delay=120){
+  clearTimeout(ST.__memberSyncTimer);
+  ST.__memberSyncTimer=setTimeout(()=>syncMemberRecordsFromDb(reason).catch(e=>console.warn('[member sync failed]',e)), delay);
+}
+window.syncMemberRecordsFromDb=syncMemberRecordsFromDb;
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) scheduleMemberRecordsSync('visibility'); });
+window.addEventListener('focus',()=>scheduleMemberRecordsSync('focus',250));
+window.addEventListener('pageshow',()=>scheduleMemberRecordsSync('pageshow',250));
+
 function closePortalSessions(){
   $('portalSessionArea').style.display='none';
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
@@ -1782,6 +1804,8 @@ async function submitReg(ev){
     if(res.error){ toast('❌ '+res.error, 8000); showFormError(res.error); restoreBtn(); return false; }
     hideFormError();
     ST.memberEmail=email;
+    try{ localStorage.setItem('tb_member_email',email||''); }catch(e){}
+    scheduleMemberRecordsSync('after-register',500);
     // 更新本地 member 資料（包含發票資訊，下次報名自動帶入）
     const _brand=($('f_brand')?.value||'').trim();
     const _taxId=($('f_taxId')?.value||'').trim();
@@ -1814,7 +1838,7 @@ async function submitReg(ev){
       if(scrollArea.scrollTo) scrollArea.scrollTo(0,9999);
     }else{ alert('報名成功！'); }
     ST.__submitting=false;
-    setTimeout(()=>{ closeRegFormModal(); window.scrollTo(0,0); },3000);
+    setTimeout(()=>{ closeRegFormModal(); scheduleMemberRecordsSync('after-register-close',150); window.scrollTo(0,0); },3000);
     return false;
   }catch(e){
     console.error('[submitReg fatal]', e);
@@ -1960,8 +1984,7 @@ async function doSubmitCancel(){
     closeModal('cancelModal');
     toast(ST._pendingCancelIsRefund?'✅ 已送出退款申請':'✅ 已取消報名');
     if(ST.memberEmail){
-      const regs=await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
-      if(Array.isArray(regs)) renderMyRegs(regs);
+      await safeGetMyRegs(ST.memberEmail);
     }
     ST._pendingCancelRegId=''; ST._pendingCancelSesName=''; ST._pendingCancelIsRefund=false;
   }finally{
@@ -2027,7 +2050,7 @@ async function submitPaymentForm(){
     ST_currentPaymentCard = cardText;
     showPaymentSuccess(cardText);
     if(ST.memberEmail){
-      api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()}).then(regs=>{ if(Array.isArray(regs)){ ST.regs=regs; renderMyRegs(regs); } }).catch(()=>{});
+      await safeGetMyRegs(ST.memberEmail);
     }
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='我已完成付款，回報付款'; }
