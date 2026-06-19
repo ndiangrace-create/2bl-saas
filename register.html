@@ -686,32 +686,104 @@ function navTo(tab, opts={}){
   }
 }
 function backToHome(){navTo('home');}
-function goMemberPage(){
-  navTo('member');
+function memberSafeEmail(){
+  try{return String(localStorage.getItem('tb_member_email')||'').trim();}catch(e){return '';}
+}
+function memberSaveEmail(email){
+  try{localStorage.setItem('tb_member_email', String(email||'').trim()); localStorage.removeItem('tb_member');}catch(e){}
+}
+function memberShowLogin(){
   const loginArea=$('memberLoginArea');
   const memberArea=$('memberArea');
-  if(!loginArea||!memberArea) return;
-  if(!ST.memberEmail){
-    // 從 localStorage 讀上次的 email
-    try{
-      const saved=localStorage.getItem('tb_member_email');
-      if(saved){ ST.memberEmail=saved; ST.member=null; }
-    }catch(e){}
-  }
-  if(!ST.memberEmail){
-    loginArea.style.display='block';
-    memberArea.style.display='none';
-  } else {
-    loginArea.style.display='none';
-    memberArea.style.display='block';
-    fillMemberCard(ST.member);
-    Promise.all([api({action:'getMember',email:ST.memberEmail}), api({action:'getMyRegs',email:ST.memberEmail})]).then(([member,regs])=>{
-      if(member && !member.error){ ST.member=member; fillMemberCard(member); }
-      renderMyRegs(regs||[]);
-      try{localStorage.setItem('tb_member_email',ST.memberEmail||'');}catch(e){}
-    });
+  if(loginArea) loginArea.style.display='block';
+  if(memberArea) memberArea.style.display='none';
+}
+function memberShowArea(){
+  const loginArea=$('memberLoginArea');
+  const memberArea=$('memberArea');
+  if(loginArea) loginArea.style.display='none';
+  if(memberArea) memberArea.style.display='block';
+  const lbl=$('botMemberLabel');
+  if(lbl) lbl.textContent='我的紀錄';
+}
+function fillMemberCard(member){
+  const m=member||{};
+  const email=String(m.email||ST.memberEmail||memberSafeEmail()||'').trim();
+  const name=(m.name||m.realName||email||'會員');
+  const brand=(m.brand||m.brandName||m.brand_name||'');
+  const nameEl=$('memberName'); if(nameEl) nameEl.textContent=name;
+  const emailEl=$('memberEmail2'); if(emailEl) emailEl.textContent=email;
+  const brandEl=$('memberBrandShow'); if(brandEl) brandEl.textContent=brand?('品牌：'+brand):'';
+}
+async function safeGetMyRegs(email){
+  const el=$('myRegsList');
+  if(el) el.innerHTML='<div style="color:#999;font-size:16px;text-align:center;padding:20px">報名紀錄載入中…</div>';
+  try{
+    const regs=await api({action:'getMyRegs',email,_t:Date.now()});
+    const list=Array.isArray(regs)?regs:[];
+    ST.regs=list;
+    renderMyRegs(list);
+    return list;
+  }catch(e){
+    console.warn('[getMyRegs failed]',e);
+    if(el) el.innerHTML='<div style="color:#c0392b;font-size:16px;text-align:center;padding:20px;line-height:1.7">報名紀錄暫時載入失敗，請稍後再試。<br>資料沒有消失，請截圖給官方 LINE。</div>';
+    return [];
   }
 }
+async function safeLoadMemberPage(email, opts={}){
+  navTo('member', opts.navOptions||{});
+  email=String(email||ST.memberEmail||memberSafeEmail()||'').trim();
+  if(!email){
+    memberShowLogin();
+    const el=$('myRegsList'); if(el) el.innerHTML='';
+    return;
+  }
+  if(!/\S+@\S+\.\S+/.test(email)){
+    toast('請輸入有效 Email');
+    memberShowLogin();
+    return;
+  }
+  ST.memberEmail=email;
+  memberSaveEmail(email);
+  if($('loginEmail')) $('loginEmail').value=email;
+  memberShowArea();
+  fillMemberCard(ST.member && (ST.member.email||ST.memberEmail) ? ST.member : {email});
+
+  const memberPromise=(async()=>{
+    try{
+      const member=await api({action:'getMember',email,_t:Date.now()});
+      if(member && !member.error){
+        ST.member={...(ST.member||{}),...member,email:member.email||email};
+        fillMemberCard(ST.member);
+      }else{
+        if(!ST.member) ST.member={email};
+        fillMemberCard(ST.member);
+        toast('會員資料暫時載入失敗，已先顯示 Email');
+      }
+    }catch(e){
+      console.warn('[getMember failed]',e);
+      if(!ST.member) ST.member={email};
+      fillMemberCard(ST.member);
+      toast('會員資料暫時載入失敗，報名紀錄會繼續載入');
+    }
+  })();
+
+  const regsPromise=safeGetMyRegs(email);
+  await Promise.allSettled([memberPromise, regsPromise]);
+}
+async function memberLogin(){
+  const btn=$('loginBtn');
+  const email=String(($('loginEmail')?.value||ST.memberEmail||memberSafeEmail()||'')).trim();
+  if(btn){btn.disabled=true;btn.textContent='查詢中…';}
+  try{ await safeLoadMemberPage(email,{navOptions:{noPush:true}}); }
+  finally{ if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} }
+}
+function goMemberPage(){
+  return safeLoadMemberPage(ST.memberEmail||memberSafeEmail());
+}
+window.safeLoadMemberPage=safeLoadMemberPage;
+window.memberLogin=memberLogin;
+window.goMemberPage=goMemberPage;
 function closePortalSessions(){
   $('portalSessionArea').style.display='none';
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
@@ -1753,51 +1825,9 @@ async function submitReg(ev){
   }
 }
 
-// ── 會員 ──
-async function memberLogin(){
-  const btn=$('loginBtn');
-  if(btn){btn.disabled=true;btn.textContent='查詢中…';}
-  const restoreBtn=()=>{if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';}}; 
-  const email=$('loginEmail').value.trim();
-  if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');restoreBtn();return;}
-  ST.memberEmail=email;
-  const[member,regs]=await Promise.all([
-    api({action:'getMember',email}),
-    api({action:'getMyRegs',email}),
-  ]);
-  ST.member=member;
-  $('memberLoginArea').style.display='none';
-  $('memberArea').style.display='block';
-  fillMemberCard(member);
-  // 更新底部按鈕
-  const lbl=$('botMemberLabel');
-  if(lbl) lbl.textContent='我的紀錄';
-  $('memberName').textContent=member?.name||email;
-  $('memberEmail2').textContent=email;
-  // 渲染會員資料卡片
-  const card=$('memberCardBody');
-  if(card && member){
-    const links=[];
-    if(member.fb) links.push(`<a href="${member.fb}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#1877F2;color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">FB ↗</a>`);
-    if(member.ig) links.push(`<a href="${member.ig}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">IG ↗</a>`);
-    if(member.photo) links.push(`<a href="${member.photo}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#555;color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">出攤照 ↗</a>`);
-    card.innerHTML=`
-      ${member.brand?`<div style="font-size:15px;font-weight:700;margin-bottom:4px">${member.brand}</div>`:''}
-      ${member.brandIntro?`<div style="font-size:16px;color:var(--md);margin-bottom:8px">${member.brandIntro}</div>`:''}
-      ${links.length?`<div style="margin-bottom:8px">${links.join('')}</div>`:''}
-      ${member.phone?`<div style="font-size:15px;color:var(--lt)">手機：${member.phone}</div>`:''}
-    `;
-  }
-  renderMyRegs(regs||[]);
-  restoreBtn();
-  // 持久化登入狀態到 localStorage
-  try {
-    localStorage.setItem('tb_member_email', email||'');
-  } catch(e){}
-}
-
+// ── 會員登出 ──
 function memberLogout(){
-  try { localStorage.removeItem('tb_member'); } catch(e){}
+  try { localStorage.removeItem('tb_member'); localStorage.removeItem('tb_member_email'); } catch(e){}
   ST.memberEmail=''; ST.member=null;
   ST.member=null;ST.memberEmail=null;
   $('loginEmail').value='';
@@ -1835,7 +1865,7 @@ function renderMyRegs(regs){
     const payBtn=canPayReg(r)?`<button onclick="event.stopPropagation();showPayPage('${r.id}',this.dataset.ses,'${Number(r.total||0)}')" data-ses="${escHtml(r.sessionName||r.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:12px;margin-top:10px;font-size:18px;font-weight:900">前往繳費</button>`:'';
     const waitMsg=isPendingPayText(r.payStatus)?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:9px 10px;margin-top:10px;font-size:17px;font-weight:800">已回報，等待主辦確認</div>`:'';
     const refundBtn=canRefundReg(r)?`<button onclick="event.stopPropagation();cancelMyReg('${r.id}',this.dataset.ses,true)" data-ses="${escHtml(r.sessionName||r.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);border-radius:10px;padding:11px;margin-top:9px;font-size:17px;font-weight:900">申請取消／退款</button>`:'';
-    const transfer=r.transferStatus?`<div style="font-size:16px;color:#b45309;font-weight:800;margin-top:6px">退款狀態：${escHtml(r.transferStatus)}${String(r.transferStatus)==='已退費'&&Number(r.refundAmount||0)>0?`｜退款金額：NT$${Number(r.refundAmount||0).toLocaleString()}`:''}</div>`:'';
+    const transfer=r.transferStatus?`<div style="font-size:16px;color:#b45309;font-weight:800;margin-top:6px">退款狀態：${escHtml(r.transferStatus)}</div>`:'';
     return `<div onclick="openRegDetail('${r.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:15px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${color}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px">
         <div style="font-size:20px;font-weight:900;color:var(--dk);flex:1;line-height:1.35">${escHtml(r.sessionName||r.sesName||'場次')}</div>
@@ -1882,7 +1912,6 @@ function openRegDetail(regId){
       ${reg.equipmentText?`<div style="font-size:18px;color:var(--md)">設備：<strong>${escHtml(reg.equipmentText)}</strong></div>`:''}
       ${reg.total>0?`<div style="font-size:19px;color:var(--g);font-weight:900">應繳金額：NT$ ${Number(reg.total||0).toLocaleString()}</div>`:''}
       ${reg.transferStatus?`<div style="font-size:17px;color:#b45309;font-weight:900">退款狀態：${escHtml(reg.transferStatus)}</div>`:''}
-      ${String(reg.transferStatus)==='已退費'?`<div style="font-size:17px;color:#7f1d1d;background:#fff1f2;border-radius:10px;padding:9px;margin-top:6px;line-height:1.5"><strong>退費已完成</strong><br>退款金額：NT$${Number(reg.refundAmount||0).toLocaleString()}${Number(reg.refundAdminFee||0)>0?`<br>行政費：NT$${Number(reg.refundAdminFee||0).toLocaleString()}`:''}${Number(reg.refundTransferFee||0)>0?`<br>轉帳手續費：NT$${Number(reg.refundTransferFee||0).toLocaleString()}`:''}</div>`:''}
     </div>
     <div style="font-size:14px;color:var(--lt);margin-bottom:12px">報名編號：${reg.id}</div>
     ${canPay?`<button onclick="document.getElementById('regDetailModal').remove();showPayPage('${reg.id}',this.dataset.ses,'${Number(reg.total||0)}');" data-ses="${escHtml(reg.sessionName||reg.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;padding:13px;border-radius:10px;font-size:18px;font-weight:900;cursor:pointer;margin-bottom:8px">前往繳費</button>`:''}
@@ -2142,8 +2171,7 @@ if(document.readyState==='loading'){
   window.openEvent=async function(eventId){ const evt=asArr(ST.events).find(e=>String(e.id)===String(eventId)); const list=$('portalSessionList'); const title=$('portalTitle'); if(title) title.textContent=evt?evt.title:'場次列表'; navTo('portal'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; let data=uniqueSessions(ST.allSessionsData).filter(s=>String(s.eventId||s.event_id||'')===String(eventId)&&openSess(s)); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',eventId,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
   window.filterCat=async function(type,el){ ST.currentCatFilter=type; document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); if(el) el.classList.add('active'); const title=$('portalTitle'); if(title) title.textContent=type; const list=$('portalSessionList'); if(list) list.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">載入中…</div>'; navTo('portal'); const allow=portalTypeMap[type]||[]; let data=uniqueSessions(ST.allSessionsData).filter(s=>openSess(s)&&((asArr(s.portals).includes(type))||allow.includes(s.type))); if(!data.length){ data=uniqueSessions(await api({action:'getSessions',portal:type,_t:Date.now()})).filter(openSess); ST.allSessionsData=uniqueSessions([...(ST.allSessionsData||[]),...data]); } if(list) list.innerHTML=data.length?data.map(renderSessionCard).join(''):'<div style="padding:20px;color:#aaa;text-align:center">目前無開放場次</div>'; };
   const _oldCheckMemberStep=window.checkMemberStep; window.checkMemberStep=async function(){ const email=(($('step1Email')&&$('step1Email').value)||'').trim(); if(email) saveEmail(email); return _oldCheckMemberStep?_oldCheckMemberStep():undefined; };
-  window.memberLogin=async function(){ const email=($('loginEmail')?.value||readEmail()||'').trim(); if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');return;} const btn=$('loginBtn'); if(btn){btn.disabled=true;btn.textContent='查詢中…';} ST.memberEmail=email; saveEmail(email); try{ const [member,regs]=await Promise.all([api({action:'getMember',email,_t:Date.now()}),api({action:'getMyRegs',email,_t:Date.now()})]); ST.member=member&&!member.error?member:null; if($('memberLoginArea')) $('memberLoginArea').style.display='none'; if($('memberArea')) $('memberArea').style.display='block'; fillMemberCard(ST.member||{email}); if($('memberName')) $('memberName').textContent=ST.member?.name||email; if($('memberEmail2')) $('memberEmail2').textContent=email; const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄'; renderMyRegs(asArr(regs)); } finally { if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';} } };
-  window.goMemberPage=async function(){ navTo('member'); const email=ST.memberEmail||readEmail(); if(!email){ if($('memberLoginArea')) $('memberLoginArea').style.display='block'; if($('memberArea')) $('memberArea').style.display='none'; return; } if($('loginEmail')) $('loginEmail').value=email; await memberLogin(); };
+  // 會員登入與我的紀錄統一由 safeLoadMemberPage 管理；此處不再覆蓋 memberLogin/goMemberPage。
   function bootDbFront(){ const email=readEmail(); if(email){ST.memberEmail=email; if($('loginEmail')) $('loginEmail').value=email;} loadHome(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootDbFront,{once:true}); else setTimeout(bootDbFront,0);
 })();
