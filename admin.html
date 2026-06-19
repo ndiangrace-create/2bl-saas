@@ -266,6 +266,19 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
   .topbar-front-btn{font-size:15px;padding:7px 10px}
 }
 
+
+
+/* AA5：手機報名卡片防止右側金額欄撐出版面 */
+@media(max-width:640px){
+  #regsCardList > div{width:100%!important;max-width:100%!important;overflow:hidden!important}
+  #regsCardList > div > div:nth-child(2){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #regsCardList > div > div:nth-child(3){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #regsCardList > div > div:first-child{flex-wrap:wrap!important}
+  #regsCardList > div > div:first-child > div:last-child{width:100%!important;justify-content:flex-start!important}
+  #regsCardList *{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important}
+  #regsCardList button{white-space:normal!important}
+}
+
 </style>
 <!-- db-driven-20260618 -->
 <!-- build: finance-card-invoice-footer-187 -->
@@ -814,6 +827,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
     </div>
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('regModal')" style="flex:1">關閉</button>
+      <button class="btn btn-b" onclick="resendApproval()" style="flex:1">📨 補寄錄取信</button>
       <button class="btn btn-g" onclick="sendSingleNotify()" style="flex:1">✉️ 發通知</button>
     </div>
   </div>
@@ -2389,6 +2403,7 @@ function renderRegs(){
         ${r.status!=='不錄取'?`<button onclick="quickReject('${esc(r.id)}')" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">不錄取</button>`:''}
         ${r.status!=='備取'?`<button onclick="quickWaitlist('${esc(r.id)}')" style="background:#e2e3ff;color:#383d8a;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">備取</button>`:''}
         <button onclick="openRegDetail('${esc(r.id)}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">明細</button>
+        ${r.status==='已錄取'?`<button onclick="resendApprovalFromList('${esc(r.id)}')" style="background:#e8f0fe;color:#1a73e8;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">補寄錄取信</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -3096,6 +3111,26 @@ async function resendRegConfirm(){
   if(btn){btn.disabled=false;btn.textContent='📨 重寄確認信';}
   if(res.ok||res.success) toast('✅ 確認信已重寄至 '+reg.email);
   else toast('❌ '+(res.error||'寄信失敗'));
+}
+
+
+async function resendApproval(){
+  const reg=ST.currentReg;
+  if(!reg){toast('找不到報名資料');return;}
+  if(!confirm('補寄錄取通知信給 '+(reg.email||'這位報名者')+'？')) return;
+  const btn=getClickBtn();
+  if(btn){btn.disabled=true;btn.textContent='寄送中…';}
+  const res=await apiPost({action:'resendApproval',regId:reg.id});
+  if(btn){btn.disabled=false;btn.textContent='📨 補寄錄取信';}
+  if(res.ok||res.success) toast('✅ 錄取通知信已補寄至 '+reg.email);
+  else toast('❌ '+(res.error||'寄信失敗'));
+}
+
+async function resendApprovalFromList(regId){
+  const reg=(ST.allRegs||[]).find(r=>r.id===regId);
+  if(!reg){toast('找不到報名資料');return;}
+  ST.currentReg=reg;
+  return resendApproval();
 }
 
 async function resendStaffInvite(email){

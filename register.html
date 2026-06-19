@@ -683,6 +683,32 @@ function navTo(tab, opts={}){
   }
 }
 function backToHome(){navTo('home');}
+function goMemberPage(){
+  navTo('member');
+  const loginArea=$('memberLoginArea');
+  const memberArea=$('memberArea');
+  if(!loginArea||!memberArea) return;
+  if(!ST.memberEmail){
+    // 從 localStorage 讀上次的 email
+    try{
+      const saved=localStorage.getItem('tb_member_email');
+      if(saved){ ST.memberEmail=saved; ST.member=null; }
+    }catch(e){}
+  }
+  if(!ST.memberEmail){
+    loginArea.style.display='block';
+    memberArea.style.display='none';
+  } else {
+    loginArea.style.display='none';
+    memberArea.style.display='block';
+    fillMemberCard(ST.member);
+    Promise.all([api({action:'getMember',email:ST.memberEmail}), api({action:'getMyRegs',email:ST.memberEmail})]).then(([member,regs])=>{
+      if(member && !member.error){ ST.member=member; fillMemberCard(member); }
+      renderMyRegs(regs||[]);
+      try{localStorage.setItem('tb_member_email',ST.memberEmail||'');}catch(e){}
+    });
+  }
+}
 function closePortalSessions(){
   $('portalSessionArea').style.display='none';
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
@@ -1268,28 +1294,6 @@ function openRegFormModal(){
   window.scrollTo(0,0);
 }
 
-function fillMemberCard(m){
-  if(!m) return;
-  // 更新會員顯示區
-  if($('memberName')) $('memberName').textContent=m.name||ST.memberEmail||'';
-  if($('memberEmail2')) $('memberEmail2').textContent=ST.memberEmail||m.email||'';
-  const lbl=$('botMemberLabel'); if(lbl) lbl.textContent='我的紀錄';
-  // 填入編輯欄位（如果 modal 已開）
-  const fields={
-    editName:m.name||'', editPhone:m.phone||'',
-    editBrand:m.brand||m.brand_name||'',
-    editBrandIntro:m.brandIntro||m.brand_intro||'',
-    editFb:m.fb||m.fb_url||'', editIg:m.ig||m.ig_url||'',
-    editCollabUrl:m.collabUrl||m.collab_url||'',
-    editPhoto:m.photo||m.photo_url||'',
-    editLineId:m.lineId||m.line_id||'',
-    editInvoiceCarrier:m.invoiceCarrier||m.invoice_carrier||'',
-    editTaxId:m.taxId||m.tax_id||'',
-    editCompany:m.company||'',
-    editInvoiceEmail:m.invoiceEmail||m.invoice_email||'',
-  };
-  Object.entries(fields).forEach(([id,val])=>{ const el=$(id); if(el) el.value=val; });
-}
 function saveMemberEdit(){
   const btn=$('saveMemberBtn');
   if(btn){ btn.disabled=true; btn.textContent='儲存中…'; }
@@ -1609,7 +1613,7 @@ function updateFee(){
   let equipTotal=0;
   Object.entries(s.equip||{}).forEach(([k,v])=>{
     if(v&&v.open){
-      const incl=frontEffectiveEquipIncl(k,v)*stalls;
+      const incl=frontEffectiveEquipIncl(k,v,s?.basicEquip||s?.basic_equip||'')*stalls;
       const want=ST.equipQty[k]||0;
       const extra=Math.max(0, want-incl);  // 只算超過內含的部分
       equipTotal+=(v.price||0)*extra;
@@ -1751,6 +1755,47 @@ async function submitReg(ev){
 }
 
 // ── 會員 ──
+async function memberLogin(){
+  const btn=$('loginBtn');
+  if(btn){btn.disabled=true;btn.textContent='查詢中…';}
+  const restoreBtn=()=>{if(btn){btn.disabled=false;btn.textContent='登入 / 查詢報名';}}; 
+  const email=$('loginEmail').value.trim();
+  if(!email||!/\S+@\S+\.\S+/.test(email)){toast('請輸入有效 Email');restoreBtn();return;}
+  ST.memberEmail=email;
+  const[member,regs]=await Promise.all([
+    api({action:'getMember',email}),
+    api({action:'getMyRegs',email}),
+  ]);
+  ST.member=member;
+  $('memberLoginArea').style.display='none';
+  $('memberArea').style.display='block';
+  fillMemberCard(member);
+  // 更新底部按鈕
+  const lbl=$('botMemberLabel');
+  if(lbl) lbl.textContent='我的紀錄';
+  $('memberName').textContent=member?.name||email;
+  $('memberEmail2').textContent=email;
+  // 渲染會員資料卡片
+  const card=$('memberCardBody');
+  if(card && member){
+    const links=[];
+    if(member.fb) links.push(`<a href="${member.fb}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#1877F2;color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">FB ↗</a>`);
+    if(member.ig) links.push(`<a href="${member.ig}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#f09433,#dc2743,#bc1888);color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">IG ↗</a>`);
+    if(member.photo) links.push(`<a href="${member.photo}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#555;color:#fff;padding:5px 10px;border-radius:8px;font-size:15px;text-decoration:none;margin:2px">出攤照 ↗</a>`);
+    card.innerHTML=`
+      ${member.brand?`<div style="font-size:15px;font-weight:700;margin-bottom:4px">${member.brand}</div>`:''}
+      ${member.brandIntro?`<div style="font-size:16px;color:var(--md);margin-bottom:8px">${member.brandIntro}</div>`:''}
+      ${links.length?`<div style="margin-bottom:8px">${links.join('')}</div>`:''}
+      ${member.phone?`<div style="font-size:15px;color:var(--lt)">手機：${member.phone}</div>`:''}
+    `;
+  }
+  renderMyRegs(regs||[]);
+  restoreBtn();
+  // 持久化登入狀態到 localStorage
+  try {
+    localStorage.setItem('tb_member_email', email||'');
+  } catch(e){}
+}
 
 function memberLogout(){
   try { localStorage.removeItem('tb_member'); } catch(e){}
@@ -1788,27 +1833,18 @@ function renderMyRegs(regs){
   el.innerHTML=ST.regs.map(r=>{
     const color=statusColor[r.status]||'#888';
     const pb=payBadge(r);
-    const payBtn=canPayReg(r)?`<button onclick="event.stopPropagation();showPayPage('${r.id}','${escHtml(r.sessionName||r.sesName||'場次').replace(/'/g,"\\'")}','${Number(r.total||0)}')" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:12px;margin-top:10px;font-size:18px;font-weight:900">前往繳費</button>`:'';
+    const payBtn=canPayReg(r)?`<button onclick="event.stopPropagation();showPayPage('${r.id}',this.dataset.ses,'${Number(r.total||0)}')" data-ses="${escHtml(r.sessionName||r.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:12px;margin-top:10px;font-size:18px;font-weight:900">前往繳費</button>`:'';
     const waitMsg=isPendingPayText(r.payStatus)?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:9px 10px;margin-top:10px;font-size:17px;font-weight:800">已回報，等待主辦確認</div>`:'';
-    const refundBtn=canRefundReg(r)?`<button onclick="event.stopPropagation();cancelMyReg('${r.id}','${escHtml(r.sessionName||r.sesName||'').replace(/'/g,"\\'")}',true)" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);border-radius:10px;padding:11px;margin-top:9px;font-size:17px;font-weight:900">申請取消／退款</button>`:'';
+    const refundBtn=canRefundReg(r)?`<button onclick="event.stopPropagation();cancelMyReg('${r.id}',this.dataset.ses,true)" data-ses="${escHtml(r.sessionName||r.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);border-radius:10px;padding:11px;margin-top:9px;font-size:17px;font-weight:900">申請取消／退款</button>`:'';
     const transfer=r.transferStatus?`<div style="font-size:16px;color:#b45309;font-weight:800;margin-top:6px">退款狀態：${escHtml(r.transferStatus)}</div>`:'';
-    // 日期顯示
-    const datesText=Array.isArray(r.selectedDates)&&r.selectedDates.length?r.selectedDates.map(d=>d.date||d).join('、'):'';
-    // 設備文字（從 equip_json 動態產生）
-    const equipLines=Object.entries(r.equip||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k}×${v}`);
-    const equipText=r.equipmentText||(equipLines.length?equipLines.join('、'):'');
-    // 攤位號
-    const stallNum=r.stallNumber?`<div style="font-size:15px;color:var(--md);margin-top:2px">攤位：${escHtml(r.stallNumber)}</div>`:'';
     return `<div onclick="openRegDetail('${r.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:15px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${color}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px">
         <div style="font-size:20px;font-weight:900;color:var(--dk);flex:1;line-height:1.35">${escHtml(r.sessionName||r.sesName||'場次')}</div>
         <span style="background:${pb.bg};color:${pb.c};padding:5px 10px;border-radius:20px;font-size:17px;font-weight:900;white-space:nowrap">${pb.t}</span>
       </div>
       <div style="font-size:17px;color:var(--md);font-weight:700">審核：${escHtml(r.status||'')}　攤位數：${r.stallCount||1} 攤</div>
-      ${datesText?`<div style="font-size:14px;color:#888;margin-top:2px">日期：${escHtml(datesText)}</div>`:''}
-      ${stallNum}
       <div style="font-size:18px;color:var(--g);font-weight:900;margin-top:3px">${r.total>0?'NT$ '+Number(r.total||0).toLocaleString():r.payStatus==='免費'?'免費':''}</div>
-      ${equipText?`<div style="font-size:15px;color:var(--md);margin-top:3px">設備：${escHtml(equipText)}</div>`:''}
+      ${r.equipmentText?`<div style="font-size:16px;color:var(--md);margin-top:3px">設備：${escHtml(r.equipmentText)}</div>`:''}
       ${waitMsg}${refundBtn}${transfer}${payBtn}
     </div>`;
   }).join('');
@@ -1819,7 +1855,16 @@ function handlePendingPayLink(regs){
   const regId = window._pendingPayRegId || '';
   if(!regId) return;
   const reg = (Array.isArray(regs)?regs:[]).find(r=>String(r.id)===String(regId));
-  if(!reg) return;
+  if(!reg){
+    api({action:'getRegLink',regId,_t:Date.now()}).then(linkReg=>{
+      if(linkReg && !linkReg.error && linkReg.email){
+        ST.memberEmail = linkReg.email;
+        try{ localStorage.setItem('tb_member_email', linkReg.email); localStorage.removeItem('tb_member'); }catch(e){}
+        if(!ST.regs.some(x=>String(x.id)===String(linkReg.id))){ ST.regs=[linkReg,...ST.regs]; renderMyRegs(ST.regs); }
+      }
+    }).catch(()=>{});
+    return;
+  }
   window._pendingPayRegId = '';
   setTimeout(()=>{ if(canPayReg(reg)) showPayPage(reg.id, reg.sessionName||reg.sesName||'場次', Number(reg.total||0)); else openRegDetail(reg.id); }, 300);
 }
@@ -1849,10 +1894,10 @@ function openRegDetail(regId){
       ${reg.transferStatus?`<div style="font-size:17px;color:#b45309;font-weight:900">退款狀態：${escHtml(reg.transferStatus)}</div>`:''}
     </div>
     <div style="font-size:14px;color:var(--lt);margin-bottom:12px">報名編號：${reg.id}</div>
-    ${canPay?`<button onclick="document.getElementById('regDetailModal').remove();showPayPage('${reg.id}','${escHtml(reg.sessionName||reg.sesName||'場次').replace(/'/g,\"\\\'")}','${Number(reg.total||0)}');" style="width:100%;background:var(--g);color:#fff;border:none;padding:13px;border-radius:10px;font-size:18px;font-weight:900;cursor:pointer;margin-bottom:8px">前往繳費</button>`:''}
+    ${canPay?`<button onclick="document.getElementById('regDetailModal').remove();showPayPage('${reg.id}',this.dataset.ses,'${Number(reg.total||0)}');" data-ses="${escHtml(reg.sessionName||reg.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;padding:13px;border-radius:10px;font-size:18px;font-weight:900;cursor:pointer;margin-bottom:8px">前往繳費</button>`:''}
     ${isPendingPayText(reg.payStatus)?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:11px;margin-bottom:8px;font-size:18px;font-weight:900;text-align:center">已回報，等待主辦確認</div>`:''}
-    ${canCancel?`<button onclick="cancelMyReg('${reg.id}','${escHtml(reg.sessionName||reg.sesName||'').replace(/'/g,\"\\\'")}',false);document.getElementById('regDetailModal').remove();" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:17px;font-weight:900;cursor:pointer;margin-bottom:8px">取消報名</button>`:''}
-    ${canRefund?`<button onclick="cancelMyReg('${reg.id}','${escHtml(reg.sessionName||reg.sesName||'').replace(/'/g,\"\\\'")}',true);document.getElementById('regDetailModal').remove();" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:17px;font-weight:900;cursor:pointer;margin-bottom:8px">申請取消／退款</button>`:''}
+    ${canCancel?`<button onclick="cancelMyReg('${reg.id}',this.dataset.ses,false);document.getElementById('regDetailModal').remove();" data-ses="${escHtml(reg.sessionName||reg.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:17px;font-weight:900;cursor:pointer;margin-bottom:8px">取消報名</button>`:''}
+    ${canRefund?`<button onclick="cancelMyReg('${reg.id}',this.dataset.ses,true);document.getElementById('regDetailModal').remove();" data-ses="${escHtml(reg.sessionName||reg.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:17px;font-weight:900;cursor:pointer;margin-bottom:8px">申請取消／退款</button>`:''}
     <button onclick="document.getElementById('regDetailModal').remove()" style="width:100%;background:#f0f0f0;color:#888;border:none;padding:12px;border-radius:10px;font-size:16px;cursor:pointer">關閉</button>
   </div>`;
   modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
@@ -1953,8 +1998,18 @@ async function submitPaymentForm(){
   if(_p.get('member')==='1'){
     const _payRegId = _p.get('pay');
     if(_payRegId) window._pendingPayRegId = _payRegId;
-    // 信件按鈕進來時，直接切到會員中心；若本機已登入，會自動載入紀錄並開啟付款。
-    setTimeout(()=>{
+    // 信件按鈕進來時，先用報名編號回查 Email，避免不同手機沒有 localStorage 而看不到紀錄。
+    setTimeout(async()=>{
+      if(_payRegId){
+        try{
+          const linkReg = await api({action:'getRegLink',regId:_payRegId,_t:Date.now()});
+          if(linkReg && !linkReg.error && linkReg.email){
+            ST.memberEmail = linkReg.email;
+            try{ localStorage.setItem('tb_member_email', linkReg.email); localStorage.removeItem('tb_member'); }catch(e){}
+            if($('loginEmail')) $('loginEmail').value = linkReg.email;
+          }
+        }catch(e){}
+      }
       goMemberPage();
       const ml=$('memberLoginArea');
       if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
