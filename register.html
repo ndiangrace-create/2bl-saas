@@ -1168,7 +1168,8 @@ function renderDynFormFull(s, isNew=false){
   if(mods.remark){
     html+=`<label>備註</label><textarea id="f_remark" placeholder="本次報名補充說明…"></textarea>`;
   }
-  html+=`</div></div>`;  // end fcard-body, fcard A  $('dynForm').innerHTML=html;
+  html+=`</div></div>`;  // end fcard-body, fcard A
+  $('dynForm').innerHTML=html;
   // 隱藏外部 feeBox（費用已整合進卡片）
   document.querySelectorAll('.fee-box').forEach(el=>{ if(el.id==='feeBox'&&!el.closest('#dynForm')) el.style.display='none'; });
   const submitBtn=$('submitBtn');
@@ -1423,87 +1424,6 @@ function showAlreadyRegistered(s,reg){
         </button>
       </div>
     </div>`;
-}
-
-function renderDynForm(s){
-  const mods=s.modules||{};
-  let html='';
-  const V=ST.member||{};
-
-  // 基本資料：由會員資料帶入，但仍允許本次報名確認姓名/手機/Email
-  html+=`<div class="fcard"><div class="fcard-t">👤 報名人資料</div><div class="fcard-body">`;
-  html+=`<label>姓名 *</label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="請填寫姓名"><div class="err" id="e_name"></div>`;
-  html+=`<label>手機 *</label><input type="tel" id="f_phone" value="${esc(V.phone||'')}" placeholder="0912345678" inputmode="tel"><div class="err" id="e_phone"></div>`;
-  html+=`<label>Email *</label><input type="email" id="f_email" value="${esc(ST.memberEmail||V.email||'')}" placeholder="your@email.com" inputmode="email"><div class="err" id="e_email"></div>`;
-  html+=`<div style="font-size:15px;color:var(--lt);line-height:1.6;margin-top:6px">品牌資料、商品連結、出攤照片、FB/IG 會從會員資料帶入，不在每場重複填寫。</div>`;
-  html+=`</div></div>`;
-
-  // 日期選擇
-  if(s.dates && s.dates.length>1){
-    html+=`<div class="fcard"><div class="fcard-t">📅 選擇參加日期</div><div class="fcard-body">`;
-    s.dates.forEach((d,i)=>{
-      html+=`<label style="display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer;font-size:14px;color:var(--dk)">
-        <input type="checkbox" id="dp_${i}" checked onchange="updateFee()" style="width:18px;height:18px;accent-color:var(--g)">
-        <span>${d.date||''} ${d.start||''}${d.end?'–'+d.end:''}${d.fee?`　NT$${d.fee}`:''}</span>
-      </label>`;
-    });
-    html+=`</div></div>`;
-  }
-
-  // 本次販售商品
-  if(mods.sell_item){
-    html+=`<div class="fcard"><div class="fcard-t">🛍️ 本次販售商品</div><div class="fcard-body">`;
-    html+=`<label>本次販售商品</label><input type="text" id="f_sellItem" placeholder="例：手作飾品、甜點、二手選物">`;
-    html+=`<div class="err" id="e_sellItem"></div>`;
-    html+=`</div></div>`;
-  }
-
-  // 大人小孩人數
-  if(mods.adult||mods.child){
-    html+=`<div class="fcard"><div class="fcard-t">👨‍👩‍👧 人數</div><div class="fcard-body">`;
-    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">`;
-    if(mods.adult) html+=`<div><label>大人人數 *</label><input type="number" id="f_adult" value="1" min="0" inputmode="numeric"></div>`;
-    if(mods.child) html+=`<div><label>小孩人數</label><input type="number" id="f_child" value="0" min="0" inputmode="numeric" oninput="toggleChildAge(this.value)"></div>`;
-    html+=`</div><div id="childAgeArea" style="display:none"><label>小孩年齡（可選填）</label><input type="text" id="f_childAge" placeholder="例：5,8,10"></div>`;
-    html+=`</div></div>`;
-  }
-
-  // 備註欄位
-  if(mods.remark){
-    html+=`<div class="fcard"><div class="fcard-t">📝 備註</div><div class="fcard-body"><textarea id="f_remark" placeholder="本次報名補充說明…"></textarea></div></div>`;
-  }
-
-  // 自訂欄位
-  if(s.customFields && s.customFields.length){
-    html+=`<div class="fcard"><div class="fcard-t">📌 其他資料</div><div class="fcard-body">`;
-    s.customFields.forEach((cf,i)=>{
-      html+=`<label>${cf.label}${cf.required?' *':''}</label>`;
-      if(cf.type==='textarea') html+=`<textarea id="cf_${i}" placeholder="${cf.label}"></textarea>`;
-      else if(cf.type==='select') html+=`<select id="cf_${i}"><option value="">請選擇</option>${(cf.options||'').split(',').map(o=>`<option>${o.trim()}</option>`).join('')}</select>`;
-      else if(cf.type==='url') html+=`<input type="url" id="cf_${i}" placeholder="https://...">`;
-      else html+=`<input type="text" id="cf_${i}" placeholder="${cf.label}">`;
-    });
-    html+=`</div></div>`;
-  }
-
-  // 加購項目：只有後台勾選 open 才顯示
-  const addons=(s.addons||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.open===true||a.open==='true');
-  if(addons.length>0){
-    html+=`<div class="fcard"><div class="fcard-t">🛒 加購項目（選填）</div><div class="fcard-body">`;
-    addons.forEach((a)=>{
-      html+=`<div class="equip-row">
-        <div class="equip-info"><div class="equip-name">${esc(a.name||'')}</div><div class="equip-price">NT$ ${Number(a.price)||0}/件</div></div>
-        <div class="equip-ctrl">
-          <button class="eq-btn" type="button" onclick="adjAddon(${a._idx},-1)">−</button>
-          <div class="eq-num" id="addon_num_${a._idx}">0</div>
-          <button class="eq-btn" type="button" onclick="adjAddon(${a._idx},1)">＋</button>
-        </div>
-      </div>`;
-    });
-    html+=`</div></div>`;
-  }
-
-  $('dynForm').innerHTML=html;
 }
 
 function toggleInvoiceType(){
