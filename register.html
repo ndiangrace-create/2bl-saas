@@ -1915,32 +1915,29 @@ function openExternalPay(){
 async function submitPaymentForm(){
   const method = $('payMethod')?.value || 'ATM 轉帳';
   const isBank = method.includes('ATM') || method.includes('銀行') || method.includes('轉帳') || method.includes('匯款');
-  const lastFive = $('payLastFive')?.value.trim() || '';
+  const lastFive = isBank ? ($('payLastFive')?.value.trim() || '') : '';
   const amount = ST_currentPayAmount;
-  if(!method){toast('請選擇付款方式');return;}
-  if(isBank && !lastFive){toast('請填寫帳號末五碼');return;}
-  if(!amount || amount<=0){toast('金額錯誤');return;}
+  if(isBank && !lastFive){ toast('請填寫帳號末五碼'); return; }
+  if(!amount || amount<=0){ toast('金額錯誤'); return; }
   const btn = $('reportPaymentBtn');
-  if(btn){btn.disabled=true;btn.textContent='回報中…';}
+  if(btn){ btn.disabled=true; btn.textContent='回報中…'; }
   try{
     const res = await apiPost({action:'submitPayment',regId:ST_currentPayRegId,method,lastFive,amount,email:ST.member?.email||ST.memberEmail||''});
-    if(res.error){toast('❌ '+res.error);return;}
-    ST_currentPaymentCard = res.lineCardText || res.paymentLineCardText || buildLocalPaymentCard(method, amount);
-    showPaymentSuccess(ST_currentPaymentCard);
+    if(res.error){ toast('❌ '+res.error); return; }
+    // 付款卡片由 Worker 統一產生（AA3 鐵律）
+    const cardText = res.lineCardText || res.paymentLineCardText || '';
+    if(!cardText){ toast('⚠️ 付款卡片產生失敗，請聯繫客服'); return; }
+    ST_currentPaymentCard = cardText;
+    showPaymentSuccess(cardText);
+    // 背景更新我的紀錄
     if(ST.memberEmail){
-      const regs = await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
-      if(Array.isArray(regs)){ ST.regs=regs; renderMyRegs(regs); }
+      api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()}).then(regs=>{
+        if(Array.isArray(regs)){ ST.regs=regs; renderMyRegs(regs); }
+      }).catch(()=>{});
     }
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='我已完成付款，回報付款';}
+    if(btn){ btn.disabled=false; btn.textContent='我已完成付款，回報付款'; }
   }
-}
-function buildLocalPaymentCard(method, amount){
-  const r=ST_currentPayReg||{};
-  const eq=(r.equipmentText||'').replace(/椅子/g,'椅');
-  const line3=['攤位 '+(r.stallCount||1)+' 攤', eq].filter(Boolean).join('、');
-  const dep=Number(r.deposit||0)||0;
-  return [r.sessionName||'場次', [r.brand,r.name].filter(Boolean).join('／')||r.name||r.brand||'未填資料', line3, dep>0?'保證金 NT$'+dep.toLocaleString():'', '', '付款金額：NT$'+Number(amount||0).toLocaleString()+'（'+method+'）'].filter((x,i)=>x!==''||i===4).join('\n');
 }
 function showPaymentSuccess(cardText){
   $('payModalTitle').textContent='付款回報';
