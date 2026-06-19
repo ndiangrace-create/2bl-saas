@@ -1402,17 +1402,24 @@ async function openSession(sessionId){
     buildFormHero(s,cover);
     const titleEl=$('formBackTitle');
     if(titleEl) titleEl.textContent=s.name||'報名表';
+    // 先檢查是否已報名（不管 ST.member 是否載入）
+    const emailToCheck = ST.memberEmail || localStorage.getItem('tb_member_email') || '';
+    if(emailToCheck){
+      try{
+        const myRegs=await api({action:'getMyRegs',email:emailToCheck,_t:Date.now()});
+        const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
+        if(dup){
+          const modal=$('regFormModal');
+          if(!modal || !modal.classList.contains('show')) openRegFormModal();
+          showAlreadyRegistered(s,dup);
+          return;
+        }
+      }catch(e){}
+    }
     const modal=$('regFormModal');
     if(!modal || !modal.classList.contains('show')) openRegFormModal();
     if(ST.member && ST.memberEmail){
-      try{
-        const myRegs=await api({action:'getMyRegs',email:ST.memberEmail,_t:Date.now()});
-        const dup=Array.isArray(myRegs)&&myRegs.find(rg=>rg.sessionId===s.id&&rg.status!=='不錄取'&&rg.status!=='已取消');
-        if(dup) showAlreadyRegistered(s,dup);
-        else renderDynFormFull(s, false);
-      }catch(e){
-        renderDynFormFull(s, false);
-      }
+      renderDynFormFull(s, false);
     } else {
       showEmailStep(s);
     }
@@ -1457,7 +1464,9 @@ function showAlreadyRegistered(s,reg){
   const dynEl=$('dynForm');
   const submitBtn=$('submitBtn');
   if(submitBtn) submitBtn.style.display='none';
-  const feeBox=$('feeBox'); if(feeBox) feeBox.style.display='none';
+  // 隱藏所有費用與表單相關元素
+  document.querySelectorAll('.fee-box,#feeBox').forEach(el=>el.style.display='none');
+  document.querySelectorAll('.fcard').forEach(el=>{ if(!el.closest('#dynForm')) el.style.display='none'; });
   if(!dynEl) return;
   const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',已取消:'#aaa'}[reg.status]||'#555';
   dynEl.innerHTML=`
