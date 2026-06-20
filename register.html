@@ -282,6 +282,15 @@ button,a,[onclick]{touch-action:manipulation}
 }
 /* 防止圖片長按選單 */
 #siteHero img{-webkit-user-drag:none;-webkit-touch-callout:none;pointer-events:none;user-select:none}
+
+
+/* V5.0.1 保守整併：手機不溢出與按鈕一致性 */
+@media(max-width:640px){
+  *{max-width:100%;}
+  .fcard,.mcard,.modal-box{overflow:hidden;}
+  input,textarea,select,button{min-width:0;}
+}
+
 </style>
 <body>
 <!-- ══ 首頁 ══ -->
@@ -508,7 +517,7 @@ button,a,[onclick]{touch-action:manipulation}
         <option value="LINE Pay">LINE Pay</option>
         <option value="信用卡付款">信用卡</option>
       </select>
-      <div style="font-size:16px;color:#8a6d3b;background:#fff8ed;border:1.5px solid #f5d7a1;border-radius:12px;padding:10px 12px;margin-bottom:12px;line-height:1.65;font-weight:900">付款前請先注意：完成付款後，請務必截圖保留付款證明。付款完成後請回到「我的紀錄」按「我已完成付款，回報付款」，並將付款卡片與付款截圖一起傳至官方 LINE。主辦確認入帳後，狀態才會更新為「已繳費」。</div>
+      <div style="font-size:16px;color:#8a6d3b;background:#fff8ed;border:1.5px solid #f5d7a1;border-radius:12px;padding:10px 12px;margin-bottom:12px;line-height:1.55;font-weight:800">付款完成後，請記得截圖保留付款證明，返回本頁完成付款回報。</div>
       <div id="bankPayBox" style="background:#fff8ed;border:1.5px solid #f5d7a1;border-radius:12px;padding:12px;margin-bottom:12px;font-size:17px;line-height:1.65;color:#5a3a05">
         <div style="font-weight:900;font-size:18px;margin-bottom:4px">ATM 轉帳</div>
         <div id="bankInfoDisplay" style="color:#aaa;font-size:15px">付款資訊載入中…</div>
@@ -527,7 +536,7 @@ button,a,[onclick]{touch-action:manipulation}
       <div style="font-size:22px;font-weight:900;color:#b45309;margin-bottom:4px">⚠️ 付款回報已送出，尚未完成付款確認</div>
       <div style="font-size:17px;color:var(--dk);font-weight:900;margin-bottom:12px;line-height:1.55">請不要直接關閉此畫面。請先複製下方付款卡片，並連同付款截圖一起傳至官方 LINE。主辦確認入帳後，狀態才會更新為「已繳費」。</div>
       <pre id="paymentCopyCard" onclick="copyPaymentCard()" style="white-space:pre-wrap;background:#fff;border:1.5px solid #d0e8d8;border-radius:14px;padding:14px;font-size:17px;line-height:1.55;color:#1a1a18;font-family:inherit;cursor:pointer;margin:0 0 12px"></pre>
-      <div style="font-size:16px;color:var(--md);font-weight:900;margin-bottom:12px">👇 請點一下上方付款卡片框框，即可複製內容。請連同付款截圖一起傳至官方 LINE。</div>
+      <div style="font-size:16px;color:var(--md);font-weight:800;margin-bottom:12px">請複製此張卡片與付款截圖一起傳至官方 LINE。</div>
       <button type="button" onclick="openLine()" style="width:100%;background:#06C755;color:#fff;border:none;border-radius:10px;padding:13px;font-size:18px;font-weight:900;cursor:pointer">前往 LINE 客服</button>
       <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;font-size:17px;padding:12px;margin-top:8px">我已傳 LINE，關閉</button>
     </div>
@@ -666,6 +675,15 @@ async function apiPost(body, timeoutMs=15000){
 function openModal(id){const el=$(id);if(el)el.classList.add('show');}
 function closeModal(id){const el=$(id);if(el)el.classList.remove('show');}
 function openLine(){window.open(LINE_URL,'_blank');}
+let __logoHoldTimer=null;
+function startLogoHold(ev){
+  try{ if(ev && ev.cancelable) ev.preventDefault(); }catch(e){}
+  stopLogoHold();
+  __logoHoldTimer=setTimeout(()=>{ window.location.href='admin.html?tenant='+encodeURIComponent(TENANT_ID||'tuibile'); },3000);
+}
+function stopLogoHold(){
+  if(__logoHoldTimer){ clearTimeout(__logoHoldTimer); __logoHoldTimer=null; }
+}
 
 function esc(v){return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
@@ -758,21 +776,11 @@ async function safeLoadMemberPage(email, opts={}){
       if(member && !member.error){
         ST.member={...(ST.member||{}),...member,email:member.email||email};
         fillMemberCard(ST.member);
-        // 檢查資料完整性：姓名、品牌名稱、FB 或 IG 至少一個
-        const m = ST.member;
-        const hasName   = !!(m.name||m.displayName||'').trim();
-        const hasBrand  = !!(m.brand||m.brand_name||'').trim();
-        const hasSocial = !!(m.fb||m.fb_url||m.ig||m.ig_url||'').trim();
-        if(!hasName || !hasBrand || !hasSocial){
-          const missing=[];
-          if(!hasName)   missing.push('姓名');
-          if(!hasBrand)  missing.push('品牌名稱');
-          if(!hasSocial) missing.push('FB 或 Instagram（審核必要）');
-          ST._profileIncomplete = true;
-          openMemberEditModal('請先完善以下資料才能使用報名功能：' + missing.join('、'));
-        } else {
-          ST._profileIncomplete = false;
-        }
+        const m=ST.member;
+        const hasName=!!String(m.name||'').trim();
+        const hasBrand=!!String(m.brand||m.brand_name||'').trim();
+        const hasSocial=!!String(m.fb||m.fb_url||m.ig||m.ig_url||'').trim();
+        ST._profileIncomplete=!(hasName&&hasBrand&&hasSocial);
       }else{
         if(!ST.member) ST.member={email};
         fillMemberCard(ST.member);
@@ -1250,6 +1258,11 @@ function renderDynFormFull(s, isNew=false){
   html+=`<div class="fcard-body">`;
   html+=`<label style="font-size:15px">品牌名稱${isNew?' <span style="color:#e74c3c">*</span>':''}</label><input type="text" id="f_brand" value="${esc(V.brand||V.brand_name||'')}" placeholder="您的品牌或攤位名稱">`;
   html+=`<textarea id="f_brandIntro" style="display:none">${esc(V.brandIntro||V.brand_intro||'')}</textarea>`;
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+    <div><label style="font-size:15px">FB 粉專連結</label><input type="url" id="f_fb" value="${esc(vFb)}" placeholder="https://facebook.com/..."></div>
+    <div><label style="font-size:15px">Instagram 連結</label><input type="url" id="f_ig" value="${esc(vIg)}" placeholder="https://instagram.com/..."></div>
+  </div>
+  <div class="err" id="e_social" style="font-size:14px;min-height:18px"></div>`;
   html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
     <div><label style="font-size:15px">姓名 <span style="color:#e74c3c">*</span></label><input type="text" id="f_name" value="${esc(V.name||'')}" placeholder="姓名"><div class="err" id="e_name"></div></div>
     <div><label style="font-size:15px">手機 <span style="color:#e74c3c">*</span></label><input type="tel" id="f_phone" value="${esc(V.phone||'')}" placeholder="0912345678" inputmode="tel"><div class="err" id="e_phone"></div></div>
@@ -1414,7 +1427,7 @@ function setEditValue(id, value){
   const el=$(id);
   if(el) el.value = value == null ? '' : String(value);
 }
-async function openMemberEditModal(forceMsg){
+async function openMemberEditModal(hintText){
   const email = String(ST.memberEmail || memberSafeEmail() || '').trim();
   if(!email){ toast('請先登入會員'); return; }
   const modal=$('memberEditModal');
@@ -1423,21 +1436,10 @@ async function openMemberEditModal(forceMsg){
   const btn=$('saveMemberBtn');
   if(btn){ btn.disabled=false; btn.textContent='儲存資料'; }
   const msg=$('saveSuccessMsg'); if(msg) msg.style.display='none';
-
-  // 強制填寫提示
-  const hintEl=$('memberEditHint');
-  const closeBtn=modal.querySelector('button[onclick*="closeMemberEditModal"]')||modal.querySelector('button[onclick*="closeModal(\'memberEditModal\')"]');
-  if(forceMsg){
-    if(hintEl){ hintEl.textContent=forceMsg; hintEl.style.display='block'; }
-    if(closeBtn) closeBtn.style.display='none';
-    // 攔截點擊背景關閉
-    modal._forceOpen=true;
-    modal.onclick=function(e){ if(e.target===modal) toast('請先填寫完整資料並儲存'); };
-  } else {
-    if(hintEl){ hintEl.style.display='none'; hintEl.textContent=''; }
-    if(closeBtn) closeBtn.style.display='';
-    modal._forceOpen=false;
-    modal.onclick=function(e){ if(e.target===modal) closeMemberEditModal(); };
+  const hint=$('memberEditHint');
+  if(hint){
+    if(hintText){ hint.style.display='block'; hint.textContent=hintText; }
+    else { hint.style.display='none'; hint.textContent=''; }
   }
 
   let m = ST.member || {email};
@@ -1504,21 +1506,7 @@ async function saveMemberEdit(){
     const msg=$('saveSuccessMsg');
     if(msg){ msg.style.display='block'; setTimeout(()=>msg.style.display='none',1800); }
     toast('✅ 會員資料已更新');
-    // 重新檢查完整性
-    const m2 = ST.member;
-    const hasName2   = !!(m2.name||m2.displayName||'').trim();
-    const hasBrand2  = !!(m2.brand||m2.brand_name||'').trim();
-    const hasSocial2 = !!(m2.fb||m2.fb_url||m2.ig||m2.ig_url||'').trim();
-    if(!hasName2 || !hasBrand2 || !hasSocial2){
-      const missing2=[];
-      if(!hasName2)   missing2.push('姓名');
-      if(!hasBrand2)  missing2.push('品牌名稱');
-      if(!hasSocial2) missing2.push('FB 或 Instagram（審核必要）');
-      openMemberEditModal('仍缺少以下資料：' + missing2.join('、'));
-    } else {
-      ST._profileIncomplete = false;
-      setTimeout(()=>closeMemberEditModal(), 500);
-    }
+    setTimeout(()=>closeMemberEditModal(),500);
   }catch(e){
     console.warn('[saveMemberEdit failed]',e);
     toast('❌ 網路錯誤，請稍後再試');
@@ -1939,6 +1927,13 @@ async function submitReg(ev){
     const brandVal=($('f_brand')?.value||'').trim();
     const isNewU=!ST.member;
     if(isNewU && !brandVal){ toast('新朋友請填寫品牌名稱'); showFormError('新朋友請填寫品牌名稱'); $('f_brand')?.focus(); restoreBtn(); return false; }
+    const fbVal=($('f_fb')?.value||'').trim();
+    const igVal=($('f_ig')?.value||'').trim();
+    if(!fbVal && !igVal){
+      const e=$('e_social'); if(e)e.textContent='請至少填寫 FB 粉專或 Instagram 其中一個，方便主辦審核。';
+      showFormError('請至少填寫 FB 粉專或 Instagram 其中一個，方便主辦審核。');
+      ($('f_fb')||$('f_ig'))?.focus(); restoreBtn(); return false;
+    } else { const e=$('e_social'); if(e)e.textContent=''; }
     if(!ok){ toast('請確認必填欄位'); showFormError('請確認上方必填欄位（姓名 / 手機 / Email）'); restoreBtn(); return false; }
     let selectedDates=[];
     if(Array.isArray(s.dates) && s.dates.length>1){
@@ -1962,7 +1957,7 @@ async function submitReg(ev){
     const body={
       action:'register',sessionId:s.id,email,name,phone,stallCount:ST.stallCount||1,invoiceType,
       invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),taxId:($('f_taxId')?.value||'').trim(),invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),selectedDates,
-      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:(M.sellCat||M.sell_category||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',participantsJson:participants,adultCount:participants.adultCount,childCount:participants.childCount,childAges:participants.childAges,customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:(M.sellCat||M.sell_category||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:(($('f_fb')?.value||M.fb||M.fb_url||'').trim()),ig:(($('f_ig')?.value||M.ig||M.ig_url||'').trim()),remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',participantsJson:participants,adultCount:participants.adultCount,childCount:participants.childCount,childAges:participants.childAges,customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     };
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
@@ -1978,7 +1973,7 @@ async function submitReg(ev){
     const _carrier=($('f_invoiceCarrier')?.value||'').trim();
     const _invEmail=($('f_invoiceEmail')?.value||$('f_personalInvoiceEmail')?.value||'').trim();
     if(_brand||_taxId||_company){
-      ST.member={...(ST.member||{}),brand:_brand||ST.member?.brand,sellCat:(ST.member?.sellCat||ST.member?.sell_category||''),company:_company||ST.member?.company,taxId:_taxId||ST.member?.taxId,invoiceCarrier:_carrier||ST.member?.invoiceCarrier,invoiceEmail:_invEmail||ST.member?.invoiceEmail};
+      ST.member={...(ST.member||{}),brand:_brand||ST.member?.brand,fb:($('f_fb')?.value||ST.member?.fb||''),ig:($('f_ig')?.value||ST.member?.ig||''),sellCat:(ST.member?.sellCat||ST.member?.sell_category||''),company:_company||ST.member?.company,taxId:_taxId||ST.member?.taxId,invoiceCarrier:_carrier||ST.member?.invoiceCarrier,invoiceEmail:_invEmail||ST.member?.invoiceEmail};
       try{ localStorage.setItem('tb_member_email',email||''); }catch(e){}
     }
     // 會員資料改成背景更新，不讓 getMember 卡住成功畫面
@@ -2201,8 +2196,6 @@ function openExternalPay(){
   if(isBank){ toast('請依上方 ATM 資訊完成轉帳，付款後回來按「我已完成付款，回報付款」',5000); return; }
   const url = getPayLink(method);
   if(!url){ toast('此付款方式尚未設定連結'); return; }
-  const ok = confirm('付款前請先注意：完成付款後，請務必截圖保留付款證明。付款完成後請回到「我的紀錄」按「我已完成付款，回報付款」，並將付款卡片與付款截圖一起傳至官方 LINE。');
-  if(!ok) return;
   window.open(url,'_blank');
   toast('付款完成後請截圖，並回來完成付款回報',5000);
 }
@@ -2239,7 +2232,7 @@ function showPaymentSuccess(cardText){
 async function copyPaymentCard(){
   const text = ST_currentPaymentCard || $('paymentCopyCard')?.textContent || '';
   if(!text){ toast('沒有可複製的付款卡片'); return; }
-  try{ await navigator.clipboard.writeText(text); toast('已複製付款卡片，請貼到官方 LINE，並一起傳付款截圖'); }
+  try{ await navigator.clipboard.writeText(text); toast('已複製付款卡片'); }
   catch(e){ toast('請長按卡片文字複製'); }
 }
 

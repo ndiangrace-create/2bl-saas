@@ -266,6 +266,31 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
   .topbar-front-btn{font-size:15px;padding:7px 10px}
 }
 
+
+
+/* V5.0.1 保守整併：手機總覽三欄、文字不溢出、按鈕色系一致 */
+.btn,.btn-sm,.btn-xs,button{border-radius:12px!important;font-weight:800!important}
+.btn-g{background:#82ABA3!important;color:#fff!important}
+.btn-b{background:#DDEAF7!important;color:#1f5f8b!important}
+.btn-y{background:#FFF6DB!important;color:#8A5A12!important}
+.btn-r{background:#F8DDDD!important;color:#9A332C!important}
+.btn-s{background:#F2F2F0!important;color:#222!important}
+@media(max-width:1024px){
+  .main{overflow-x:hidden!important;}
+  .ov-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+  .ov-metric{min-width:0!important;padding:8px 7px!important}
+  .ov-metric .label{font-size:13px!important;white-space:normal!important;line-height:1.25!important}
+  .ov-metric .num{font-size:22px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .ov-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+  .ov-actions button{width:100%!important;min-width:0!important}
+  #regsCardList>div{overflow:hidden!important}
+  #regsCardList [style*="grid-template-columns:repeat(4"],
+  #regsCardList [style*="grid-template-columns:repeat(5"]{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  #regsCardList [style*="grid-template-columns"]>div{min-width:0!important;overflow-wrap:anywhere!important;word-break:break-word!important}
+  #regsCardList strong,#regsCardList span,#regsCardList div{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+  .topbar{overflow:hidden!important}.topbar-logo{line-height:1.1!important}.topbar-right{gap:4px!important}.topbar-front-btn{min-width:0!important;white-space:normal!important;line-height:1.15!important}
+}
+
 </style>
 <!-- db-driven-20260618 -->
 <!-- build: finance-card-invoice-footer-187 -->
@@ -898,7 +923,6 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
         <option value="">全部狀態</option>
         <option value="待審核">待審核</option>
         <option value="已錄取">已錄取</option>
-        <option value="備取">備取</option>
         <option value="不錄取">不錄取</option>
         <option value="已取消">已取消</option>
       </select>
@@ -978,7 +1002,7 @@ async function apiPost(body){
     const r=await fetch(API+'?_t='+Date.now(),{
       method:'POST',
       headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-store'},
-      body:JSON.stringify({...body,email:ST.email,token:ST.token}),
+      body:JSON.stringify({...body,email:ST.email,token:ST.token,tenantId:TENANT_ID}),
       cache:'no-store'
     });
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
@@ -2413,8 +2437,8 @@ function renderRegs(){
     const addonStr=formatAddonText(r,ses);
     const participant=participantText(r.participants);
     const amount=Number(r.amount||r.totalAmount||r.total||0)||0;
-    const statusBg={待審核:'#fff3cd',已錄取:'#d4edda',不錄取:'#f8d7da',備取:'#e2e3ff',已取消:'#eee'}[r.status]||'#f0f0f0';
-    const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',備取:'#383d8a',已取消:'#777'}[r.status]||'#666';
+    const statusBg={待審核:'#fff3cd',已錄取:'#d4edda',不錄取:'#f8d7da',已取消:'#eee'}[r.status]||'#f0f0f0';
+    const statusColor={待審核:'#856404',已錄取:'#155724',不錄取:'#721c24',已取消:'#777'}[r.status]||'#666';
     const pay=r.payStatus||'未繳費';
     const paidOk=String(pay).includes('已繳費')||String(pay).includes('免費');
     const dateHtml=ses.id?fmtOverviewDateRangeText(ses):'';
@@ -2446,7 +2470,6 @@ function renderRegs(){
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${r.status!=='已錄取'?`<button onclick="quickApprove('${esc(r.id)}')" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">錄取</button>`:''}
         ${r.status!=='不錄取'?`<button onclick="quickReject('${esc(r.id)}')" style="background:var(--rdp);color:var(--rd);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">不錄取</button>`:''}
-        ${r.status!=='備取'?`<button onclick="quickWaitlist('${esc(r.id)}')" style="background:#e2e3ff;color:#383d8a;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">備取</button>`:''}
         <button onclick="openRegDetail('${esc(r.id)}')" style="background:#f0f0f0;color:var(--dk);border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">明細</button>
       </div>
     </div>`;
@@ -2587,12 +2610,7 @@ async function batchCheckin(){
   if(typeof loadCheckinRegs==='function') loadCheckinRegs();
   if(typeof renderPaymentManagement==='function') renderPaymentManagement();
 }
-async function quickWaitlist(regId){
-  const res=await apiPost({action:'approveReg',regId,status:'備取'});
-  if(res.error){toast('❌ '+res.error);return;}
-  toast('已設為備取');
-  await loadAllRegs(); renderRegs();
-}
+function quickWaitlist(regId){ toast('正式狀態只使用錄取或不錄取'); }
 
 async function openRegDetail(regId){
   const reg=(ST.allRegs||[]).find(r=>r.id===regId);
@@ -2716,7 +2734,7 @@ function isPaidText(v){
 }
 function isPendingPayText(v){
   const s=String(v||'').trim();
-  return s==='待確認' || s==='付款待確認' || s==='已回報' || s==='待核款';
+  return s==='待確認' || s==='已回報' || s==='待核款';
 }
 function paymentStatusLabel(v){
   if(isPaidText(v)) return '已繳費';
@@ -2852,7 +2870,7 @@ function renderPaymentManagement(targetId){
           ${isPending?`<button class="btn btn-y btn-sm" onclick="markPaymentScreenshotById('${r.id}')">已回報客服</button>`:''}
           ${isPending?`<button class="btn btn-g btn-sm" onclick="confirmPayById('${r.id}')">確認付款</button>`:''}
           ${isPending?`<button class="btn btn-r btn-sm" onclick="adminCancelRegById('${r.id}')">取消報名</button>`:''}
-          ${isRefund?`<button class="btn btn-r btn-sm" onclick="confirmRefundById('${r.id}')">同意退費</button>`:''}
+          ${isRefund?`<button class="btn btn-r btn-sm" onclick="confirmRefundById('${r.id}')">確認退款</button>`:''}
           <button class="btn btn-b btn-sm" onclick="openRegDetail('${r.id}')">看明細</button>
         </div>
       </div>
@@ -3327,7 +3345,7 @@ function renderSesRegList(){
     return;
   }
   const statusColor={
-    '待審核':'#7c5ccc','已錄取':'#1D9E75','備取':'#D97706',
+    '待審核':'#7c5ccc','已錄取':'#1D9E75',
     '不錄取':'#E53E3E','已取消':'#aaa'
   };
   el.innerHTML=list.map((r,i)=>{
@@ -3910,8 +3928,8 @@ function renderSesRegsList(){
   const el=$('sesRegsList');
   if(!el) return;
   if(!regs.length){el.innerHTML='<div style="color:#aaa;text-align:center;padding:20px">無報名資料</div>';return;}
-  const statusColor={'待審核':'#856404','已錄取':'#155724','不錄取':'#721c24','備取':'#383d8a'};
-  const statusBg={'待審核':'#fff3cd','已錄取':'#d4edda','不錄取':'#f8d7da','備取':'#e2e3ff'};
+  const statusColor={'待審核':'#856404','已錄取':'#155724','不錄取':'#721c24'};
+  const statusBg={'待審核':'#fff3cd','已錄取':'#d4edda','不錄取':'#f8d7da'};
   el.innerHTML=regs.map(r=>{
     let equipStr=r.equipmentText||'';
     if(!equipStr){try{const eq=JSON.parse(r.equip||'{}');equipStr=Object.entries(eq).filter(([k,v])=>v>0).map(([k,v])=>k+' '+v).join(' ');}catch(e){}}
@@ -4002,79 +4020,17 @@ async function confirmPayById(payId){
 async function confirmRefundById(regId){
   const r=(ST.allRegs||[]).find(x=>String(x.id)===String(regId));
   if(!r){toast('找不到退款資料');return;}
-
-  const fallbackPaid = Number(r.amount||0) || 0;
-  let sug = null;
-  try{
-    sug = await api({action:'getRefundSuggestion',regId,email:ST.email,token:ST.token,_t:Date.now()});
-    if(sug && sug.error) sug = null;
-  }catch(e){ sug = null; }
-
-  const paidAmount = Number((sug&&sug.paidAmount) || fallbackPaid) || 0;
-  const defaultAdminFee = Math.max(0, Number((sug&&sug.refundAdminFee) || 0) || 0);
-  const defaultTransferFee = Math.max(0, Number((sug&&sug.refundTransferFee) || 0) || 0);
-  const ruleLabel = String((sug&&sug.refundRuleLabel) || '主辦手動確認');
-  const daysText = (sug && sug.daysBefore!==null && sug.daysBefore!==undefined && sug.daysBefore!=='') ? `距活動約 ${Number(sug.daysBefore)} 天` : '無法自動判斷天數';
-  const eventDateText = (sug && sug.eventDate) ? String(sug.eventDate) : adminEsc(regDateLabel(r));
-
-  const html=`<div style="font-size:17px;line-height:1.55;color:var(--dk)">
-    <div style="font-size:22px;font-weight:900;margin-bottom:8px;color:var(--rd)">同意退費</div>
-    <div><strong>場次：</strong>${adminEsc(regSessionLabel(r))}　${adminEsc(eventDateText)}</div>
-    <div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}</div>
-    <div style="margin-top:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:9px 10px;color:#92400e;font-weight:900">
-      系統建議規則：${adminEsc(ruleLabel)}（${adminEsc(daysText)}）<br>
-      可依實際情況調整行政費與轉帳手續費。
-    </div>
-    <div style="margin-top:12px;display:grid;gap:10px">
-      <label style="display:block;font-weight:900">原已繳金額
-        <div style="margin-top:5px;background:#eef8f1;border-radius:10px;padding:12px 14px;font-size:22px;color:var(--g);font-weight:900">NT$${paidAmount.toLocaleString()}</div>
-      </label>
-      <label style="display:block;font-weight:900">行政費
-        <input id="refundAdminFeeInput" type="number" min="0" step="1" inputmode="numeric" value="${defaultAdminFee}" style="width:100%;box-sizing:border-box;margin-top:5px;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:18px;font-weight:800">
-      </label>
-      <label style="display:block;font-weight:900">轉帳手續費
-        <input id="refundTransferFeeInput" type="number" min="0" step="1" inputmode="numeric" value="${defaultTransferFee}" style="width:100%;box-sizing:border-box;margin-top:5px;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:18px;font-weight:800">
-        <div style="font-size:13px;color:#777;margin-top:4px;font-weight:700">若由主辦吸收，請填 0。</div>
-      </label>
-      <div style="font-weight:900">退款金額
-        <div id="refundAmountPreview" style="margin-top:5px;background:#f3f4f6;border-radius:10px;padding:12px 14px;font-size:24px;color:var(--rd);font-weight:900">NT$0</div>
-      </div>
-      <label style="display:block;font-weight:900">退費備註
-        <textarea id="refundNoteInput" placeholder="可填寫退費原因、帳務備註或特殊調整原因" style="width:100%;box-sizing:border-box;margin-top:5px;padding:10px;border:1px solid #ddd;border-radius:10px;font-size:16px;min-height:76px"></textarea>
-      </label>
-    </div>
-    <div style="margin-top:10px;color:var(--rd);font-weight:900">確認後將標記為「已退費」，並寄出退費完成信。</div>
-  </div>`;
-
+  const html=`<div style="font-size:18px;line-height:1.55;color:var(--dk)"><div style="font-size:20px;font-weight:900;margin-bottom:8px;color:var(--rd)">確認退款申請</div><div><strong>場次：</strong>${adminEsc(regSessionLabel(r))}　${adminEsc(regDateLabel(r))}</div><div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}</div><div><strong>已繳金額：</strong>NT$${Number(r.amount||0).toLocaleString()}　<strong>攤位：</strong>${Number(r.stallCount||1)} 攤</div><div style="margin-top:8px;color:var(--rd);font-weight:900">確認後將標記為：已退費，並寄出退費完成信。</div></div>`;
   showConfirmDialog(html, async()=>{
-    const adminFee = Math.max(0, Math.round(Number(document.getElementById('refundAdminFeeInput')?.value||0)));
-    const transferFee = Math.max(0, Math.round(Number(document.getElementById('refundTransferFeeInput')?.value||0)));
-    const note = String(document.getElementById('refundNoteInput')?.value||'');
-    if(adminFee + transferFee > paidAmount){ toast('❌ 行政費與轉帳手續費不可大於已繳金額'); return; }
-    const res=await apiPost({action:'confirmRefund',regId,refundAdminFee:adminFee,refundTransferFee:transferFee,refundRuleLabel:ruleLabel,refundNote:note});
+    const res=await apiPost({action:'confirmRefund',regId});
     if(res.error){toast('❌ '+res.error);return;}
-    toast('✅ 已完成退費確認');
+    toast('✅ 已標記退款完成');
     await loadAllRegs();
     renderPaymentManagement();
-    try{ const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token,_t:Date.now()}); ST.sdData=sd||[]; renderOverview(); }catch(e){}
   });
-
-  setTimeout(()=>{
-    const adminInput=document.getElementById('refundAdminFeeInput');
-    const transferInput=document.getElementById('refundTransferFeeInput');
-    const preview=document.getElementById('refundAmountPreview');
-    const update=()=>{
-      const a=Math.max(0, Math.round(Number(adminInput?.value||0)));
-      const t=Math.max(0, Math.round(Number(transferInput?.value||0)));
-      const refund=Math.max(0, paidAmount-a-t);
-      if(preview) preview.textContent='NT$'+refund.toLocaleString();
-      if(preview) preview.style.color=(a+t>paidAmount)?'var(--rd)':'var(--g)';
-    };
-    adminInput?.addEventListener('input',update);
-    transferInput?.addEventListener('input',update);
-    update();
-  },0);
 }
+
+
 
 function showFinAdd(type){
   // 顯示財報新增表單，type = 'income' 或 'expense'
