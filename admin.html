@@ -1494,7 +1494,6 @@ function renderOverviewSessionsFn(){
         <div class="ov-metric"><div class="label">押金</div><div class="num" style="font-size:18px;color:#854F0B">NT$${(s.depositTotal||0).toLocaleString()}</div></div>
       </div>
       ${(s.refundReq||0)>0?`<div class="ov-metric" style="border:1.5px solid #fca5a5;background:#fef2f2;margin-bottom:6px"><div class="label" style="color:#b91c1c">退款申請</div><div class="num" style="color:#b91c1c;cursor:pointer" onclick="goPage('payments');ST._payFilterSesId='${s.id}';$('paymentStatusFilter').value='申請退費';setTimeout(()=>renderPaymentManagement(),80)">${s.refundReq}</div></div>`:''}
-      </div>
       <div class="ov-equips"><strong>設備：</strong>${equipText}</div>
       <div class="ov-actions">
         <button onclick="editSes('${s.id}')" class="btn btn-s">編輯</button>
