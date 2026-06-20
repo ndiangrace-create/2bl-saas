@@ -1179,6 +1179,8 @@ function renderDynFormFull(s, isNew=false){
     });
   }
   if(mods.remark){
+    html+=`<label>粉絲專頁網址 <span style="font-size:12px;color:#aaa">（選填）</span></label><input type="url" id="f_fb" value="${esc(V.fb||V.fb_url||'')}" placeholder="https://www.facebook.com/yourpage">`;
+    html+=`<label>Instagram 帳號 <span style="font-size:12px;color:#aaa">（選填）</span></label><input type="text" id="f_ig" value="${esc(V.ig||V.ig_url||'')}" placeholder="@yourhandle 或完整網址">`;
     html+=`<label>備註</label><textarea id="f_remark" placeholder="本次報名補充說明…"></textarea>`;
   }
   html+=`</div></div>`;  // end fcard-body, fcard A
@@ -1316,6 +1318,13 @@ function saveMemberEdit(){
       const msg=$('saveSuccessMsg');
       if(msg){ msg.style.display='block'; setTimeout(()=>msg.style.display='none',2000); }
       toast('✅ 資料已更新');
+      // 若是從報名流程被引導來填資料，儲存完自動繼續報名
+      if(ST._pendingSessionId){
+        const sid = ST._pendingSessionId;
+        ST._pendingSessionId = null;
+        closeModal('memberEditModal');
+        setTimeout(()=>openSession(sid), 300);
+      }
     } else {
       toast('❌ 儲存失敗：'+(res?.error||'請稍後再試'));
     }
@@ -1381,7 +1390,33 @@ function shareCurrentSession(){
 }
 
 async function openSession(sessionId){
-  // 點場次必須立即有反應：先用列表快取打開報名表，再背景抓最新資料。
+
+  // ── 第一關：必須先登入 ──
+  if(!ST.memberEmail){
+    showMemberRequiredToast('請先登入，才能報名。');
+    navTo('member');
+    return;
+  }
+
+  // ── 第二關：會員資料必須完整（姓名 + 品牌名稱 + FB或IG 任一）──
+  const m = ST.member || {};
+  const hasName  = !!(m.name || m.displayName || '').trim();
+  const hasBrand = !!(m.brand || m.brand_name || '').trim();
+  const hasSocial= !!(m.fb || m.fb_url || m.ig || m.ig_url || '').trim();
+  if(!hasName || !hasBrand || !hasSocial){
+    const missing = [];
+    if(!hasName)   missing.push('姓名');
+    if(!hasBrand)  missing.push('品牌名稱');
+    if(!hasSocial) missing.push('粉絲專頁或 Instagram（主辦審核必要）');
+    showMemberRequiredToast(`請先完善會員資料：${missing.join('、')}，才能報名。`);
+    // 儲存預計報名的 session，填完資料後自動繼續
+    ST._pendingSessionId = sessionId;
+    openModal('memberEditModal');
+    fillMemberEditModal(m);
+    return;
+  }
+
+  // ── 通過，繼續原有流程 ──
   const cached = (ST.allSessionsData||[]).find(x=>String(x.id)===String(sessionId))
     || (ST.sessions||[]).find(x=>String(x.id)===String(sessionId));
   const openWithSession = async (s, fromFresh=false)=>{
@@ -1693,7 +1728,7 @@ async function submitReg(ev){
     const body={
       action:'register',sessionId:s.id,email,name,phone,stallCount:ST.stallCount||1,invoiceType,
       invoiceCarrier:($('f_invoiceCarrier')?.value||'').trim(),taxId:($('f_taxId')?.value||'').trim(),invoiceTitle:($('f_invoiceTitle')?.value||'').trim(),invoiceEmail:(($('f_invoiceEmail')?.value||'').trim()||($('f_personalInvoiceEmail')?.value||'').trim()||email),selectedDates,
-      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:(M.sellCat||M.sell_category||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:M.fb||M.fb_url||'',ig:M.ig||M.ig_url||'',remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
+      brand:($('f_brand')?.value||M.brand||M.brand_name||'').trim(),sellCat:(M.sellCat||M.sell_category||'').trim(),brandIntro:($('f_brandIntro')?.value||M.brandIntro||M.brand_intro||'').trim(),sellItem:($('f_sellItem')?.value||'').trim(),sellLink:M.sellLink||M.sell_link||'',photo:M.photo||M.photo_url||'',equip:{...(ST.equipQty||{})},addonQty:{...(ST.addonQty||{})},fb:($('f_fb')?.value||M.fb||M.fb_url||'').trim(),ig:($('f_ig')?.value||M.ig||M.ig_url||'').trim(),remark:($('f_remark')?.value||'').trim(),stallNumber:ST.selectedStall||'',customFields:(s.customFields||[]).map((cf,i)=>({label:cf.label,value:document.getElementById('cf_'+i)?.value||''})),
     };
     const res=await apiPost(body);
     if(!res){ toast('❌ 後端沒有回傳資料'); restoreBtn(); return false; }
@@ -1971,18 +2006,65 @@ async function copyPaymentCard(){
   catch(e){ toast('請長按卡片複製'); }
 }
 
-// ── URL 深連結：?member=1&pay=REG_xxx ──
+// ── 會員資料編輯 Modal ──
+function fillMemberEditModal(m){
+  m = m || ST.member || {};
+  const set = (id, val) => { const el=$(id); if(el) el.value = val||''; };
+  set('editName',           m.name||m.displayName||'');
+  set('editPhone',          m.phone||'');
+  set('editBrand',          m.brand||m.brand_name||'');
+  set('editBrandIntro',     m.brandIntro||m.brand_intro||'');
+  set('editFb',             m.fb||m.fb_url||'');
+  set('editIg',             m.ig||m.ig_url||'');
+  set('editCollabUrl',      m.collabUrl||m.collab_url||'');
+  set('editPhoto',          m.photo||m.photo_url||'');
+  set('editLineId',         m.lineId||m.line_id||'');
+  set('editInvoiceCarrier', m.invoiceCarrier||m.invoice_carrier||'');
+  set('editTaxId',          m.taxId||m.tax_id||'');
+  set('editCompany',        m.company||'');
+  set('editInvoiceEmail',   m.invoiceEmail||m.invoice_email||'');
+}
+function openMemberEditModal(){
+  fillMemberEditModal(ST.member||{});
+  openModal('memberEditModal');
+}
+
+// ── 報名前檢查提示 ──
+function showMemberRequiredToast(msg){
+  const existing = document.getElementById('memberRequiredBanner');
+  if(existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'memberRequiredBanner';
+  el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:8000;background:#2d6a4f;color:#fff;font-size:15px;font-weight:800;padding:12px 16px;text-align:center;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 4000);
+}
+
+// ── 信件連結：用 regId 反查 email 自動登入 ──
 (async()=>{
   const _p = new URLSearchParams(window.location.search);
   if(_p.get('member')==='1'){
     const _payRegId = _p.get('pay');
     if(_payRegId) window._pendingPayRegId = _payRegId;
-    // 信件按鈕進來時，直接切到會員中心；若本機已登入，會自動載入紀錄並開啟付款。
-    setTimeout(()=>{
-      goMemberPage();
+    setTimeout(async()=>{
+      // 若已有 email，直接載入
+      if(ST.memberEmail){ goMemberPage(); return; }
+      // 嘗試用 regId 反查 email
+      if(_payRegId){
+        try{
+          const res = await api({action:'getRegEmail', regId:_payRegId, _t:Date.now()});
+          if(res && res.email && !res.error){
+            await safeLoadMemberPage(res.email);
+            return;
+          }
+        }catch(e){ console.warn('getRegEmail failed', e); }
+      }
+      // 無法反查，顯示登入區
+      navTo('member');
       const ml=$('memberLoginArea');
-      if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
-    }, 800);
+      if(ml) ml.style.display='block';
+    }, 600);
   }
 })();
 
