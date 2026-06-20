@@ -1485,16 +1485,19 @@ function renderOverviewSessionsFn(){
     return `<div class="ov-card">
       <div class="ov-card-title">${s.name||''}</div>
       <div class="ov-card-meta">${s.region||''}｜${fmtOverviewDateRangeText(s)}｜${getSessionStatusLabel(s)}</div>
-      <div class="ov-metric-grid">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0">
         <div class="ov-metric"><div class="label">報名</div><div class="num" style="cursor:pointer" onclick="goToSesRegs('${s.id}')">${s.total||0}</div></div>
         <div class="ov-metric"><div class="label">待審核</div><div class="num" style="color:#BA7517;cursor:pointer" onclick="goToSesPending('${s.id}')">${s.pending||0}</div></div>
         <div class="ov-metric"><div class="label">繳費確認</div><div class="num" style="color:#D97706;cursor:pointer" onclick="goPage('payments');ST._payFilterSesId='${s.id}';setTimeout(()=>renderPaymentManagement(),80)">${pendingPayCount}</div></div>
         <div class="ov-metric"><div class="label">已繳費</div><div class="num" style="cursor:pointer" onclick="goToSesCheckin('${s.id}')">${s.paid||0}</div></div>
         <div class="ov-metric"><div class="label">已取消</div><div class="num" style="color:#aaa;cursor:pointer" onclick="goToSesCancelled('${s.id}')">${s.cancelled||0}</div></div>
         <div class="ov-metric"><div class="label">已報到</div><div class="num" style="color:#185FA5;cursor:pointer" onclick="goToSesCheckin('${s.id}')">${s.seated||0}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin:0 0 6px">
         <div class="ov-metric"><div class="label">已收費用</div><div class="num" style="font-size:18px">NT$${(s.revenue||0).toLocaleString()}</div></div>
         <div class="ov-metric"><div class="label">押金</div><div class="num" style="font-size:18px;color:#854F0B">NT$${(s.depositTotal||0).toLocaleString()}</div></div>
-        ${(s.refundReq||0)>0?`<div class="ov-metric" style="border:1.5px solid #fca5a5;background:#fef2f2"><div class="label" style="color:#b91c1c">退款申請</div><div class="num" style="color:#b91c1c;cursor:pointer" onclick="goPage('payments');ST._payFilterSesId='${s.id}';$('paymentStatusFilter').value='申請退費';setTimeout(()=>renderPaymentManagement(),80)">${s.refundReq}</div></div>`:''}
+      </div>
+      ${(s.refundReq||0)>0?`<div class="ov-metric" style="border:1.5px solid #fca5a5;background:#fef2f2;margin-bottom:6px"><div class="label" style="color:#b91c1c">退款申請</div><div class="num" style="color:#b91c1c;cursor:pointer" onclick="goPage('payments');ST._payFilterSesId='${s.id}';$('paymentStatusFilter').value='申請退費';setTimeout(()=>renderPaymentManagement(),80)">${s.refundReq}</div></div>`:''}
       </div>
       <div class="ov-equips"><strong>設備：</strong>${equipText}</div>
       <div class="ov-actions">
