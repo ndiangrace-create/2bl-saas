@@ -1348,10 +1348,6 @@ function fmtOverviewDateText(s){
     return str;
   }).join(' ');
 }
-function getSesPendingPaymentCount(sesId){
-  const regs=(ST.allRegs||ST.regs||[]).filter(r=>String(r.sessionId||r.sesId||'')===String(sesId));
-  return regs.filter(r=>isPendingPayText(r.payStatus||r.paymentStatus||'')).length;
-}
 function setOverviewFilter(v){ST.ovFilter=v;renderOverviewSessions();}
 function renderOverviewStatusFilters(){
   const all=ST.sdData||[];
@@ -1452,7 +1448,7 @@ function renderOverviewSessionsFn(){
     let equipStr='-'; const need=s.equipNeed||{}; const needItems=Object.entries(need).filter(([k,v])=>Number(v)>0);
     if(needItems.length) equipStr=needItems.map(([k,v])=>`<div style="line-height:1.45;white-space:nowrap">${k}×${v}</div>`).join('');
     const cover=s.cover||s.eventCover||ev.cover||ev.eventCover||'';
-    const pendingPayCount=Number(s.pendingPay||s.payPending||s.paymentPending||s.pendingPayment||0)||getSesPendingPaymentCount(s.id);
+    const pendingPayCount=Number(s.pendingPay||0);
     const statusLabel=getSessionStatusLabel(s);
     const safeName=String(s.name||'').replace(/'/g,''); const safeEv=String(ev.title||'').replace(/'/g,'');
     return `<tr style="border-bottom:0.5px solid #f0f0f0;background:#fff">
@@ -1479,7 +1475,7 @@ function renderOverviewSessionsFn(){
     </tr>`;
   }).join('');
   const cardHtml=sessions.map(s=>{
-    const ev=ev_map[s.eventId]||{}; const dateStr=fmtOverviewDateText(s); const pendingPayCount=Number(s.pendingPay||0)||getSesPendingPaymentCount(s.id);
+    const ev=ev_map[s.eventId]||{}; const dateStr=fmtOverviewDateText(s); const pendingPayCount=Number(s.pendingPay||0);
     let equipText='目前沒有設備需求'; const need=s.equipNeed||{}; const needItems=Object.entries(need).filter(([k,v])=>Number(v)>0); if(needItems.length) equipText=needItems.map(([k,v])=>`${k} × ${v}`).join('、');
     const safeName=String(s.name||'').replace(/'/g,''); const safeEv=String(ev.title||'').replace(/'/g,'');
     return `<div class="ov-card">
