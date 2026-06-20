@@ -2717,6 +2717,9 @@ function isPendingPayText(v){
   const s=String(v||'').trim();
   return s==='待確認' || s==='付款待確認' || s==='已回報' || s==='待核款';
 }
+function isCanceledReg(r){
+  return String((r&&r.status)||'').trim()==='已取消';
+}
 function paymentStatusLabel(v){
   if(isPaidText(v)) return '已繳費';
   if(isPendingPayText(v)) return '待確認';
@@ -2772,10 +2775,11 @@ function renderPaymentManagement(targetId){
   const sesFilter = ST._payFilterSesId || '';
   if(sesFilter) ST._payFilterSesId = null;
   const regs=(ST.allRegs||[]).slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  const activeRegs=regs.filter(r=>!isCanceledReg(r));
 
-  const pending=regs.filter(r=>isPendingPayText(r.payStatus));
-  const paid=regs.filter(r=>isPaidText(r.payStatus));
-  const refundReq=regs.filter(r=>String(r.transferStatus||'')==='申請退費');
+  const pending=activeRegs.filter(r=>isPendingPayText(r.payStatus));
+  const paid=activeRegs.filter(r=>isPaidText(r.payStatus));
+  const refundReq=activeRegs.filter(r=>String(r.transferStatus||'')==='申請退費');
   const totalPendingAmt=pending.reduce((sum,r)=>sum+(Number(r.amount)||0),0);
 
   const statsEl=$('paymentStats');
@@ -2787,7 +2791,7 @@ function renderPaymentManagement(targetId){
       <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:20px;font-weight:800;color:var(--dk)">NT$${totalPendingAmt.toLocaleString()}</div><div style="font-size:11px;color:var(--md)">待核金額</div></div>`;
   }
 
-  let list=regs.filter(r=>{
+  let list=activeRegs.filter(r=>{
     const label=paymentStatusLabel(r.payStatus);
     const isRefund=String(r.transferStatus||'')==='申請退費';
     const matchStatus=filter==='全部' || (filter==='已繳費'?isPaidText(r.payStatus):(filter==='待確認'?(isRefund||isPendingPayText(r.payStatus)):(filter==='申請退費'?isRefund:label===filter)));
@@ -2823,6 +2827,8 @@ function renderPaymentManagement(targetId){
     const equip=adminEsc(regEquipText(r)||'-');
     const participant=participantText(r.participants);
     const last5=r.payLast5||(String(r.adminNote||'').match(/末五碼[:：]([^｜\s]+)/)||[])[1]||'';
+    const screenshotStatus=String(r.paymentScreenshotStatus||r.screenshotStatus||'').trim();
+    const screenshotDone=/已收到|已回報/.test(screenshotStatus);
     return `<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--sh);border-left:5px solid ${isRefund?'#d94f4f':(isPending?'#f5c842':(isPaid?'#40916c':'#ddd'))}">
       <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
         <div style="min-width:0;flex:1;line-height:1.55">
@@ -2836,11 +2842,14 @@ function renderPaymentManagement(targetId){
           <div style="font-size:16px;color:var(--md)">攤位數：<strong>${Number(r.stallCount||1)} 攤</strong>　設備：<strong>${equip}</strong></div>
           ${participant?`<div style="font-size:16px;color:var(--md)">參加者：<strong>${adminEsc(participant)}</strong></div>`:''}
           <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
+          ${screenshotDone?`<div style="font-size:15px;color:#2d6a4f;font-weight:900;margin-top:3px">已回報客服／已收到匯款截圖</div>`:''}
           ${note?`<div style="font-size:14px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap;max-height:96px;overflow:auto">${note}</div>`:''}
           <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-          ${isPending?`<button class="btn btn-g btn-sm" onclick="confirmPayById('${r.id}')">確認付款</button>`:''}
+          ${isPending&&!isRefund?`<button class="btn btn-y btn-sm" onclick="markPaymentScreenshotById('${r.id}')">${screenshotDone?'已回報客服 ✓':'已回報客服'}</button>`:''}
+          ${isPending&&!isRefund?`<button class="btn btn-g btn-sm" onclick="confirmPayById('${r.id}')">確認付款</button>`:''}
+          ${isPending&&!isRefund?`<button class="btn btn-r btn-sm" onclick="adminCancelRegById('${r.id}')">取消報名</button>`:''}
           ${isRefund?`<button class="btn btn-r btn-sm" onclick="confirmRefundById('${r.id}')">確認退款</button>`:''}
           <button class="btn btn-b btn-sm" onclick="openRegDetail('${r.id}')">看明細</button>
         </div>
@@ -3544,7 +3553,7 @@ async function downloadSesData(sesId,sesName){
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const csv='場次資訊\n'+toCSV(['欄位','內容'],infoRows)
     +'\n\n財報摘要（該場次最新資料）\n'+toCSV(['項目','金額/數量','備註'],summaryRows)
-    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','參加者','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
+    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
     +'\n\n設備明細（全部報名，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipAllRows)
     +'\n\n設備明細（已錄取/已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipApprovedRows)
     +'\n\n設備明細（已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipPaidRows)
@@ -3958,6 +3967,52 @@ async function confirmPayById(payId){
     ST.sdData=sd||[];renderOverview();
   });
 }
+
+async function markPaymentScreenshotById(regId){
+  const r=(ST.allRegs||[]).find(x=>String(x.id)===String(regId));
+  if(!r){toast('找不到付款資料');return;}
+  const html=`<div style="font-size:18px;line-height:1.55;color:var(--dk)">
+    <div style="font-size:20px;font-weight:900;margin-bottom:8px;color:#b7860b">標記已回報客服</div>
+    <div><strong>場次：</strong>${adminEsc(regSessionLabel(r))}　${adminEsc(regDateLabel(r))}</div>
+    <div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}</div>
+    <div><strong>回報金額：</strong>NT$${Number(r.amount||0).toLocaleString()}　<strong>方式：</strong>${adminEsc(r.payMethod||'未填')}</div>
+    <div style="margin-top:10px;color:#8a6d3b;font-weight:900">此操作只記錄「已回報客服／已收到匯款截圖」，不會改成已繳費，也不會寄確認信。</div>
+  </div>`;
+  showConfirmDialog(html, async()=>{
+    const res=await apiPost({action:'markPaymentScreenshot',regId});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已標記回報客服');
+    await loadAllRegs();
+    renderPaymentManagement();
+    if(typeof renderRegs==='function') renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token,_t:Date.now()});
+    ST.sdData=sd||[];renderOverview();
+  });
+}
+
+async function adminCancelRegById(regId){
+  const r=(ST.allRegs||[]).find(x=>String(x.id)===String(regId));
+  if(!r){toast('找不到報名資料');return;}
+  if(isPaidText(r.payStatus)){toast('已繳費不可直接取消，請走退款流程');return;}
+  const html=`<div style="font-size:18px;line-height:1.55;color:var(--dk)">
+    <div style="font-size:20px;font-weight:900;margin-bottom:8px;color:var(--rd)">取消報名確認</div>
+    <div><strong>場次：</strong>${adminEsc(regSessionLabel(r))}　${adminEsc(regDateLabel(r))}</div>
+    <div><strong>廠商：</strong>${adminEsc(r.brand||'-')}　<strong>姓名：</strong>${adminEsc(r.name||'-')}　<strong>電話：</strong>${adminEsc(r.phone||'-')}</div>
+    <div><strong>目前付款狀態：</strong>${adminEsc(paymentStatusLabel(r.payStatus))}</div>
+    <div style="margin-top:10px;color:var(--rd);font-weight:900">此報名尚未完成付款確認。取消後，報名紀錄會保留，但狀態會改為「已取消」。</div>
+  </div>`;
+  showConfirmDialog(html, async()=>{
+    const res=await apiPost({action:'adminCancelReg',regId});
+    if(res.error){toast('❌ '+res.error);return;}
+    toast('✅ 已取消報名');
+    await loadAllRegs();
+    renderPaymentManagement();
+    if(typeof renderRegs==='function') renderRegs();
+    const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token,_t:Date.now()});
+    ST.sdData=sd||[];renderOverview();
+  });
+}
+
 async function confirmRefundById(regId){
   const r=(ST.allRegs||[]).find(x=>String(x.id)===String(regId));
   if(!r){toast('找不到退款資料');return;}
