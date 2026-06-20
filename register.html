@@ -1782,22 +1782,26 @@ function renderMyRegs(regs){
     const color=statusColor[r.status]||'#888';
     const pb=payBadge(r);
     const isPaid=isPaidText(r.payStatus);
-    const payBtn=canPayReg(r)?`<button onclick="event.stopPropagation();showPayPage('${r.id}',this.dataset.ses,'${Number(r.total||0)}')" data-ses="${escHtml(r.sessionName||r.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:12px;margin-top:10px;font-size:18px;font-weight:900">前往繳費</button>`:'';
-    const waitMsg=isPendingPayText(r.payStatus)?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:9px 10px;margin-top:10px;font-size:17px;font-weight:800">已回報，等待主辦確認</div>`:'';
-    const refundBtn=(!isPaid&&canRefundReg(r))?`<button onclick="event.stopPropagation();cancelMyReg('${r.id}',this.dataset.ses,true)" data-ses="${escHtml(r.sessionName||r.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);border-radius:10px;padding:11px;margin-top:9px;font-size:17px;font-weight:900">申請取消／退款</button>`:'';
-    const transfer=r.transferStatus?`<div style="font-size:16px;color:#b45309;font-weight:800;margin-top:6px">退款狀態：${escHtml(r.transferStatus)}</div>`:'';
-    const dateRow=isPaid&&r.dates?`<div style="font-size:16px;color:var(--md);margin-top:3px">📅 ${escHtml(Array.isArray(r.dates)?r.dates.join('、'):String(r.dates))}</div>`:'';
-    const equipRow=r.equipmentText?`<div style="font-size:16px;color:var(--md);margin-top:3px">🪑 設備：${escHtml(r.equipmentText)}</div>`:'';
-    const paidNote=isPaid?`<div style="font-size:15px;color:#2d6a4f;font-weight:800;margin-top:8px;background:#e8f7ee;border-radius:10px;padding:8px 12px">✅ 付款已確認，點卡片查看明細與退款</div>`:'';
-    return `<div onclick="openRegDetail('${r.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:15px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${color}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px">
-        <div style="font-size:20px;font-weight:900;color:var(--dk);flex:1;line-height:1.35">${escHtml(r.sessionName||r.sesName||'場次')}</div>
-        <span style="background:${pb.bg};color:${pb.c};padding:5px 10px;border-radius:20px;font-size:17px;font-weight:900;white-space:nowrap">${pb.t}</span>
+    const isPending=isPendingPayText(r.payStatus);
+    const canCancel=['待審核','已錄取'].includes(r.status)&&!isPaid&&!isPending;
+    const dateStr=r.dates?(Array.isArray(r.dates)?r.dates.join('、'):String(r.dates)):'';
+    const dateRow=dateStr?`<div style="font-size:15px;color:var(--md);margin-top:3px">📅 ${escHtml(dateStr)}</div>`:'';
+    const equipRow=r.equipmentText?`<div style="font-size:15px;color:var(--md);margin-top:3px">🪑 設備：${escHtml(r.equipmentText)}</div>`:'';
+    const totalRow=r.total>0?`<div style="font-size:18px;color:var(--g);font-weight:900;margin-top:4px">總計：NT$ ${Number(r.total||0).toLocaleString()}</div>`:r.payStatus==='免費'?`<div style="font-size:16px;color:var(--g);font-weight:900;margin-top:4px">免費</div>`:'';
+    const waitMsg=isPending?`<div style="background:#fff8ed;color:#92400e;border-radius:8px;padding:7px 10px;margin-top:8px;font-size:15px;font-weight:800">已回報，等待主辦確認</div>`:'';
+    const payBtn=canPayReg(r)?`<button onclick="event.stopPropagation();showPayPage('${r.id}',this.dataset.ses,'${Number(r.total||0)}')" data-ses="${escHtml(r.sessionName||r.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:11px;margin-top:10px;font-size:17px;font-weight:900">前往繳費</button>`:'';
+    const transfer=r.transferStatus?`<div style="font-size:14px;color:#b45309;font-weight:800;margin-top:5px">退款狀態：${escHtml(r.transferStatus)}</div>`:'';
+    const refundLink=isPaid&&canRefundReg(r)&&!r.transferStatus?`<button onclick="event.stopPropagation();cancelMyReg('${r.id}','${escHtml(r.sessionName||r.sesName||'')}',true)" style="background:none;border:none;color:#b45309;font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;margin-top:6px">申請退款</button>`:'';
+    const cancelLink=canCancel?`<button onclick="event.stopPropagation();cancelMyReg('${r.id}','${escHtml(r.sessionName||r.sesName||'')}',false)" style="background:none;border:none;color:#aaa;font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;margin-top:6px">取消報名</button>`:'';
+    return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:15px;margin-bottom:12px;border-left:4px solid ${color}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px">
+        <div style="font-size:19px;font-weight:900;color:var(--dk);flex:1;line-height:1.35">${escHtml(r.sessionName||r.sesName||'場次')}</div>
+        <span style="background:${pb.bg};color:${pb.c};padding:4px 10px;border-radius:20px;font-size:15px;font-weight:900;white-space:nowrap">${pb.t}</span>
       </div>
-      <div style="font-size:17px;color:var(--md);font-weight:700">審核：${escHtml(r.status||'')}　攤位數：${r.stallCount||1} 攤</div>
-      ${dateRow}${equipRow}
-      <div style="font-size:18px;color:var(--g);font-weight:900;margin-top:3px">${r.total>0?'總計 NT$ '+Number(r.total||0).toLocaleString():r.payStatus==='免費'?'免費':''}</div>
-      ${paidNote}${waitMsg}${refundBtn}${transfer}${payBtn}
+      <div style="font-size:15px;color:var(--md);font-weight:700">審核：${escHtml(r.status||'')}　攤位數：${r.stallCount||1} 攤</div>
+      ${dateRow}${equipRow}${totalRow}
+      ${waitMsg}${transfer}${payBtn}
+      ${refundLink||cancelLink?`<div>${refundLink}${cancelLink}</div>`:''}
     </div>`;
   }).join('');
   handlePendingPayLink(ST.regs);
@@ -1813,41 +1817,8 @@ function handlePendingPayLink(regs){
 }
 
 function openRegDetail(regId){
-  const reg=(ST.regs||[]).find(r=>r.id===regId);
-  if(!reg) return;
-  const pb=payBadge(reg);
-  const canPay = canPayReg(reg);
-  const canCancel = ['待審核','已錄取'].includes(reg.status) && !isPaidText(reg.payStatus) && !isPendingPayText(reg.payStatus);
-  const canRefund = canRefundReg(reg);
-  const modal=document.createElement('div');
-  modal.id='regDetailModal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:flex-end;justify-content:center';
-  modal.innerHTML=`<div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-size:20px;font-weight:900;color:var(--dk)">報名詳情</div>
-      <button onclick="document.getElementById('regDetailModal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#aaa">✕</button>
-    </div>
-    <div style="background:#f8f8f8;border-radius:12px;padding:13px;margin-bottom:12px;line-height:1.7">
-      <div style="font-size:20px;font-weight:900;color:var(--dk)">${escHtml(reg.sessionName||reg.sesName||'場次')}</div>
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span style="font-size:18px;color:var(--md)">繳費</span><span style="background:${pb.bg};color:${pb.c};font-size:18px;font-weight:900;border-radius:20px;padding:4px 11px">${pb.t}</span></div>
-      <div style="font-size:18px;color:var(--md)">審核：<strong>${escHtml(reg.status||'')}</strong></div>
-      <div style="font-size:18px;color:var(--md)">攤位數：<strong>${reg.stallCount||1} 攤</strong></div>
-      ${reg.equipmentText?`<div style="font-size:18px;color:var(--md)">設備：<strong>${escHtml(reg.equipmentText)}</strong></div>`:''}
-      ${reg.total>0?`<div style="font-size:19px;color:var(--g);font-weight:900">應繳金額：NT$ ${Number(reg.total||0).toLocaleString()}</div>`:''}
-      ${reg.transferStatus?`<div style="font-size:17px;color:#b45309;font-weight:900">退款狀態：${escHtml(reg.transferStatus)}</div>`:''}
-    </div>
-    <div style="font-size:14px;color:var(--lt);margin-bottom:12px">報名編號：${reg.id}</div>
-    ${canPay?`<button onclick="document.getElementById('regDetailModal').remove();showPayPage('${reg.id}',this.dataset.ses,'${Number(reg.total||0)}');" data-ses="${escHtml(reg.sessionName||reg.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;padding:13px;border-radius:10px;font-size:18px;font-weight:900;cursor:pointer;margin-bottom:8px">前往繳費</button>`:''}
-    ${isPendingPayText(reg.payStatus)?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:11px;margin-bottom:8px;font-size:18px;font-weight:900;text-align:center">已回報，等待主辦確認</div>`:''}
-    ${canCancel?`<button onclick="cancelMyReg('${reg.id}',this.dataset.ses,false);document.getElementById('regDetailModal').remove();" data-ses="${escHtml(reg.sessionName||reg.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:17px;font-weight:900;cursor:pointer;margin-bottom:8px">取消報名</button>`:''}
-    ${canRefund?`<button onclick="cancelMyReg('${reg.id}',this.dataset.ses,true);document.getElementById('regDetailModal').remove();" data-ses="${escHtml(reg.sessionName||reg.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:17px;font-weight:900;cursor:pointer;margin-bottom:8px">申請取消／退款</button>`:''}
-    <button onclick="document.getElementById('regDetailModal').remove()" style="width:100%;background:#f0f0f0;color:#888;border:none;padding:12px;border-radius:10px;font-size:16px;cursor:pointer">關閉</button>
-  </div>`;
-  modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
-  history.pushState({regDetail:true},'',location.href);
-  document.body.appendChild(modal);
+  // 已整合至卡片，不再使用 modal
 }
-
 async function cancelMyReg(regId, sesName, isRefund){
   $('cancelModalSesName').textContent=(isRefund?'申請取消／退款：':'取消報名：')+'「'+sesName+'」';
   $('cancelConfirmCheck').checked=false;
