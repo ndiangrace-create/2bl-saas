@@ -501,16 +501,13 @@ button,a,[onclick]{touch-action:manipulation}
     <div class="modal-title" id="payModalTitle">前往繳費</div>
     <div id="payModalInfo" style="background:var(--gp);border-radius:10px;padding:12px;margin-bottom:12px;font-size:18px;line-height:1.6"></div>
     <div id="payFormArea">
-      <div id="payBeforeNotice" style="font-size:17px;color:#7c2d12;background:#fff7ed;border:2px solid #fed7aa;border-radius:14px;padding:12px 14px;margin-bottom:12px;line-height:1.6;font-weight:900">
-        ⚠️ 付款前請先注意：完成付款後，請務必先截圖保留付款證明。付款完成後要回到「我的紀錄」按「我已完成付款，回報付款」，再把付款卡片與付款截圖一起傳至官方 LINE。主辦確認入帳後，狀態才會更新為「已繳費」。
-      </div>
       <label style="font-size:17px;color:var(--md);font-weight:800">付款方式</label>
       <select id="payMethod" onchange="onPayMethodChange()" style="width:100%;padding:12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:18px;margin:4px 0 10px;background:#fff">
         <option value="ATM 轉帳">ATM／銀行轉帳</option>
         <option value="LINE Pay">LINE Pay</option>
         <option value="信用卡付款">信用卡</option>
       </select>
-      <div style="font-size:16px;color:#8a6d3b;background:#fff8ed;border:1.5px solid #f5d7a1;border-radius:12px;padding:10px 12px;margin-bottom:12px;line-height:1.55;font-weight:800">付款完成後請先截圖，再返回本頁完成付款回報。</div>
+      <div style="font-size:16px;color:#8a6d3b;background:#fff8ed;border:1.5px solid #f5d7a1;border-radius:12px;padding:10px 12px;margin-bottom:12px;line-height:1.55;font-weight:800">付款完成後，請記得截圖保留付款證明，返回本頁完成付款回報。</div>
       <div id="bankPayBox" style="background:#fff8ed;border:1.5px solid #f5d7a1;border-radius:12px;padding:12px;margin-bottom:12px;font-size:17px;line-height:1.65;color:#5a3a05">
         <div style="font-weight:900;font-size:18px;margin-bottom:4px">ATM 轉帳</div>
         <div id="bankInfoDisplay" style="color:#aaa;font-size:15px">付款資訊載入中…</div>
@@ -527,10 +524,9 @@ button,a,[onclick]{touch-action:manipulation}
     </div>
     <div id="paySuccessArea" style="display:none">
       <div style="font-size:22px;font-weight:900;color:#b45309;margin-bottom:4px">⚠️ 付款回報已送出，尚未完成付款確認</div>
-      <div style="font-size:17px;color:var(--dk);font-weight:900;margin-bottom:12px;line-height:1.55">請不要直接關閉此畫面。請點一下下方付款卡片框框複製內容，並連同付款截圖一起傳至官方 LINE。主辦確認入帳後，狀態才會更新為「已繳費」。</div>
-      <div style="font-size:16px;color:#2d6a4f;background:#e8f7ee;border:1.5px solid #b7dec7;border-radius:12px;padding:10px 12px;margin-bottom:8px;font-weight:900;line-height:1.45">👇 請點一下下方付款卡片框框，即可複製內容。</div>
-      <pre id="paymentCopyCard" role="button" tabindex="0" onclick="copyPaymentCard()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();copyPaymentCard();}" style="white-space:pre-wrap;background:#fff;border:2px dashed #2d6a4f;border-radius:14px;padding:14px;font-size:17px;line-height:1.55;color:#1a1a18;font-family:inherit;cursor:pointer;margin:0 0 12px"></pre>
-      <div style="font-size:16px;color:var(--md);font-weight:800;margin-bottom:12px">複製後請貼到官方 LINE，並一起傳付款截圖。</div>
+      <div style="font-size:17px;color:var(--dk);font-weight:900;margin-bottom:12px;line-height:1.55">請不要直接關閉此畫面。請先複製下方付款卡片，並連同付款截圖一起傳至官方 LINE。主辦確認入帳後，狀態才會更新為「已繳費」。</div>
+      <pre id="paymentCopyCard" onclick="copyPaymentCard()" style="white-space:pre-wrap;background:#fff;border:1.5px solid #d0e8d8;border-radius:14px;padding:14px;font-size:17px;line-height:1.55;color:#1a1a18;font-family:inherit;cursor:pointer;margin:0 0 12px"></pre>
+      <div style="font-size:16px;color:var(--md);font-weight:800;margin-bottom:12px">請複製此張卡片與付款截圖一起傳至官方 LINE。</div>
       <button type="button" onclick="openLine()" style="width:100%;background:#06C755;color:#fff;border:none;border-radius:10px;padding:13px;font-size:18px;font-weight:900;cursor:pointer">前往 LINE 客服</button>
       <button class="btn-s2" onclick="closeModal('payModal')" style="width:100%;font-size:17px;padding:12px;margin-top:8px">我已傳 LINE，關閉</button>
     </div>
@@ -1986,9 +1982,12 @@ function memberLogout(){
 
 function isPaidText(v){ return String(v||'').indexOf('已繳費')>=0 || String(v||'')==='免費'; }
 function isPendingPayText(v){ return String(v||'').trim()==='待確認'; }
-function canPayReg(reg){ return reg && reg.status==='已錄取' && Number(reg.total||0)>0 && !isPaidText(reg.payStatus) && !isPendingPayText(reg.payStatus); }
-function canRefundReg(reg){ return reg && isPaidText(reg.payStatus) && String(reg.payStatus||'')!=='免費' && String(reg.transferStatus||'')!=='申請退費' && String(reg.transferStatus||'')!=='已退費'; }
+function isCancelledReg(reg){ return String(reg?.status||'').trim()==='已取消'; }
+function canPayReg(reg){ return reg && !isCancelledReg(reg) && reg.status==='已錄取' && Number(reg.total||0)>0 && !isPaidText(reg.payStatus) && !isPendingPayText(reg.payStatus); }
+function canRefundReg(reg){ return reg && !isCancelledReg(reg) && isPaidText(reg.payStatus) && String(reg.payStatus||'')!=='免費' && String(reg.transferStatus||'')!=='申請退費' && String(reg.transferStatus||'')!=='已退費'; }
+function canDirectCancelReg(reg){ return reg && !isCancelledReg(reg) && ['待審核','已錄取'].includes(String(reg.status||'')) && !isPaidText(reg.payStatus) && String(reg.transferStatus||'')!=='申請退費' && String(reg.transferStatus||'')!=='已退費'; }
 function payBadge(reg){
+  if(isCancelledReg(reg)) return {t:'已取消',bg:'#eeeeee',c:'#777777'};
   const ps=String(reg.payStatus||'未繳費');
   if(isPaidText(ps)) return {t:'付款完成',bg:'#e8f7ee',c:'#2d6a4f'};
   if(isPendingPayText(ps)) return {t:'待確認',bg:'#fff8ed',c:'#b45309'};
@@ -2009,10 +2008,12 @@ function renderMyRegs(regs){
   el.innerHTML=ST.regs.map(r=>{
     const color=statusColor[r.status]||'#888';
     const pb=payBadge(r);
+    const cancelled=isCancelledReg(r);
     const payBtn=canPayReg(r)?`<button onclick="event.stopPropagation();showPayPage('${r.id}',this.dataset.ses,'${Number(r.total||0)}')" data-ses="${escHtml(r.sessionName||r.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:12px;margin-top:10px;font-size:18px;font-weight:900">前往繳費</button>`:'';
-    const waitMsg=isPendingPayText(r.payStatus)?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:9px 10px;margin-top:10px;font-size:17px;font-weight:800">已回報，等待主辦確認</div>`:'';
+    const waitMsg=(!cancelled && isPendingPayText(r.payStatus))?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:9px 10px;margin-top:10px;font-size:17px;font-weight:800">已回報，等待主辦確認</div>`:'';
+    const cancelMsg=cancelled?`<div style="background:#f3f4f6;color:#666;border-radius:10px;padding:9px 10px;margin-top:10px;font-size:17px;font-weight:800">已取消，報名紀錄保留</div>`:'';
     const refundBtn=canRefundReg(r)?`<button onclick="event.stopPropagation();cancelMyReg('${r.id}',this.dataset.ses,true)" data-ses="${escHtml(r.sessionName||r.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);border-radius:10px;padding:11px;margin-top:9px;font-size:17px;font-weight:900">申請取消／退款</button>`:'';
-    const transfer=r.transferStatus?`<div style="font-size:16px;color:#b45309;font-weight:800;margin-top:6px">退款狀態：${escHtml(r.transferStatus)}</div>`:'';
+    const transfer=(!cancelled && r.transferStatus)?`<div style="font-size:16px;color:#b45309;font-weight:800;margin-top:6px">退款狀態：${escHtml(r.transferStatus)}</div>`:'';
     return `<div onclick="openRegDetail('${r.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.09);padding:15px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${color}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px">
         <div style="font-size:20px;font-weight:900;color:var(--dk);flex:1;line-height:1.35">${escHtml(r.sessionName||r.sesName||'場次')}</div>
@@ -2022,7 +2023,7 @@ function renderMyRegs(regs){
       <div style="font-size:18px;color:var(--g);font-weight:900;margin-top:3px">${r.total>0?'NT$ '+Number(r.total||0).toLocaleString():r.payStatus==='免費'?'免費':''}</div>
       ${r.equipmentText?`<div style="font-size:16px;color:var(--md);margin-top:3px">設備：${escHtml(r.equipmentText)}</div>`:''}
       ${participantTextFromData(r.participants)?`<div style="font-size:16px;color:var(--md);margin-top:3px">參加者：${escHtml(participantTextFromData(r.participants))}</div>`:''}
-      ${waitMsg}${refundBtn}${transfer}${payBtn}
+      ${cancelMsg}${waitMsg}${refundBtn}${transfer}${payBtn}
     </div>`;
   }).join('');
   handlePendingPayLink(ST.regs);
@@ -2042,7 +2043,7 @@ function openRegDetail(regId){
   if(!reg) return;
   const pb=payBadge(reg);
   const canPay = canPayReg(reg);
-  const canCancel = ['待審核','已錄取'].includes(reg.status) && !isPaidText(reg.payStatus);
+  const canCancel = canDirectCancelReg(reg);
   const canRefund = canRefundReg(reg);
   const modal=document.createElement('div');
   modal.id='regDetailModal';
@@ -2063,7 +2064,7 @@ function openRegDetail(regId){
     </div>
     <div style="font-size:14px;color:var(--lt);margin-bottom:12px">報名編號：${reg.id}</div>
     ${canPay?`<button onclick="document.getElementById('regDetailModal').remove();showPayPage('${reg.id}',this.dataset.ses,'${Number(reg.total||0)}');" data-ses="${escHtml(reg.sessionName||reg.sesName||'場次')}" style="width:100%;background:var(--g);color:#fff;border:none;padding:13px;border-radius:10px;font-size:18px;font-weight:900;cursor:pointer;margin-bottom:8px">前往繳費</button>`:''}
-    ${isPendingPayText(reg.payStatus)?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:11px;margin-bottom:8px;font-size:18px;font-weight:900;text-align:center">已回報，等待主辦確認</div>`:''}
+    ${isCancelledReg(reg)?`<div style="background:#f3f4f6;color:#666;border-radius:10px;padding:11px;margin-bottom:8px;font-size:18px;font-weight:900;text-align:center">已取消，報名紀錄保留</div>`:(isPendingPayText(reg.payStatus)?`<div style="background:#fff8ed;color:#92400e;border-radius:10px;padding:11px;margin-bottom:8px;font-size:18px;font-weight:900;text-align:center">已回報，等待主辦確認</div>`:'')}
     ${canCancel?`<button onclick="cancelMyReg('${reg.id}',this.dataset.ses,false);document.getElementById('regDetailModal').remove();" data-ses="${escHtml(reg.sessionName||reg.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:17px;font-weight:900;cursor:pointer;margin-bottom:8px">取消報名</button>`:''}
     ${canRefund?`<button onclick="cancelMyReg('${reg.id}',this.dataset.ses,true);document.getElementById('regDetailModal').remove();" data-ses="${escHtml(reg.sessionName||reg.sesName||'')}" style="width:100%;background:var(--rdp);color:var(--rd);border:1.5px solid var(--rd);padding:12px;border-radius:10px;font-size:17px;font-weight:900;cursor:pointer;margin-bottom:8px">申請取消／退款</button>`:''}
     <button onclick="document.getElementById('regDetailModal').remove()" style="width:100%;background:#f0f0f0;color:#888;border:none;padding:12px;border-radius:10px;font-size:16px;cursor:pointer">關閉</button>
@@ -2151,13 +2152,11 @@ function onPayMethodChange(){
 function openExternalPay(){
   const method = $('payMethod')?.value || 'ATM 轉帳';
   const isBank = method.includes('ATM') || method.includes('銀行') || method.includes('轉帳') || method.includes('匯款');
-  const reminder = '付款前提醒：\n\n完成付款後，請務必先截圖保留付款證明。\n付款完成後請回到「我的紀錄」按「我已完成付款，回報付款」。\n回報後，請把付款卡片與付款截圖一起傳至官方 LINE。\n\n主辦確認入帳後，狀態才會更新為「已繳費」。';
-  if(isBank){ alert(reminder + '\n\n請依上方 ATM 資訊完成轉帳。'); return; }
+  if(isBank){ toast('請依上方 ATM 資訊完成轉帳，付款後回來按「我已完成付款，回報付款」',5000); return; }
   const url = getPayLink(method);
   if(!url){ toast('此付款方式尚未設定連結'); return; }
-  if(!confirm(reminder + '\n\n確認前往付款？')) return;
   window.open(url,'_blank');
-  toast('付款完成後請先截圖，再回來完成付款回報',5000);
+  toast('付款完成後請截圖，並回來完成付款回報',5000);
 }
 async function submitPaymentForm(){
   const method = $('payMethod')?.value || 'ATM 轉帳';
@@ -2192,8 +2191,8 @@ function showPaymentSuccess(cardText){
 async function copyPaymentCard(){
   const text = ST_currentPaymentCard || $('paymentCopyCard')?.textContent || '';
   if(!text){ toast('沒有可複製的付款卡片'); return; }
-  try{ await navigator.clipboard.writeText(text); toast('已複製付款卡片，請貼到官方 LINE，並一起傳付款截圖'); }
-  catch(e){ toast('請長按卡片文字複製，再貼到官方 LINE，並一起傳付款截圖'); }
+  try{ await navigator.clipboard.writeText(text); toast('已複製付款卡片'); }
+  catch(e){ toast('請長按卡片文字複製'); }
 }
 
 // ── URL 深連結：信件按鈕 / 查看報名紀錄 / 前往繳費 ──
