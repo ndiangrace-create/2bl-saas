@@ -179,12 +179,12 @@ textarea{min-height:64px;resize:vertical}
 .ov-card{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:13px 14px;margin-bottom:10px;border-left:5px solid var(--g);overflow:hidden;word-break:break-word}
 .ov-card-title{font-size:17px;font-weight:900;color:var(--g);line-height:1.35;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .ov-card-meta{font-size:13px;color:#666;line-height:1.5;margin-bottom:10px}
-.ov-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
-.ov-metric{background:#f7faf8;border:1px solid #e5f2ec;border-radius:10px;padding:9px 10px;min-width:0;overflow:hidden}
-.ov-metric .label{font-size:12px;color:#666;margin-bottom:3px}
+.ov-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:10px 0}
+.ov-metric{background:#f7faf8;border:1px solid #e5f2ec;border-radius:8px;padding:6px 8px;min-width:0;overflow:hidden}
+.ov-metric .label{font-size:11px;color:#666;margin-bottom:2px}
 .ov-metric .num{font-size:20px;font-weight:900;color:#1D9E75;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ov-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
-.ov-actions button{font-size:15px!important;padding:11px 8px!important;border-radius:10px!important;font-weight:800!important}
+.ov-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px}
+.ov-actions button{font-size:13px!important;padding:7px 4px!important;border-radius:8px!important;font-weight:800!important}
 .ov-equips{font-size:13px;color:#555;line-height:1.55;background:#fafafa;border-radius:10px;padding:8px 10px;margin-top:8px}
 .ov-filter-btn.active{background:var(--g)!important;color:#fff!important;border-color:var(--g)!important}
 .finance-invoice-btn{flex:1;border:none;border-radius:12px;background:#F3E8FF;color:#5B21B6;font-size:15px;font-weight:800;padding:13px 12px;cursor:pointer;font-family:inherit;border:1px solid #D8B4FE}
@@ -203,7 +203,7 @@ textarea{min-height:64px;resize:vertical}
   .ov-metric .label{font-size:13px!important}
   .ov-metric .num{font-size:22px!important}
   .ov-equips{font-size:14px!important}
-  .ov-actions button{font-size:15px!important;padding:12px 10px!important}
+  .ov-actions button{font-size:13px!important;padding:7px 4px!important}
   /* 報名審核卡片字體 */
   .regs-card-name{font-size:16px!important}
   .btn{font-size:14px!important}
@@ -1486,14 +1486,15 @@ function renderOverviewSessionsFn(){
       <div class="ov-card-title">${s.name||''}</div>
       <div class="ov-card-meta">${s.region||''}｜${fmtOverviewDateRangeText(s)}｜${getSessionStatusLabel(s)}</div>
       <div class="ov-metric-grid">
-        <div class="ov-metric"><div class="label">報名</div><div class="num" onclick="goToSesRegs('${s.id}')">${s.total||0}</div></div>
-        <div class="ov-metric"><div class="label">待審核</div><div class="num" style="color:#BA7517" onclick="goToSesPending('${s.id}')">${s.pending||0}</div></div>
-        <div class="ov-metric"><div class="label">繳費確認</div><div class="num" style="color:#D97706" onclick="goPage('payments');ST._payFilterSesId='${s.id}';setTimeout(()=>renderPaymentManagement(),80)">${pendingPayCount}</div></div>
-        <div class="ov-metric"><div class="label">已繳費</div><div class="num" onclick="goToSesCheckin('${s.id}')">${s.paid||0}</div></div>
+        <div class="ov-metric"><div class="label">報名</div><div class="num" style="cursor:pointer" onclick="goToSesRegs('${s.id}')">${s.total||0}</div></div>
+        <div class="ov-metric"><div class="label">待審核</div><div class="num" style="color:#BA7517;cursor:pointer" onclick="goToSesPending('${s.id}')">${s.pending||0}</div></div>
+        <div class="ov-metric"><div class="label">繳費確認</div><div class="num" style="color:#D97706;cursor:pointer" onclick="goPage('payments');ST._payFilterSesId='${s.id}';setTimeout(()=>renderPaymentManagement(),80)">${pendingPayCount}</div></div>
+        <div class="ov-metric"><div class="label">已繳費</div><div class="num" style="cursor:pointer" onclick="goToSesCheckin('${s.id}')">${s.paid||0}</div></div>
+        <div class="ov-metric"><div class="label">已取消</div><div class="num" style="color:#aaa;cursor:pointer" onclick="goToSesCancelled('${s.id}')">${s.cancelled||0}</div></div>
+        <div class="ov-metric"><div class="label">已報到</div><div class="num" style="color:#185FA5;cursor:pointer" onclick="goToSesCheckin('${s.id}')">${s.seated||0}</div></div>
         <div class="ov-metric"><div class="label">已收費用</div><div class="num" style="font-size:18px">NT$${(s.revenue||0).toLocaleString()}</div></div>
         <div class="ov-metric"><div class="label">押金</div><div class="num" style="font-size:18px;color:#854F0B">NT$${(s.depositTotal||0).toLocaleString()}</div></div>
-        <div class="ov-metric"><div class="label">已報到</div><div class="num" style="color:#185FA5">${s.seated||0}</div></div>
-        ${(s.refundReq||0)>0?`<div class="ov-metric" style="border:1.5px solid #fca5a5;background:#fef2f2"><div class="label" style="color:#b91c1c">退款申請</div><div class="num" style="color:#b91c1c" onclick="goPage('payments');ST._payFilterSesId='${s.id}';$('paymentStatusFilter').value='申請退費';setTimeout(()=>renderPaymentManagement(),80)">${s.refundReq}</div></div>`:''}
+        ${(s.refundReq||0)>0?`<div class="ov-metric" style="border:1.5px solid #fca5a5;background:#fef2f2"><div class="label" style="color:#b91c1c">退款申請</div><div class="num" style="color:#b91c1c;cursor:pointer" onclick="goPage('payments');ST._payFilterSesId='${s.id}';$('paymentStatusFilter').value='申請退費';setTimeout(()=>renderPaymentManagement(),80)">${s.refundReq}</div></div>`:''}
       </div>
       <div class="ov-equips"><strong>設備：</strong>${equipText}</div>
       <div class="ov-actions">
@@ -3301,6 +3302,17 @@ async function goToSesRegs(sesId){
   try{ await loadAllRegs(); }catch(e){ console.warn('報名資料重新載入失敗，使用目前快取', e); }
   ST._filterSesId=sesId;
   ST._showAllRegStatus=true;
+  renderRegs();
+}
+
+// 已取消數 → 該場次只看已取消
+function goToSesCancelled(sesId){
+  ST._filterSesId=sesId;
+  ST._showAllRegStatus=true;
+  ST._filterStatusFilter='已取消';
+  goPage('regs');
+  const sel=$('regSesFilter');
+  if(sel) sel.value=sesId;
   renderRegs();
 }
 
