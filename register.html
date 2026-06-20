@@ -458,6 +458,7 @@ button,a,[onclick]{touch-action:manipulation}
       <div style="font-size:15px;color:var(--g);background:var(--gp);border-radius:10px;padding:8px 12px;margin-bottom:14px">
         💡 填寫後存檔，下次報名自動帶入，不需每場重填
       </div>
+      <div id="memberEditHint" style="display:none;font-size:15px;color:#c0392b;background:#fdecea;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-weight:800;line-height:1.6"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div><label style="font-size:15px;color:var(--md)">姓名</label><input type="text" id="editName"></div>
         <div><label style="font-size:15px;color:var(--md)">手機</label><input type="tel" id="editPhone" inputmode="tel"></div>
@@ -757,6 +758,21 @@ async function safeLoadMemberPage(email, opts={}){
       if(member && !member.error){
         ST.member={...(ST.member||{}),...member,email:member.email||email};
         fillMemberCard(ST.member);
+        // 檢查資料完整性：姓名、品牌名稱、FB 或 IG 至少一個
+        const m = ST.member;
+        const hasName   = !!(m.name||m.displayName||'').trim();
+        const hasBrand  = !!(m.brand||m.brand_name||'').trim();
+        const hasSocial = !!(m.fb||m.fb_url||m.ig||m.ig_url||'').trim();
+        if(!hasName || !hasBrand || !hasSocial){
+          const missing=[];
+          if(!hasName)   missing.push('姓名');
+          if(!hasBrand)  missing.push('品牌名稱');
+          if(!hasSocial) missing.push('FB 或 Instagram（審核必要）');
+          ST._profileIncomplete = true;
+          openMemberEditModal('請先完善以下資料才能使用報名功能：' + missing.join('、'));
+        } else {
+          ST._profileIncomplete = false;
+        }
       }else{
         if(!ST.member) ST.member={email};
         fillMemberCard(ST.member);
@@ -1398,7 +1414,7 @@ function setEditValue(id, value){
   const el=$(id);
   if(el) el.value = value == null ? '' : String(value);
 }
-async function openMemberEditModal(){
+async function openMemberEditModal(forceMsg){
   const email = String(ST.memberEmail || memberSafeEmail() || '').trim();
   if(!email){ toast('請先登入會員'); return; }
   const modal=$('memberEditModal');
@@ -1407,6 +1423,22 @@ async function openMemberEditModal(){
   const btn=$('saveMemberBtn');
   if(btn){ btn.disabled=false; btn.textContent='儲存資料'; }
   const msg=$('saveSuccessMsg'); if(msg) msg.style.display='none';
+
+  // 強制填寫提示
+  const hintEl=$('memberEditHint');
+  const closeBtn=modal.querySelector('button[onclick*="closeMemberEditModal"]')||modal.querySelector('button[onclick*="closeModal(\'memberEditModal\')"]');
+  if(forceMsg){
+    if(hintEl){ hintEl.textContent=forceMsg; hintEl.style.display='block'; }
+    if(closeBtn) closeBtn.style.display='none';
+    // 攔截點擊背景關閉
+    modal._forceOpen=true;
+    modal.onclick=function(e){ if(e.target===modal) toast('請先填寫完整資料並儲存'); };
+  } else {
+    if(hintEl){ hintEl.style.display='none'; hintEl.textContent=''; }
+    if(closeBtn) closeBtn.style.display='';
+    modal._forceOpen=false;
+    modal.onclick=function(e){ if(e.target===modal) closeMemberEditModal(); };
+  }
 
   let m = ST.member || {email};
   try{
@@ -1472,7 +1504,21 @@ async function saveMemberEdit(){
     const msg=$('saveSuccessMsg');
     if(msg){ msg.style.display='block'; setTimeout(()=>msg.style.display='none',1800); }
     toast('✅ 會員資料已更新');
-    setTimeout(()=>closeMemberEditModal(),500);
+    // 重新檢查完整性
+    const m2 = ST.member;
+    const hasName2   = !!(m2.name||m2.displayName||'').trim();
+    const hasBrand2  = !!(m2.brand||m2.brand_name||'').trim();
+    const hasSocial2 = !!(m2.fb||m2.fb_url||m2.ig||m2.ig_url||'').trim();
+    if(!hasName2 || !hasBrand2 || !hasSocial2){
+      const missing2=[];
+      if(!hasName2)   missing2.push('姓名');
+      if(!hasBrand2)  missing2.push('品牌名稱');
+      if(!hasSocial2) missing2.push('FB 或 Instagram（審核必要）');
+      openMemberEditModal('仍缺少以下資料：' + missing2.join('、'));
+    } else {
+      ST._profileIncomplete = false;
+      setTimeout(()=>closeMemberEditModal(), 500);
+    }
   }catch(e){
     console.warn('[saveMemberEdit failed]',e);
     toast('❌ 網路錯誤，請稍後再試');
