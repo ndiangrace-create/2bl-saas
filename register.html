@@ -614,8 +614,8 @@ const _urlParams = new URLSearchParams(window.location.search);
 const TENANT_ID = _urlParams.get('tenant') || _urlParams.get('tenantId') || 'tuibile';
 // LINE_URL 由 frontBootstrap 動態取得，以下為 fallback
 let LINE_URL = 'https://lin.ee/Xpiib15';
-const LINEPAY_LINK = 'https://line.me/R/pay/payment?action=reserve&encPath=O9zzNsv4sXSYJj0lFsg5StIHatavCRHHS3pZkNOCBdRfr7e3xZaXE7C8dvmPyP12&merchantProvider=LINEPAY';
-const CARDPAY_LINK = 'https://p.ecpay.com.tw/C97B672';
+let LINEPAY_LINK = 'https://line.me/R/pay/payment?action=reserve&encPath=O9zzNsv4sXSYJj0lFsg5StIHatavCRHHS3pZkNOCBdRfr7e3xZaXE7C8dvmPyP12&merchantProvider=LINEPAY';
+let CARDPAY_LINK = 'https://p.ecpay.com.tw/C97B672';
 
 const EQUIP_LIST_DEFS = {
   '桌':{icon:'🪵',price:350},'椅子':{icon:'🪑',price:20},
@@ -2253,10 +2253,27 @@ async function copyPaymentCard(){
   if(_payRegId) window._pendingPayRegId = _payRegId;
   if(_email){ ST.memberEmail=_email; memberSaveEmail(_email); if($('loginEmail')) $('loginEmail').value=_email; }
   if(isMemberLink || _payRegId){
-    setTimeout(()=>{
-      const email = _email || ST.memberEmail || memberSafeEmail();
-      if(email) safeLoadMemberPage(email,{navOptions:{noPush:true}});
-      else goMemberPage();
+    setTimeout(async()=>{
+      let email = _email || ST.memberEmail || memberSafeEmail();
+      if(!email && _payRegId){
+        try{
+          const lookup = await api({action:'getRegLookup',regId:_payRegId,_t:Date.now()});
+          if(lookup && !lookup.error && lookup.email){
+            email = String(lookup.email||'').trim();
+            ST.memberEmail = email;
+            memberSaveEmail(email);
+            if($('loginEmail')) $('loginEmail').value = email;
+          }
+        }catch(e){ console.warn('[deep link getRegLookup failed]', e); }
+      }
+      if(email){
+        await safeLoadMemberPage(email,{navOptions:{noPush:true}});
+      }else{
+        navTo('member',{noPush:true});
+        memberShowLogin();
+        const el=$('myRegsList');
+        if(el) el.innerHTML='<div style="color:#c0392b;font-size:16px;text-align:center;padding:20px;line-height:1.7">找不到這筆報名對應的 Email。<br>請輸入報名 Email 查詢，或截圖聯繫官方 LINE。</div>';
+      }
       const ml=$('memberLoginArea');
       if(ml && ml.style.display!=='none') ml.scrollIntoView({behavior:'smooth',block:'start'});
     }, 800);
@@ -2335,12 +2352,17 @@ if(document.readyState==='loading'){
       if(boot.tenant){
         // 動態更新 LINE_URL
         if(boot.tenant.lineUrl) LINE_URL = boot.tenant.lineUrl;
-        // 動態更新銀行帳號顯示
+        // 動態更新銀行帳號與線上付款連結顯示
         if(boot.tenant.bankInfo){
           const bi = boot.tenant.bankInfo;
           const bankEl = document.getElementById('bankInfoDisplay');
           if(bankEl){ bankEl.innerHTML = bi.replace(/\n/g,'<br>'); }
         }
+        const payCfg = boot.tenant.paymentConfig || boot.tenant.paymentLinks || {};
+        const tenantLinePay = payCfg.linePayUrl || payCfg.linePay || payCfg.linepay || payCfg.line_pay_url || '';
+        const tenantCardPay = payCfg.cardPayUrl || payCfg.creditCardUrl || payCfg.ecpayUrl || payCfg.card || payCfg.card_pay_url || '';
+        if(tenantLinePay) LINEPAY_LINK = tenantLinePay;
+        if(tenantCardPay) CARDPAY_LINK = tenantCardPay;
         // 動態更新品牌顯示
         const logoText = document.querySelector('.logo-text');
         if(logoText && boot.tenant.name) logoText.childNodes[0].textContent = boot.tenant.name;

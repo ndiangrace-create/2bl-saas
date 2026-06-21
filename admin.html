@@ -975,10 +975,12 @@ async function api(params){
 }
 async function apiPost(body){
   try{
+    body = {...(body||{})};
+    if(!body.tenant && !body.tenantId) body.tenant = TENANT_ID;
     const r=await fetch(API+'?_t='+Date.now(),{
       method:'POST',
       headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-store'},
-      body:JSON.stringify({...body,email:ST.email,token:ST.token}),
+      body:JSON.stringify({...body,email:ST.email,token:ST.token,tenant:body.tenant||TENANT_ID}),
       cache:'no-store'
     });
     if(!r.ok){ toast('⚠️ 連線失敗('+r.status+')'); return {error:'連線失敗 '+r.status}; }
@@ -1071,16 +1073,16 @@ async function doLogin(){
   if(!email){$('loginErr').textContent='請填寫 Email';return;}
   const res=await api({action:'adminLogin',email});
   if(res.error){$('loginErr').textContent=res.error;return;}
-  ST.email=email;ST.token=res.token;ST.role=res.role;
+  ST.email=email;ST.token=res.token;ST.role=res.role;ST.tenantName=res.tenantName||'';
   const tenantId = res.tenantId || TENANT_ID;
   TENANT_ID = tenantId;
-  localStorage.setItem('tb_v3',JSON.stringify({email,token:res.token,role:res.role,name:res.name,tenantId}));
+  localStorage.setItem('tb_v3',JSON.stringify({email,token:res.token,role:res.role,name:res.name,tenantId,tenantName:res.tenantName||''}));
   initAdmin(res.name,res.role);
 }
 function logout(){localStorage.removeItem('tb_v3');location.reload();}
 (function(){
   const s=JSON.parse(localStorage.getItem('tb_v3')||'null');
-  if(s&&s.token){ST.email=s.email;ST.token=s.token;ST.role=s.role;if(s.tenantId){TENANT_ID=s.tenantId;ST.tenantId=s.tenantId;}initAdmin(s.name,s.role);}
+  if(s&&s.token){ST.email=s.email;ST.token=s.token;ST.role=s.role;ST.tenantName=s.tenantName||'';if(s.tenantId){TENANT_ID=s.tenantId;ST.tenantId=s.tenantId;}initAdmin(s.name,s.role);}
 })();
 
 function initAdmin(name,role){
@@ -1149,7 +1151,7 @@ async function loadCheckinRegs(){
   $('checkinBody').style.display='block';
   $('checkinList').innerHTML='<div style="text-align:center;padding:20px;color:#aaa">載入中...</div>';
   const regs=await api({action:'getRegsBySession',sessionId:sesId,email:ST.email,token:ST.token});
-  ST_checkinRegs=(regs||[]).filter(r=>String(r.status||'')==='已錄取' && isPaidText(r.payStatus||''));
+  ST_checkinRegs=(regs||[]).filter(r=>isOnsiteEligibleReg(r));
   updateCheckinStats();
   filterCheckinList();
 }
@@ -2758,7 +2760,9 @@ function paymentStatusLabel(v){
 }
 function isCancelledPaymentReg(r){ return String(r?.status||r?.reviewStatus||'').trim()==='已取消'; }
 function isRefundRequestReg(r){ return !isCancelledPaymentReg(r) && String(r?.transferStatus||'')==='申請退費'; }
-function isPayPendingActiveReg(r){ return !isCancelledPaymentReg(r) && !isRefundRequestReg(r) && isPendingPayText(r?.payStatus); }
+function isRefundedReg(r){ return String(r?.transferStatus||'')==='已退費'; }
+function isOnsiteEligibleReg(r){ return !isCancelledPaymentReg(r) && !isRefundRequestReg(r) && !isRefundedReg(r) && String(r?.status||r?.reviewStatus||'')==='已錄取' && isPaidText(r?.payStatus||''); }
+function isPayPendingActiveReg(r){ return !isCancelledPaymentReg(r) && !isRefundRequestReg(r) && !isRefundedReg(r) && isPendingPayText(r?.payStatus); }
 async function loadPaymentsSimple(){
   // 舊設定頁相容：若設定頁還有付款區，也用同一份資料渲染。
   if(!(ST.allRegs||[]).length) await loadAllRegs();
@@ -3588,7 +3592,7 @@ async function downloadSesData(sesId,sesName){
   const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const csv='場次資訊\n'+toCSV(['欄位','內容'],infoRows)
     +'\n\n財報摘要（該場次最新資料）\n'+toCSV(['項目','金額/數量','備註'],summaryRows)
-    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
+    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','參加者','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
     +'\n\n設備明細（全部報名，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipAllRows)
     +'\n\n設備明細（已錄取/已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipApprovedRows)
     +'\n\n設備明細（已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipPaidRows)
@@ -3616,7 +3620,8 @@ function downloadCurrentFinanceData(){
 function shareLineFinance(){
   const title=$('financeTitle')?.textContent||'場次';
   const net=$('f-net')?.textContent?.match(/NT\$[\d,]+/)?.[0]||'';
-  const text='【兔彼樂財報】'+title+'\n本場淨利：'+net+'\n詳細請洽主辦。';
+  const tenantLabel=ST.tenantName||'主辦';
+  const text='【'+tenantLabel+'財報】'+title+'\n本場淨利：'+net+'\n詳細請洽主辦。';
   window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
 }
 async function loadFinanceData(){
