@@ -266,6 +266,24 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
   .topbar-front-btn{font-size:15px;padding:7px 10px}
 }
 
+
+
+/* V5.1.1 手機總覽緊湊版：只調整 admin.html，不動資料庫/Worker */
+@media(max-width:1024px){
+  .overview-mobile-list{display:block!important}.overview-desktop-wrap{display:none!important}
+  .ov-card{padding:9px 10px!important;margin:8px 0!important;border-radius:13px!important;border-left:4px solid #82ABA3!important;box-shadow:0 1px 8px rgba(0,0,0,.055)!important;overflow:hidden!important}
+  .ov-card-title{font-size:17px!important;line-height:1.25!important;margin-bottom:2px!important;color:#2f6f67!important;display:-webkit-box!important;-webkit-line-clamp:1!important;-webkit-box-orient:vertical!important;overflow:hidden!important;word-break:break-word!important}
+  .ov-card-meta{font-size:12px!important;line-height:1.35!important;margin-bottom:6px!important;color:#666!important;overflow:hidden!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important}
+  .ov-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;margin:6px 0!important}
+  .ov-metric{padding:6px 4px!important;border-radius:9px!important;background:#f7faf8!important;border:1px solid #e5f1ec!important;min-height:49px!important}
+  .ov-metric .label{font-size:11px!important;line-height:1.15!important;margin:0 0 2px!important;color:#666!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .ov-metric .num{font-size:18px!important;line-height:1.05!important;font-weight:900!important;color:#2f6f67!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .ov-metric.money .num{font-size:13px!important;letter-spacing:-.3px!important}
+  .ov-equips{font-size:12px!important;line-height:1.35!important;padding:5px 8px!important;margin-top:6px!important;border-radius:9px!important;background:#fafafa!important;color:#555!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .ov-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;margin-top:7px!important}
+  .ov-actions button{min-width:0!important;width:100%!important;min-height:34px!important;padding:7px 4px!important;font-size:13px!important;line-height:1.1!important;border-radius:9px!important;justify-content:center!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .ov-card .btn-g{background:#82ABA3!important;color:#fff!important}.ov-card .btn-b{background:#B3CAD8!important;color:#1a3a4a!important}.ov-card .btn-y{background:#F4E8C0!important;color:#5a4a1a!important}.ov-card .btn-r{background:#EED1CC!important;color:#6b2d2d!important}.ov-card .btn-s{background:#f2f2f0!important;color:#333!important}
+}
 </style>
 <!-- db-driven-20260618 -->
 <!-- build: finance-card-invoice-footer-187 -->
@@ -557,7 +575,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 
     <div class="finance-card-footer">
       <button class="finance-secondary-btn" onclick="closeModal('financeModal')">關閉</button>
-      <button class="finance-download-btn" id="financeDownloadBtn" onclick="downloadCurrentFinanceData()">下載完整資料</button>
+      <button class="finance-download-btn" id="financeDownloadBtn" onclick="downloadCurrentFinanceData()">Excel工作簿</button>
       <button class="finance-invoice-btn" id="financeInvoiceDownloadBtn" onclick="downloadInvoiceList()">下載發票清單</button>
     </div>
   </div>
@@ -1360,6 +1378,11 @@ function getSesPendingPaymentCount(sesId){
   const regs=(ST.allRegs||ST.regs||[]).filter(r=>String(r.sessionId||r.sesId||'')===String(sesId));
   return regs.filter(r=>isPendingPayText(r.payStatus||r.paymentStatus||'')).length;
 }
+function getSesCancelledCount(sesId){
+  const regs=(ST.allRegs||ST.regs||[]).filter(r=>String(r.sessionId||r.sesId||'')===String(sesId));
+  return regs.filter(r=>String(r.status||r.reviewStatus||r.review_status||'').trim()==='已取消').length;
+}
+
 function setOverviewFilter(v){ST.ovFilter=v;renderOverviewSessions();}
 function renderOverviewStatusFilters(){
   const all=ST.sdData||[];
@@ -1479,7 +1502,7 @@ function renderOverviewSessionsFn(){
       <td style="padding:8px 6px;text-align:center;white-space:nowrap">
         <button onclick="editSes('${s.id}')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">編輯</button>
         <button onclick="copySes('${s.id}')" style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px;color:#3730a3">複製</button>
-        <button onclick="downloadSesData('${s.id}','${safeName}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">下載</button>
+        <button onclick="downloadSesData('${s.id}','${safeName}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">Excel</button>
         <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">對帳</button>
         <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isClosedSessionStatus(s.status)?'開啟':'關閉'}</button>
         <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}',this)" style="background:#f4f4f5;border:1px solid #d4d4d8;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isArchivedSession(s)?'取消封存':'封存'}</button>
@@ -1487,22 +1510,29 @@ function renderOverviewSessionsFn(){
     </tr>`;
   }).join('');
   const cardHtml=sessions.map(s=>{
-    const ev=ev_map[s.eventId]||{}; const dateStr=fmtOverviewDateText(s); const pendingPayCount=Number(s.pendingPay||0)||getSesPendingPaymentCount(s.id);
-    let equipText='目前沒有設備需求'; const need=s.equipNeed||{}; const needItems=Object.entries(need).filter(([k,v])=>Number(v)>0); if(needItems.length) equipText=needItems.map(([k,v])=>`${k} × ${v}`).join('、');
+    const ev=ev_map[s.eventId]||{};
+    const pendingPayCount=Number(s.pendingPay||s.payPending||s.paymentPending||s.pendingPayment||0)||getSesPendingPaymentCount(s.id);
+    const cancelledCount=Number(s.cancelled||s.canceled||s.cancelledCount||0)||getSesCancelledCount(s.id);
+    let equipText='無設備需求';
+    const need=s.equipNeed||{};
+    const needItems=Object.entries(need).filter(([k,v])=>Number(v)>0);
+    if(needItems.length) equipText=needItems.map(([k,v])=>`${String(k).replace('椅子','椅')}×${v}`).join('｜');
     const safeName=String(s.name||'').replace(/'/g,''); const safeEv=String(ev.title||'').replace(/'/g,'');
+    const statusLabel=getSessionStatusLabel(s);
     return `<div class="ov-card">
       <div class="ov-card-title">${s.name||''}</div>
-      <div class="ov-card-meta">${s.region||''}｜${fmtOverviewDateRangeText(s)}｜${getSessionStatusLabel(s)}</div>
+      <div class="ov-card-meta">${shortSesType(s.type)}｜${s.region||'未填地區'}｜${fmtOverviewDateRangeText(s)}｜${statusLabel}</div>
       <div class="ov-metric-grid">
         <div class="ov-metric"><div class="label">報名</div><div class="num" onclick="goToSesRegs('${s.id}')">${s.total||0}</div></div>
         <div class="ov-metric"><div class="label">待審核</div><div class="num" style="color:#BA7517" onclick="goToSesPending('${s.id}')">${s.pending||0}</div></div>
         <div class="ov-metric"><div class="label">繳費確認</div><div class="num" style="color:#D97706" onclick="goPage('payments');ST._payFilterSesId='${s.id}';setTimeout(()=>renderPaymentManagement(),80)">${pendingPayCount}</div></div>
         <div class="ov-metric"><div class="label">已繳費</div><div class="num" onclick="goToSesCheckin('${s.id}')">${s.paid||0}</div></div>
-        <div class="ov-metric"><div class="label">已收費用</div><div class="num" style="font-size:18px">NT$${(s.revenue||0).toLocaleString()}</div></div>
-        <div class="ov-metric"><div class="label">押金</div><div class="num" style="font-size:18px;color:#854F0B">NT$${(s.depositTotal||0).toLocaleString()}</div></div>
         <div class="ov-metric"><div class="label">已報到</div><div class="num" style="color:#185FA5">${s.seated||0}</div></div>
+        <div class="ov-metric"><div class="label">已取消</div><div class="num" style="color:#777">${cancelledCount}</div></div>
+        <div class="ov-metric money"><div class="label">已收費用</div><div class="num">NT$${(s.revenue||0).toLocaleString()}</div></div>
+        <div class="ov-metric money"><div class="label">押金</div><div class="num" style="color:#854F0B">NT$${(s.depositTotal||0).toLocaleString()}</div></div>
       </div>
-      <div class="ov-equips"><strong>設備：</strong>${equipText}</div>
+      <div class="ov-equips">🪑 ${equipText}</div>
       <div class="ov-actions">
         <button onclick="editSes('${s.id}')" class="btn btn-s">編輯</button>
         <button onclick="copySes('${s.id}')" class="btn btn-b">複製</button>
@@ -1559,10 +1589,10 @@ async function loadAllData(){
   ST.events=(evts||[]).filter(e=>String(e.id)!=='0' && String(e.title||'')!=='未分類活動');
   ST.sdData=sd||[];
   if(ST.activeEventId && !ST.events.some(e=>e.id===ST.activeEventId)) ST.activeEventId=null;
+  await loadAllRegs();
   fillEventSelects();
   fillRegSessionFilter();
   renderOverviewCards();
-  await loadAllRegs();
   // 若現場管理頁面已開啟，補填場次選單
   const checkinPage=$('page-checkin');
   if(checkinPage&&checkinPage.classList.contains('active')) fillCheckinSesFilter();
@@ -2766,7 +2796,7 @@ function regDateLabel(r){
 function regEquipText(r){
   if(r.equipmentText) return r.equipmentText;
   const eq=(r.actualEquip&&typeof r.actualEquip==='object')?r.actualEquip:(()=>{try{return JSON.parse(r.equip||'{}')}catch(e){return {}}})();
-  return Object.entries(eq||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${String(k).replace('椅子','椅')} ×${Number(v)}`).join('、');
+  return Object.entries(eq||{}).filter(([k,v])=>Number(v)>0).map(([k,v])=>`${k} ${v} 張`).join('、');
 }
 function renderPaymentManagement(targetId){
   const el=$(targetId||'paymentsBody');
@@ -2846,7 +2876,7 @@ function renderPaymentManagement(targetId){
           <div style="font-size:18px;color:var(--g);font-weight:900">${adminEsc(r.payMethod||'未填方式')}　NT$${Number(r.amount||0).toLocaleString()}${last5?'　末五碼 '+adminEsc(last5):''}</div>
           ${isCancelled?`<div style="font-size:14px;color:#666;background:#f3f4f6;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;font-weight:900">未繳費取消：此筆報名紀錄保留，不進退款流程。</div>`:''}
           ${note?`<div style="font-size:14px;color:#8a6d3b;background:#fff8dc;border-radius:8px;padding:7px 8px;margin-top:6px;line-height:1.5;white-space:pre-wrap;max-height:96px;overflow:auto">${note}</div>`:''}
-          <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paymentReportedAt?'　回報：'+String(r.paymentReportedAt).slice(0,16):''}${r.paidAt?'　確認付款：'+String(r.paidAt).slice(0,16):''}</div>
+          <div style="font-size:12px;color:#aaa;margin-top:5px">報名：${String(r.createdAt||'').slice(0,16)}${r.paidAt?'　付款：'+String(r.paidAt).slice(0,16):''}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
           ${isPending?`<button class="btn btn-y btn-sm" onclick="markPaymentScreenshotById('${r.id}')">已回報客服</button>`:''}
@@ -3410,8 +3440,99 @@ function goToSesCheckin(sesId){
   if(typeof loadCheckinRegs==='function') loadCheckinRegs();
 }
 
+
+
+// ── V5.1 Excel 工作簿產生器：不依賴外部套件，直接輸出 .xlsx ──
+function tbExcelXml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function tbExcelCol(n){let s='';while(n>0){let m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
+function tbExcelIsMoneyHeader(h){return /金額|費|收入|支出|押金|退款|應收|已收|未收|小計|單價|淨額|總額/.test(String(h||''));}
+function tbExcelIsDateHeader(h){return /日期|時間|建立|報名時間|下載時間/.test(String(h||''));}
+function tbExcelStatusStyle(v){
+  const s=String(v??'');
+  if(/已繳費|已錄取|已報到|已退|免費/.test(s)) return 5;
+  if(/待確認|待審核|未報到|未退|未清場/.test(s)) return 6;
+  if(/未繳費|不錄取|已取消|申請退費|失敗/.test(s)) return 7;
+  return 2;
+}
+function tbExcelCell(v,r,c,styleId){
+  const ref=tbExcelCol(c)+r;
+  if(v===null||v===undefined||v==='') return `<c r="${ref}" s="${styleId||2}"/>`;
+  if(typeof v==='number' && Number.isFinite(v)) return `<c r="${ref}" s="${styleId||3}"><v>${v}</v></c>`;
+  return `<c r="${ref}" t="inlineStr" s="${styleId||2}"><is><t>${tbExcelXml(v)}</t></is></c>`;
+}
+function tbExcelSheetXml(rows, opts={}){
+  const data=Array.isArray(rows)?rows:[];
+  const maxCols=Math.max(1,...data.map(r=>Array.isArray(r)?r.length:0));
+  const widths=[];
+  for(let c=0;c<maxCols;c++){
+    let max=8;
+    data.forEach(row=>{const v=(row||[])[c]; max=Math.max(max, Math.min(42, String(v??'').length+3));});
+    widths.push(`<col min="${c+1}" max="${c+1}" width="${max}" customWidth="1"/>`);
+  }
+  const header=data[0]||[];
+  const body=data.map((row,ri)=>{
+    const rnum=ri+1;
+    const cells=[];
+    for(let ci=0;ci<maxCols;ci++){
+      const v=(row||[])[ci]??'';
+      let st=ri===0?1:2;
+      const h=header[ci]||'';
+      if(ri>0 && typeof v==='number') st=tbExcelIsMoneyHeader(h)?3:2;
+      if(ri>0 && /狀態|審核|付款|報到|清場|退押金/.test(String(h))) st=tbExcelStatusStyle(v);
+      cells.push(tbExcelCell(v,rnum,ci+1,st));
+    }
+    return `<row r="${rnum}">${cells.join('')}</row>`;
+  }).join('');
+  const freeze=opts.freeze!==false?`<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`:'';
+  const autoFilter=data.length>1?`<autoFilter ref="A1:${tbExcelCol(maxCols)}${data.length}"/>`:'';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${freeze}<cols>${widths.join('')}</cols><sheetData>${body}</sheetData>${autoFilter}</worksheet>`;
+}
+function tbExcelStylesXml(){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Noto Sans TC"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Noto Sans TC"/></font><font><b/><sz val="12"/><name val="Noto Sans TC"/></font></fonts><fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF82ABA3"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD4E3DD"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF4E8C0"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE8F7EE"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFDECEA"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFD9E6E0"/></left><right style="thin"><color rgb="FFD9E6E0"/></right><top style="thin"><color rgb="FFD9E6E0"/></top><bottom style="thin"><color rgb="FFD9E6E0"/></bottom><diagonal/></border></borders><numFmts count="1"><numFmt numFmtId="165" formatCode="NT$ #,##0"/></numFmts><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFill="1" applyBorder="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+}
+function tbUtf8(s){return new TextEncoder().encode(String(s));}
+function tbCrc32(bytes){
+  if(!tbCrc32.table){tbCrc32.table=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);return c>>>0;});}
+  let crc=0xFFFFFFFF; for(const b of bytes) crc=tbCrc32.table[(crc^b)&255]^(crc>>>8); return (crc^0xFFFFFFFF)>>>0;
+}
+function tbU16(n){return [n&255,(n>>>8)&255];}
+function tbU32(n){return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255];}
+function tbZipDate(){const d=new Date();return {time:((d.getHours()<<11)|(d.getMinutes()<<5)|(Math.floor(d.getSeconds()/2)))&65535,date:(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&65535};}
+function tbConcatArrays(parts){const len=parts.reduce((s,p)=>s+p.length,0);const out=new Uint8Array(len);let o=0;parts.forEach(p=>{out.set(p,o);o+=p.length;});return out;}
+function tbZipStore(files){
+  const zdt=tbZipDate(); const locals=[]; const centrals=[]; let offset=0;
+  files.forEach(f=>{
+    const name=tbUtf8(f.name); const data=tbUtf8(f.data); const crc=tbCrc32(data); const size=data.length;
+    const local=new Uint8Array([0x50,0x4b,0x03,0x04,20,0,0,0,0,0,...tbU16(zdt.time),...tbU16(zdt.date),...tbU32(crc),...tbU32(size),...tbU32(size),...tbU16(name.length),0,0,...name,...data]);
+    locals.push(local);
+    const central=new Uint8Array([0x50,0x4b,0x01,0x02,20,0,20,0,0,0,0,0,...tbU16(zdt.time),...tbU16(zdt.date),...tbU32(crc),...tbU32(size),...tbU32(size),...tbU16(name.length),0,0,0,0,0,0,0,0,0,0,0,...tbU32(offset),...name]);
+    centrals.push(central); offset+=local.length;
+  });
+  const centralStart=offset; const centralBlob=tbConcatArrays(centrals); const centralSize=centralBlob.length;
+  const end=new Uint8Array([0x50,0x4b,0x05,0x06,0,0,0,0,...tbU16(files.length),...tbU16(files.length),...tbU32(centralSize),...tbU32(centralStart),0,0]);
+  return tbConcatArrays([...locals,centralBlob,end]);
+}
+function tbCreateXlsxBlob(sheetDefs){
+  const safeSheets=sheetDefs.filter(s=>s&&s.name&&Array.isArray(s.rows)).slice(0,20);
+  const sheetFiles=safeSheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:tbExcelSheetXml(s.rows,s.opts||{})}));
+  const sheetTags=safeSheets.map((s,i)=>`<sheet name="${tbExcelXml(String(s.name).slice(0,31))}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('');
+  const relTags=safeSheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')+`<Relationship Id="rId${safeSheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`;
+  const contentTypes=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${safeSheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`;
+  const files=[
+    {name:'[Content_Types].xml',data:contentTypes},
+    {name:'_rels/.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:'xl/workbook.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheetTags}</sheets></workbook>`},
+    {name:'xl/_rels/workbook.xml.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relTags}</Relationships>`},
+    {name:'xl/styles.xml',data:tbExcelStylesXml()},
+    ...sheetFiles
+  ];
+  return new Blob([tbZipStore(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function tbDownloadBlob(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),500);}
+function tbSanitizeFileName(name){return String(name||'活動').replace(/[\/:*?"<>|]/g,'_').slice(0,80);}
+
 async function downloadSesData(sesId,sesName){
-  toast('準備下載最新財報資料...');
+  toast('準備產生 Excel 工作簿...');
 
   // 先重新抓最新總覽，避免使用舊快取造成金額、場次名稱或設備統計不正確
   // 單場模式：只撈這一場，不撈全部場次，效率直接
@@ -3444,16 +3565,9 @@ async function downloadSesData(sesId,sesName){
   function n(v){const x=Number(v);return Number.isFinite(x)?x:0;}
   function clean(v){return String(v??'').trim();}
   function equipEntries(r){
-    const text=clean(r.equipmentText||'');
-    if(text){
-      return text.split('、').map(part=>{
-        const m=String(part).trim().match(/^(.+?)\s*[×xX]\s*(\d+(?:\.\d+)?)/);
-        return m?[clean(m[1]),n(m[2])]:null;
-      }).filter(Boolean);
-    }
     try{
       const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
-      return Object.entries(obj).map(([name,qty])=>[clean(name).replace('椅子','椅'),n(qty)]).filter(([name,qty])=>name&&qty>0);
+      return Object.entries(obj).map(([name,qty])=>[clean(name),n(qty)]).filter(([name,qty])=>name&&qty>0);
     }catch(e){return [];}
   }
   function equipDef(name){
@@ -3559,43 +3673,55 @@ async function downloadSesData(sesId,sesName){
     i['建立時間']||i.createdAt||''
   ]);
 
-  const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const csv='場次資訊\n'+toCSV(['欄位','內容'],infoRows)
-    +'\n\n財報摘要（該場次最新資料）\n'+toCSV(['項目','金額/數量','備註'],summaryRows)
-    +'\n\n報名明細（每位報名一列）\n'+toCSV(['場次名稱','報名ID','姓名','品牌','手機','Email','攤位數','審核狀態','付款狀態','應繳/已收金額','押金','付款方式','已報到','已清場','退押金','攤位號碼','統編','發票抬頭','發票Email','發票狀態','設備摘要','報名時間','管理員備註'],regRows)
-    +'\n\n設備明細（全部報名，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipAllRows)
-    +'\n\n設備明細（已錄取/已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipApprovedRows)
-    +'\n\n設備明細（已繳費，每項設備一列）\n'+toCSV(['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],equipPaidRows)
-    +'\n\n設備總計（全部報名）\n'+toCSV(['場次名稱','設備品項','總數量'],totalByItem(regs))
-    +'\n\n設備總計（已錄取/已繳費）\n'+toCSV(['場次名稱','設備品項','總數量'],totalByItem(approvedRegs))
-    +'\n\n設備總計（已繳費）\n'+toCSV(['場次名稱','設備品項','總數量'],totalByItem(paidRegs))
-    +'\n\n財報明細（手動收入/支出）\n'+toCSV(['場次名稱','類型','品項','金額','自動/手動','備註','建立時間'],finRows);
-
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const safeName=finalSesName.replace(/[\\/:*?"<>|]/g,'_');
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=safeName+'_最新財報完整資料.csv';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('下載完成');
+  const invoiceRows=regs.filter(r=>clean(r.taxId)||clean(r.invoiceTitle)||clean(r.invoiceEmail)||clean(r.invoiceStatus)).map(r=>[
+    finalSesName,r.brand,r.name,r.email,r.taxId||'',r.invoiceTitle||'',r.invoiceEmail||'',payAmount(r),r.invoiceStatus||'',r.payStatus||'',created(r)
+  ]);
+  const refundRows=regs.filter(r=>/退費|退款|已取消/.test(clean(r.status)+' '+clean(r.payStatus)+' '+clean(r.refundStatus))).map(r=>[
+    finalSesName,r.brand,r.name,r.email,r.phone,r.status,r.payStatus,n(r.refundAmount),n(r.refundAdminFee),n(r.refundTransferFee),r.refundRuleLabel||'',r.refundedAt||'',r.adminNote||''
+  ]);
+  const fullRows=regs.map(r=>[
+    finalSesName,r.id,r.name,r.brand,r.phone,r.email,r.lineId||'',r.fb||'',r.ig||'',r.brandIntro||'',participantText(r.participants),stallCount(r),r.status,r.payStatus,payAmount(r),depAmount(r),r.payMethod||'',r.payLast5||'',r.checkin||'',r.clearStatus||'',r.depositRefunded||'',r.stallNo||'',r.taxId||'',r.invoiceTitle||'',r.invoiceEmail||'',r.invoiceCarrier||'',r.invoiceStatus||'',equipSummaryText(r),created(r),r.adminNote||''
+  ]);
+  const checkinRows=regs.map((r,idx)=>[
+    '',idx+1,r.stallNo||'',r.brand,r.name,r.phone,r.email,stallCount(r),equipSummaryText(r),r.payStatus||'',r.checkin||'未報到',r.clearStatus||'',r.depositRefunded||'',r.adminNote||''
+  ]);
+  const financeRows=regs.map(r=>{
+    const equipAmt=equipChargeAmount(r);
+    const dep=depAmount(r);
+    const paid=isPaidText(r.payStatus)?payAmount(r):0;
+    const due=payAmount(r);
+    return [finalSesName,r.brand,r.name,r.status,r.payStatus,stallCount(r),Math.max(0,due-equipAmt-dep),equipAmt,0,0,dep,due,paid,Math.max(due-paid,0),r.payMethod||'',r.invoiceStatus||''];
+  });
+  const equipSummaryRows=totalByItem(regs).map(x=>['全部報名',x[1],x[2]]).concat(totalByItem(approvedRegs).map(x=>['已錄取/已繳費',x[1],x[2]])).concat(totalByItem(paidRegs).map(x=>['已繳費',x[1],x[2]]));
+  const workbookSheets=[
+    {name:'活動總覽', rows:[['項目','內容','備註'],...infoRows.map(x=>[x[0],x[1],'']),[],['指標','數量/金額','備註'],...summaryRows]},
+    {name:'報名名單', rows:[['品牌','姓名','手機','Email','LINE','FB','IG','品牌介紹','攤數','設備','審核狀態','付款狀態','報到','攤位','備註'],...regs.map(r=>[r.brand,r.name,r.phone,r.email,r.lineId||'',r.fb||'',r.ig||'',r.brandIntro||'',stallCount(r),equipSummaryText(r),r.status,r.payStatus,r.checkin||'',r.stallNo||'',r.adminNote||''])]},
+    {name:'財務報表', rows:[['場次','品牌','姓名','審核狀態','付款狀態','攤數','活動/攤位費','設備費','加購','折扣','押金','應收','已收','未收','付款方式','發票狀態'],...financeRows,[],['手動財報明細','','','','','','','','','','','','','','',''],['類型','品項','金額','自動/手動','備註','建立時間'],...finRows.map(r=>[r[1],r[2],r[3],r[4],r[5],r[6]])]},
+    {name:'設備統計', rows:[['統計範圍','設備品項','總數量'],...equipSummaryRows,[],['設備明細'],['統計範圍','場次名稱','報名ID','姓名','品牌','手機','Email','設備品項','需求數量','每攤內含','內含總數','超過單價','計費數量','計費小計','審核狀態','付款狀態','攤位號碼','報名時間'],...equipAllRows]},
+    {name:'現場報到', rows:[['簽到','序號','攤位','品牌','姓名','手機','Email','攤數','設備','付款狀態','報到狀態','清場','退押金','備註'],...checkinRows]},
+    {name:'發票資料', rows:[['場次','品牌','姓名','Email','統編','發票抬頭','發票Email','金額','發票狀態','付款狀態','報名時間'],...invoiceRows]},
+    {name:'退款資料', rows:[['場次','品牌','姓名','Email','手機','審核狀態','付款狀態','退款金額','行政費','轉帳費','退款規則','退款時間','備註'],...refundRows]},
+    {name:'完整備份', rows:[['場次','報名ID','姓名','品牌','手機','Email','LINE','FB','IG','品牌介紹','參與者','攤數','審核狀態','付款狀態','金額','押金','付款方式','末五碼','報到','清場','退押金','攤位','統編','發票抬頭','發票Email','載具','發票狀態','設備','報名時間','管理員備註'],...fullRows]}
+  ];
+  const safeName=tbSanitizeFileName(finalSesName);
+  try{
+    const blob=tbCreateXlsxBlob(workbookSheets);
+    tbDownloadBlob(blob,safeName+'_Excel工作簿.xlsx');
+    toast('Excel 工作簿下載完成');
+  }catch(e){
+    console.error('Excel 工作簿產生失敗，改用 CSV 備份', e);
+    const toCSV=(hdrs,rows)=>[hdrs,...rows].map(row=>row.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+    const csv='完整備份\n'+toCSV(workbookSheets[7].rows[0],workbookSheets[7].rows.slice(1));
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    tbDownloadBlob(blob,safeName+'_CSV工程備份.csv');
+    toast('Excel 產生失敗，已下載 CSV 備份');
+  }
 }
 
-async function downloadCurrentFinanceData(){
-  const btn=$('financeDownloadBtn');
-  if(!ST_finSesId){toast('沒有可下載的場次');alert('沒有可下載的場次，請先打開單一場次財報。');return;}
-  const oldText=btn?btn.textContent:'';
-  try{
-    if(btn){btn.disabled=true;btn.textContent='產生 Excel 中…';}
-    const ses=(ST.sdData||[]).find(x=>x.id===ST_finSesId)||{};
-    await downloadSesData(ST_finSesId,ses.name||$('financeTitle')?.textContent||'');
-  }catch(e){
-    console.error('downloadCurrentFinanceData failed', e);
-    toast('下載失敗：'+(e&&e.message?e.message:'請稍後再試'),6000);
-    alert('下載失敗：'+(e&&e.message?e.message:'請稍後再試'));
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent=oldText||'下載完整資料';}
-  }
+function downloadCurrentFinanceData(){
+  if(!ST_finSesId){toast('沒有可下載的場次');return;}
+  const ses=(ST.sdData||[]).find(x=>x.id===ST_finSesId)||{};
+  return downloadSesData(ST_finSesId,ses.name||$('financeTitle')?.textContent||'');
 }
 
 function shareLineFinance(){
@@ -3622,11 +3748,9 @@ async function loadFinanceData(){
     return safeN(ses.deposit)*finStallCount(r);
   }
   function finEquipEntries(r){
-    const text=String(r.equipmentText||'').trim();
-    if(text){return text.split('、').map(part=>{const m=String(part).trim().match(/^(.+?)\s*[×xX]\s*(\d+(?:\.\d+)?)/);return m?[String(m[1]||'').trim(),safeN(m[2])]:null;}).filter(Boolean);}
     try{
       const obj=typeof r.equip==='string'?JSON.parse(r.equip||'{}'):(r.equip||{});
-      return Object.entries(obj).map(([name,qty])=>[String(name||'').trim().replace('椅子','椅'),safeN(qty)]).filter(([name,qty])=>name&&qty>0);
+      return Object.entries(obj).map(([name,qty])=>[String(name||'').trim(),safeN(qty)]).filter(([name,qty])=>name&&qty>0);
     }catch(e){return [];}
   }
   function finEquipDef(name){
@@ -3874,7 +3998,7 @@ function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
         <div style="font-size:12px;color:#666;margin-top:2px">總覽頁內展開，不跳頁。資料來源為目前報名、付款與財報紀錄。</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button onclick="downloadSesData('${sesId}','${String(sesName||'場次').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700">下載完整資料</button>
+        <button onclick="downloadSesData('${sesId}','${String(sesName||'場次').replace(/'/g,'')}')" style="background:#E6F1FB;border:1px solid #b3d4f5;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700">Excel工作簿</button>
         <button onclick="toggleInlineFinance('${sesId}','${String(sesName||'').replace(/'/g,'')}')" style="background:#fff;border:1px solid #d8b4fe;color:#6b21a8;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700">收合</button>
       </div>
     </div>
@@ -3888,7 +4012,7 @@ function buildInlineFinanceHtml(sesId, sesName, regs, finItems){
       <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:13px;font-weight:800;margin-bottom:4px;color:#333">設備統計</div>${equipHtml}</div>
       <div style="background:#fff;border-radius:10px;padding:10px"><div style="font-size:13px;font-weight:800;margin-bottom:4px;color:#333">財報明細</div>${finHtml}</div>
     </div>
-    <div style="font-size:11px;color:#777;margin-top:8px">押金小計：${money(deposit)}。若需逐筆驗算，請使用「下載完整資料」，設備會拆成獨立列。</div>`;
+    <div style="font-size:11px;color:#777;margin-top:8px">押金小計：${money(deposit)}。若需逐筆驗算，請使用「Excel工作簿」，設備會拆成獨立列。</div>`;
 }
 
 // ── 財報 Modal ──
@@ -3900,7 +4024,7 @@ async function openFinanceModal(sesId, sesName, evName){
   if(title) title.textContent=sesName||'場次財報';
   if(sub) sub.textContent=(evName||'該場次最新財報資料')+'｜後台版本 v187';
   const dl=$('financeDownloadBtn');
-  if(dl) dl.textContent='下載完整資料';
+  if(dl) dl.textContent='Excel工作簿';
   openModal('financeModal');
   if($('f-income-section')) $('f-income-section').innerHTML='<div style="padding:18px;text-align:center;color:#999">財報載入中…</div>';
   if($('f-expense-section')) $('f-expense-section').innerHTML='';
