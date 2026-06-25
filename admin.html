@@ -6,234 +6,481 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>兔彼樂後台管理</title>
+<title>活動報名系統後台</title>
 <!-- full-chain-fix-20260616 -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
+/* ════════════════════════════════════════════════════
+   2BL V7 後台 UI — 淡色系 SaaS 風格
+   一個色系代表一個功能分類
+   ════════════════════════════════════════════════════ */
+
+/* ── CSS 變數 ── */
 :root{
-  --g:#2d6a4f;--gl:#40916c;--gp:#d8f3dc;--gp2:#f0fdf4;
-  --wh:#fafaf8;--dk:#1a1a18;--md:#555;--lt:#999;
-  --rd:#c0392b;--rdp:#fdecea;--yl:#b7860b;--ylp:#fffaed;
-  --bl:#1a73e8;--blp:#e8f0fe;--r:10px;--sh:0 2px 10px rgba(0,0,0,.07);
+  /* 全域 */
+  --bg:#F5F6F4;
+  --wh:#FFFFFF;
+  --dk:#2C2C2C;
+  --md:#555555;
+  --lt:#999999;
+  --sh:0 1px 6px rgba(0,0,0,.07);
+  --sh2:0 2px 14px rgba(0,0,0,.10);
+  --r:12px;
+  --r-sm:8px;
+
+  /* 場次：霧綠 */
+  --ov-bg:#F3F8F3;
+  --ov-lbl:#DDEEDF;
+  --ov-btn:#7FAE86;
+  --ov-btn-dk:#5C8C63;
+  --ov-border:#C8DFC9;
+  --ov-txt:#3A6B42;
+
+  /* 名單：粉藍 */
+  --rg-bg:#F3F7FB;
+  --rg-lbl:#DDEAF5;
+  --rg-btn:#7FA6C7;
+  --rg-btn-dk:#5A86A8;
+  --rg-border:#C4D8EE;
+  --rg-txt:#2E5C80;
+
+  /* 現場：奶油黃 */
+  --ck-bg:#FFF9ED;
+  --ck-lbl:#F5E4B8;
+  --ck-btn:#C9A85A;
+  --ck-btn-dk:#A88840;
+  --ck-border:#EDD5A0;
+  --ck-txt:#7A6030;
+
+  /* 金流：珊瑚粉 */
+  --py-bg:#FFF4F0;
+  --py-lbl:#F2D1C6;
+  --py-btn:#D88A72;
+  --py-btn-dk:#B86A52;
+  --py-border:#E8C4B4;
+  --py-txt:#8B3C28;
+
+  /* 更多：奶茶灰 */
+  --st-bg:#F8F5EF;
+  --st-lbl:#E8DED0;
+  --st-btn:#9B8A73;
+  --st-btn-dk:#7D6E5A;
+  --st-border:#D8CCBC;
+  --st-txt:#5A4E40;
+
+  /* 狀態色 */
+  --s-ok-bg:#EAF5EE;       --s-ok:#2D7A4F;       /* 成功/已完成 */
+  --s-warn-bg:#FFF8E6;     --s-warn:#A07020;     /* 待處理/警示 */
+  --s-info-bg:#EAF1FB;     --s-info:#2E5C80;     /* 一般資訊 */
+  --s-err-bg:#FDF0ED;      --s-err:#B84030;      /* 警告/退費 */
+  --s-grey-bg:#F2F2F0;     --s-grey:#777777;     /* 已取消/低頻 */
+
+  /* 相容舊變數 */
+  --g:#7FAE86;--gl:#5C8C63;--gp:#DDEEDF;--gp2:#F3F8F3;
+  --rd:#B84030;--rdp:#FDF0ED;--yl:#A07020;--ylp:#FFF8E6;
+  --bl:#2E5C80;--blp:#EAF1FB;
 }
+
+/* ── Reset ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Noto Sans TC',sans-serif;background:#f2f4f3;color:var(--dk);min-height:100vh;font-size:16px}
+body{
+  font-family:'Noto Sans TC',sans-serif;
+  background:var(--bg);
+  color:var(--dk);
+  min-height:100vh;
+  font-size:16px;
+  line-height:1.55;
+  overflow-x:hidden;
+}
 
-/* ── 登入 ── */
-.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#1b4332,#40916c)}
-.login-box{background:#fff;border-radius:16px;padding:32px 24px;width:90%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
-.login-box h2{font-size:18px;font-weight:700;margin-bottom:4px}
-.login-box p{font-size:13px;color:var(--md);margin-bottom:20px}
+/* ── 登入頁 ── */
+.login-page{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,#3A6B42 0%,#5C8C63 55%,#7FAE86 100%);
+}
+.login-box{
+  background:#fff;border-radius:18px;
+  padding:36px 28px;width:90%;max-width:380px;
+  box-shadow:0 8px 40px rgba(0,0,0,.18);
+}
+.login-box h2{font-size:20px;font-weight:800;margin-bottom:4px;color:var(--dk)}
+.login-box p{font-size:14px;color:var(--md);margin-bottom:22px}
 
-/* ── 頂部 ── */
-.topbar{background:var(--g);color:#fff;padding:0 16px;height:46px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.topbar-logo{font-size:15px;font-weight:700}
-.topbar-right{display:flex;gap:8px;align-items:center;font-size:13px;opacity:.9}
+/* ── 頂部列 ── */
+.topbar{
+  background:var(--ov-btn-dk);
+  color:#fff;
+  padding:0 16px;
+  height:50px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
+}
+.topbar-logo{font-size:16px;font-weight:800;letter-spacing:.02em}
+.topbar-right{display:flex;gap:8px;align-items:center;font-size:14px;opacity:.95}
+.topbar-front-btn{
+  background:rgba(255,255,255,.20);
+  border:1px solid rgba(255,255,255,.38);
+  color:#fff;border-radius:8px;
+  padding:6px 12px;font-size:14px;font-weight:700;
+  text-decoration:none;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.topbar-front-btn:active{opacity:.8}
 
 /* ── 佈局 ── */
 .layout{min-height:calc(100vh - 80px);display:block}
 .sidebar{display:none!important}
+.nav-section,.nav-item,.nav-icon{display:none}
+.main{
+  padding:16px 16px 100px;
+  width:100%;
+}
 
-.nav-section{font-size:10px;color:#bbb;padding:10px 14px 3px;letter-spacing:.1em;font-weight:700}
-.nav-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:15px;color:var(--md);cursor:pointer;border-left:3px solid transparent;transition:all .15s;user-select:none}
-.nav-item:hover{background:var(--gp2);color:var(--g)}
-.nav-item.active{background:var(--gp2);color:var(--g);border-left-color:var(--g);font-weight:700}
-.nav-icon{font-size:16px;width:20px;text-align:center}
+/* ── 頁面區塊 ── */
+.tab-page{display:none}
+.tab-page.active{display:block}
 
-/* ── 手機版底部 Tab Bar ── */
-.admin-bottom-bar{display:block;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;z-index:200;padding:6px 0 calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.06)}
-.admin-tab-row{display:flex;justify-content:space-around;align-items:center;width:100%}
-.admin-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--md);font-size:12px;font-family:inherit;transition:color .15s}
-.admin-tab.active{color:var(--g)}
-.admin-tab-icon{font-size:24px;line-height:1}
-.admin-tab-label{font-size:10px;font-weight:700}
+/* ── 頁面標題 ── */
+.page-title{
+  font-size:22px;font-weight:800;
+  margin-bottom:14px;
+  color:var(--dk);
+  letter-spacing:.01em;
+}
 
-
-/* ── 卡片 ── */
-.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px}
-.card-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f0f0f0}
-.card-hd h3{font-size:16px;font-weight:700}
+/* ── 通用卡片 ── */
+.card{
+  background:#fff;
+  border-radius:var(--r);
+  box-shadow:var(--sh);
+  margin-bottom:12px;
+}
+.card-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px solid #F0F0EE;
+}
+.card-hd h3{font-size:17px;font-weight:700}
 .card-body{padding:14px 16px}
-.page-title{font-size:20px;font-weight:700;margin-bottom:14px}
 
-/* ── 按鈕 ── */
-.btn{display:inline-flex;align-items:center;gap:4px;padding:9px 15px;border-radius:8px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:opacity .15s;white-space:nowrap}
-.btn:active{opacity:.7}
-.btn-g{background:var(--g);color:#fff}
-.btn-s{background:#f0f0f0;color:var(--dk)}
-.btn-r{background:var(--rdp);color:var(--rd)}
-.btn-b{background:var(--blp);color:var(--bl)}
-.btn-y{background:var(--ylp);color:var(--yl)}
-.btn-xs{font-size:11px;padding:4px 9px;border-radius:6px}
-.btn-sm{font-size:12px;padding:6px 11px;border-radius:7px}
+/* ── 通用按鈕 ── */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:9px 16px;border-radius:var(--r-sm);
+  font-size:14px;font-weight:700;
+  font-family:inherit;cursor:pointer;border:none;
+  transition:opacity .12s,transform .08s;
+  white-space:nowrap;line-height:1.35;min-height:40px;
+}
+.btn:active{opacity:.72;transform:scale(.97)}
+.btn-g{background:var(--ov-btn);color:#fff}
+.btn-g:hover{background:var(--ov-btn-dk)}
+.btn-s{background:#EFEFED;color:var(--dk)}
+.btn-r{background:var(--s-err-bg);color:var(--s-err)}
+.btn-b{background:var(--rg-lbl);color:var(--rg-txt)}
+.btn-y{background:var(--ck-lbl);color:var(--ck-txt)}
+.btn-xs{font-size:12px;padding:5px 10px;border-radius:6px;min-height:32px}
+.btn-sm{font-size:13px;padding:7px 12px;border-radius:7px;min-height:36px}
+
+/* ── 表單 ── */
+label{display:block;font-size:13px;color:var(--md);margin-bottom:4px;margin-top:12px;font-weight:500}
+label:first-child{margin-top:0}
+input[type=text],input[type=email],input[type=number],input[type=url],
+input[type=date],input[type=time],input[type=password],textarea,select{
+  width:100%;padding:10px 12px;
+  border:1.5px solid #D8DDD8;border-radius:var(--r-sm);
+  font-size:15px;font-family:inherit;color:var(--dk);
+  background:#fff;outline:none;-webkit-appearance:none;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--ov-btn);box-shadow:0 0 0 3px rgba(127,174,134,.15)}
+textarea{min-height:64px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── Badge 狀態標籤 ── */
+.badge{font-size:12px;padding:3px 10px;border-radius:20px;font-weight:700;white-space:nowrap;display:inline-block}
+.badge-ok,.badge-paid    {background:var(--s-ok-bg);color:var(--s-ok)}
+.badge-wait              {background:var(--s-warn-bg);color:var(--s-warn)}
+.badge-no                {background:var(--s-err-bg);color:var(--s-err)}
+.badge-info,.badge-blue  {background:var(--s-info-bg);color:var(--s-info)}
+.badge-unpaid,.badge-grey{background:var(--s-grey-bg);color:var(--s-grey)}
 
 /* ── 場次總覽表格 ── */
 .ses-table{width:100%;border-collapse:collapse;font-size:15px}
-.ses-table th{background:#f7f7f5;padding:9px 10px;text-align:left;font-size:13px;color:var(--lt);font-weight:700;letter-spacing:.05em;border-bottom:2px solid #ebebeb;white-space:nowrap}
-.ses-table td{padding:10px 10px;border-bottom:1px solid #f2f2f2;vertical-align:middle}
+.ses-table th{
+  background:var(--ov-bg);
+  padding:10px 10px;text-align:left;
+  font-size:13px;color:var(--ov-txt);font-weight:700;
+  border-bottom:2px solid var(--ov-border);white-space:nowrap;
+}
+.ses-table td{padding:11px 10px;border-bottom:1px solid #F2F2F0;vertical-align:middle}
 .ses-table tr:last-child td{border-bottom:none}
-.ses-table tr:hover td{background:#fafafa}
+.ses-table tr:hover td{background:var(--ov-bg)}
 .ses-row-event{font-size:10px;color:var(--lt);margin-top:1px}
-.ses-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;background:var(--gp);flex-shrink:0}
-.ses-thumb-placeholder{width:36px;height:36px;border-radius:6px;background:linear-gradient(135deg,#d8f3dc,#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.ses-thumb{width:36px;height:36px;border-radius:7px;object-fit:cover;background:var(--ov-lbl);flex-shrink:0}
+.ses-thumb-placeholder{width:36px;height:36px;border-radius:7px;background:var(--ov-lbl);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .ses-name-cell{display:flex;align-items:center;gap:10px;min-width:160px}
-.num-btn{color:var(--bl);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-.num-btn:hover{color:#0d47a1}
-.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
-.dot-open{background:#40916c}.dot-closed{background:#ccc}.dot-full{background:var(--rd)}
+.num-btn{color:var(--rg-btn-dk);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.num-btn:hover{color:var(--rg-txt)}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.dot-open{background:var(--ov-btn)}.dot-closed{background:#ccc}.dot-full{background:var(--s-err)}
 .action-cell{display:flex;gap:4px;flex-wrap:nowrap}
 
 /* ── 報名列表 ── */
 .reg-table{width:100%;border-collapse:collapse;font-size:15px}
-.reg-table th{background:#f7f7f5;padding:8px 10px;text-align:left;font-size:13px;color:var(--lt);font-weight:700;border-bottom:2px solid #ebebeb;white-space:nowrap}
-.reg-table td{padding:9px 10px;border-bottom:1px solid #f2f2f2;vertical-align:middle}
-.reg-table tr:hover td{background:#fafafa}
-.badge{font-size:12px;padding:4px 10px;border-radius:12px;font-weight:700;white-space:nowrap}
-.badge-wait{background:var(--ylp);color:var(--yl)}
-.badge-ok{background:var(--gp);color:var(--g)}
-.badge-no{background:var(--rdp);color:var(--rd)}
-.badge-paid{background:#e8f5e9;color:#2e7d32}
-.badge-unpaid{background:#f5f5f5;color:#999}
+.reg-table th{background:var(--rg-bg);padding:9px 10px;text-align:left;font-size:13px;color:var(--rg-txt);font-weight:700;border-bottom:2px solid var(--rg-border);white-space:nowrap}
+.reg-table td{padding:10px 10px;border-bottom:1px solid #F2F2F0;vertical-align:middle}
+.reg-table tr:hover td{background:var(--rg-bg)}
 
-/* ── 表單 ── */
-label{display:block;font-size:13px;color:var(--md);margin-bottom:4px;margin-top:11px;font-weight:500}
-label:first-child{margin-top:0}
-input[type=text],input[type=email],input[type=number],input[type=url],input[type=date],input[type=time],input[type=password],textarea,select{
-  width:100%;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:8px;
-  font-size:15px;font-family:inherit;color:var(--dk);background:#fff;outline:none;-webkit-appearance:none
+/* ── 場次卡片（手機版） ── */
+.ov-card{
+  background:#fff;border-radius:var(--r);
+  box-shadow:var(--sh);
+  padding:14px 15px;margin-bottom:10px;
+  border-left:5px solid var(--ov-btn);
+  overflow:hidden;word-break:break-word;
 }
-input:focus,textarea:focus,select:focus{border-color:var(--g)}
-textarea{min-height:64px;resize:vertical}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ov-card-title{font-size:17px;font-weight:800;color:var(--ov-txt);line-height:1.35;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ov-card-meta{font-size:13px;color:#666;line-height:1.5;margin-bottom:10px}
+.ov-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:10px 0}
+.ov-metric{background:var(--ov-bg);border:1px solid var(--ov-border);border-radius:10px;padding:9px 10px;min-width:0;overflow:hidden}
+.ov-metric .label{font-size:12px;color:var(--ov-txt);margin-bottom:3px;font-weight:500}
+.ov-metric .num{font-size:20px;font-weight:900;color:var(--ov-btn-dk);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ov-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:7px;margin-top:10px}
+.ov-actions button{font-size:14px!important;padding:10px 8px!important;border-radius:9px!important;font-weight:700!important}
+.ov-equips{font-size:13px;color:#555;line-height:1.55;background:var(--ov-bg);border-radius:9px;padding:8px 10px;margin-top:8px;border:1px solid var(--ov-border)}
+
+/* ── 場次頁快捷篩選 ── */
+.ov-filter-btn{
+  background:#fff;border:1px solid var(--ov-border);
+  border-radius:9px;padding:8px 14px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  color:var(--ov-txt);
+  transition:background .12s,border-color .12s;
+}
+.ov-filter-btn.active{background:var(--ov-btn)!important;color:#fff!important;border-color:var(--ov-btn)!important}
+
+/* ── 分頁專屬快捷區（通用底座） ── */
+.page-quick-bar{
+  display:flex;gap:6px;flex-wrap:wrap;
+  margin-bottom:14px;
+  padding:10px 13px;
+  border-radius:var(--r);
+}
+.quick-lbl{font-size:11px;color:var(--lt);align-self:center;margin-right:2px;white-space:nowrap}
+.qb-btn{
+  font-size:12px;padding:5px 12px;border-radius:7px;
+  border:1.5px solid transparent;
+  cursor:pointer;font-weight:700;
+  font-family:inherit;
+  transition:background .12s;
+}
+
+/* 場次快捷色 */
+.ov-quick-bar{background:var(--ov-bg);border:1px solid var(--ov-border)}
+.qb-ov{border-color:var(--ov-border);background:#fff;color:var(--ov-txt)}
+.qb-ov:hover{background:var(--ov-lbl)}
+.qb-ov-danger{border-color:#EAB0A8;background:#FDF4F3;color:#943020}
+
+/* 名單快捷色 */
+.rg-quick-bar{background:var(--rg-bg);border:1px solid var(--rg-border)}
+.qb-rg{border-color:var(--rg-border);background:#fff;color:var(--rg-txt)}
+.qb-rg:hover{background:var(--rg-lbl)}
+.qb-rg-warn{border-color:#D8BE80;background:#FFF8E6;color:#7A6030}
+.qb-rg-err{border-color:#DDBBAA;background:#FDF4F0;color:#833020}
+.qb-rg-grey{border-color:#D4D0CC;background:#F8F6F3;color:#777}
+
+/* 現場快捷色 */
+.ck-quick-bar{background:var(--ck-bg);border:1px solid var(--ck-border)}
+.qb-ck{border-color:var(--ck-border);background:#fff;color:var(--ck-txt)}
+.qb-ck:hover{background:var(--ck-lbl)}
+.qb-ck-ok{border-color:#A8CCB8;background:#EAF5EE;color:#2D6040}
+.qb-ck-warn{border-color:#D8BE80;background:#FFF8E6;color:#7A6030}
+
+/* 金流快捷色 */
+.py-quick-bar{background:var(--py-bg);border:1px solid var(--py-border)}
+.qb-py{border-color:var(--py-border);background:#fff;color:var(--py-txt)}
+.qb-py:hover{background:var(--py-lbl)}
+.qb-py-warn{border-color:#E0C090;background:#FFF8E6;color:#8A5820}
+.qb-py-err{border-color:#DDBBAA;background:#FDF4F0;color:#8B3C28}
+.qb-py-ok{border-color:#A8CEB8;background:#EAF5EE;color:#2D6040}
+.qb-py-grey{border-color:#D4D0CC;background:#F8F6F3;color:#777}
+
+/* 更多快捷色 */
+.st-quick-bar{background:var(--st-bg);border:1px solid var(--st-border)}
+.qb-st{border-color:var(--st-border);background:#fff;color:var(--st-txt);text-decoration:none;display:inline-block}
+.qb-st:hover{background:var(--st-lbl)}
+.qb-st-dim{border-color:#DDD8D0;background:#F2EFE8;color:#AAA098;cursor:default}
+
+/* ── 摘要統計卡片（桌機表格 / 手機卡片共用層） ── */
+.summary-desktop{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.summary-table{width:100%;border-collapse:collapse;font-size:14px}
+.summary-table th{padding:10px 8px;text-align:center;font-size:13px;font-weight:700;border-bottom:2px solid;white-space:nowrap}
+.summary-table td{padding:10px 8px;border-bottom:1px solid #F0F0EE;text-align:center;vertical-align:middle}
+.summary-table td:first-child{text-align:left}
+.summary-table tr:last-child td{border-bottom:none}
+.summary-table .ses-name{font-weight:700;font-size:14px}
+.summary-table .ses-date{font-size:11px;color:var(--lt);display:block}
+.enter-btn{
+  font-size:12px;padding:5px 12px;border-radius:7px;
+  font-weight:700;cursor:pointer;border:none;font-family:inherit;
+}
+/* 摘要卡片（手機版） */
+.summary-card{
+  background:#fff;border-radius:var(--r);
+  box-shadow:var(--sh);padding:13px 14px;margin-bottom:10px;
+  border-left:5px solid;
+}
+.summary-card-title{font-size:16px;font-weight:800;margin-bottom:3px}
+.summary-card-date{font-size:12px;color:var(--lt);margin-bottom:10px}
+.summary-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.summary-stat{text-align:center}
+.summary-stat-num{font-size:20px;font-weight:900;line-height:1.1}
+.summary-stat-lbl{font-size:10px;color:var(--lt);margin-top:1px}
+
+/* 場次色 */
+.summary-table.ov-theme th{background:var(--ov-bg);color:var(--ov-txt);border-color:var(--ov-border)}
+.summary-table.ov-theme tr:hover td{background:var(--ov-bg)}
+.summary-card.ov-theme{border-color:var(--ov-btn)}
+.summary-card.ov-theme .summary-card-title{color:var(--ov-txt)}
+.enter-btn.ov-enter{background:var(--ov-btn);color:#fff}
+
+/* 名單色 */
+.summary-table.rg-theme th{background:var(--rg-bg);color:var(--rg-txt);border-color:var(--rg-border)}
+.summary-table.rg-theme tr:hover td{background:var(--rg-bg)}
+.summary-card.rg-theme{border-color:var(--rg-btn)}
+.summary-card.rg-theme .summary-card-title{color:var(--rg-txt)}
+.enter-btn.rg-enter{background:var(--rg-btn);color:#fff}
+
+/* 現場色 */
+.summary-table.ck-theme th{background:var(--ck-bg);color:var(--ck-txt);border-color:var(--ck-border)}
+.summary-table.ck-theme tr:hover td{background:var(--ck-bg)}
+.summary-card.ck-theme{border-color:var(--ck-btn)}
+.summary-card.ck-theme .summary-card-title{color:var(--ck-txt)}
+.enter-btn.ck-enter{background:var(--ck-btn);color:#fff}
+
+/* 金流色 */
+.summary-table.py-theme th{background:var(--py-bg);color:var(--py-txt);border-color:var(--py-border)}
+.summary-table.py-theme tr:hover td{background:var(--py-bg)}
+.summary-card.py-theme{border-color:var(--py-btn)}
+.summary-card.py-theme .summary-card-title{color:var(--py-txt)}
+.enter-btn.py-enter{background:var(--py-btn);color:#fff}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:88px;left:50%;
+  transform:translateX(-50%) translateY(16px);
+  background:rgba(40,40,36,.88);color:#fff;
+  padding:9px 20px;border-radius:20px;
+  font-size:14px;opacity:0;transition:all .3s;
+  pointer-events:none;z-index:999;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Filter bar ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filter-sel{padding:7px 11px;border:1.5px solid #D8DDD8;border-radius:var(--r-sm);font-size:13px;font-family:inherit;background:#fff;color:var(--dk);-webkit-appearance:none}
+.search-input{padding:8px 12px;border:1.5px solid #D8DDD8;border-radius:var(--r-sm);font-size:13px;font-family:inherit;background:#fff;color:var(--dk);outline:none;min-width:160px}
+.search-input:focus,.filter-sel:focus{border-color:var(--ov-btn);box-shadow:0 0 0 3px rgba(127,174,134,.15)}
+
+/* ── Modal ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+@media(min-width:640px){.overlay{align-items:center}}
+.modal{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;padding:24px 20px 44px}
+@media(min-width:640px){.modal{border-radius:18px;margin:0 12px}}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:16px;color:var(--dk)}
+.modal-actions{display:flex;gap:8px;margin-top:20px}
+.modal-box{background:#fff;border-radius:16px;width:min(94vw,680px);padding:22px;box-shadow:0 8px 40px rgba(0,0,0,.18)}
+.overlay-sb{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:40;display:none}
+.overlay-sb.show{display:block}
+
+/* ── 表格包裝 ── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ── 底部 Tab Bar ── */
+.admin-bottom-bar{
+  display:block;position:fixed;bottom:0;left:0;right:0;
+  background:#fff;
+  border-top:1px solid #E8E8E4;
+  z-index:200;
+  padding:6px 0 calc(6px + env(safe-area-inset-bottom));
+  box-shadow:0 -2px 12px rgba(0,0,0,.07);
+}
+.admin-tab-row{display:flex;justify-content:space-around;align-items:center;width:100%}
+.admin-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:7px 4px;cursor:pointer;border:none;background:none;
+  color:var(--lt);font-size:12px;font-family:inherit;
+  transition:color .15s;
+}
+.admin-tab.active{color:var(--ov-btn-dk)}
+.admin-tab-icon{font-size:22px;line-height:1}
+.admin-tab-label{font-size:10px;font-weight:800;letter-spacing:.02em}
+
+/* 各頁 active tab 色 */
+[data-page=overview] .admin-tab.active{color:var(--ov-btn-dk)}
+[data-page=regs]     .admin-tab.active{color:var(--rg-btn-dk)}
+[data-page=checkin]  .admin-tab.active{color:var(--ck-btn-dk)}
+[data-page=payments] .admin-tab.active{color:var(--py-btn-dk)}
+[data-page=settings] .admin-tab.active{color:var(--st-btn-dk)}
+
+/* ── 財報大卡片 ── */
+#financeModal.modal-overlay{align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.45)}
+.finance-card{background:#fff;border-radius:18px;width:min(96vw,1180px);height:min(90vh,860px);display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.22);overflow:hidden}
+.finance-card-head{position:sticky;top:0;background:#fff;z-index:2;padding:14px 16px 10px;border-bottom:1px solid #EDEDEA;display:flex;align-items:flex-start;gap:10px}
+.finance-card-title{flex:1;min-width:0}
+.finance-card-close{width:36px;height:36px;border:none;border-radius:50%;background:#F2F2F0;color:#444;font-size:24px;line-height:1;cursor:pointer;flex-shrink:0}
+.finance-card-close:active{transform:scale(.94);background:#E8E8E4}
+.finance-card-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 96px}
+.finance-card-footer{position:sticky;bottom:0;background:#fff;border-top:1px solid #EDEDEA;padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:.7fr 1.2fr 1.2fr;gap:8px;z-index:50;box-shadow:0 -4px 14px rgba(0,0,0,.06)}
+.finance-download-btn{flex:1;border:none;border-radius:12px;background:var(--ov-btn);color:#fff;font-size:16px;font-weight:800;padding:13px 12px;cursor:pointer;font-family:inherit}
+.finance-download-btn:active{transform:scale(.98);opacity:.9}
+.finance-secondary-btn{border:1px solid #D8D8D4;border-radius:12px;background:#fff;color:#444;font-size:14px;font-weight:700;padding:13px 12px;cursor:pointer;font-family:inherit}
+.finance-invoice-btn{flex:1;border:1px solid #D8B4FE;border-radius:12px;background:#F3E8FF;color:#5B21B6;font-size:15px;font-weight:800;padding:13px 12px;cursor:pointer;font-family:inherit}
+
+/* ── 總覽桌機/手機切換 ── */
+.overview-mobile-list{display:none}
 
 /* ── 模組 ── */
 .mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-.mod-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid #e8e8e8;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s}
-.mod-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--g)}
-.mod-item.on{border-color:var(--g);background:var(--gp2)}
-.equip-def{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f5f5}
+.mod-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid #E4E4E0;border-radius:9px;cursor:pointer;font-size:13px;transition:all .15s}
+.mod-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--ov-btn)}
+.mod-item.on{border-color:var(--ov-btn);background:var(--ov-bg)}
+.equip-def{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F4F4F2}
 .equip-def:last-child{border-bottom:none}
 .equip-def-name{flex:1;font-size:13px}
 .equip-def-price{width:80px}
 
-/* ── Modal ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
-.overlay.show{display:flex}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
-.modal-overlay.show{display:flex}
-@media(min-width:640px){.overlay{align-items:center}}
-.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding:22px 20px 40px}
-@media(min-width:640px){.modal{border-radius:16px;margin:0 12px}}
-.modal-title{font-size:16px;font-weight:700;margin-bottom:14px}
-.modal-actions{display:flex;gap:8px;margin-top:18px}
-.overlay-sb{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:40;display:none}
-.overlay-sb.show{display:block}
-
-/* ── filter bar ── */
-.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
-.filter-sel{padding:7px 11px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--dk);-webkit-appearance:none}
-.search-input{padding:7px 11px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--dk);outline:none;min-width:160px}
-.search-input:focus{border-color:var(--g)}
-
-/* ── toast ── */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.82);color:#fff;padding:9px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── 捲軸表格包裝 ── */
-.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-
-/* ── 手機版表單 ── */
-@media(max-width:640px){
-  .form-row{grid-template-columns:1fr}
-  .mod-grid{grid-template-columns:1fr}
-  .ses-table,.reg-table{font-size:12px}
+/* ── 系統資訊卡片（更多頁固定） ── */
+.saas-info-card{
+  background:var(--st-bg);border:1px solid var(--st-border);
+  border-radius:var(--r);padding:16px 18px;margin-top:28px;
 }
-.modal-box{background:#fff;border-radius:16px;width:min(94vw,680px);padding:20px;box-shadow:0 8px 40px rgba(0,0,0,.18)}
-.main{padding:16px 20px 90px;width:100%;overflow-x:auto}
-.tab-page{display:none}
-.tab-page.active{display:block}
+.saas-info-card h4{font-size:14px;font-weight:800;color:var(--st-txt);margin-bottom:10px}
+.saas-info-row{display:flex;gap:8px;align-items:baseline;font-size:13px;color:var(--md);margin-bottom:5px}
+.saas-info-row:last-child{margin-bottom:0}
+.saas-info-lbl{color:var(--lt);font-size:12px;white-space:nowrap}
 
-/* 財報大卡片：手機友善 */
-#financeModal.modal-overlay{align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.45)}
-.finance-card{background:#fff;border-radius:18px;width:min(96vw,1180px);height:min(90vh,860px);display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.25);overflow:hidden}
-.finance-card-head{position:sticky;top:0;background:#fff;z-index:2;padding:14px 16px 10px;border-bottom:1px solid #eeeeee;display:flex;align-items:flex-start;gap:10px}
-.finance-card-title{flex:1;min-width:0}
-.finance-card-close{width:36px;height:36px;border:none;border-radius:50%;background:#f3f3f3;color:#333;font-size:24px;line-height:1;cursor:pointer;flex-shrink:0}
-.finance-card-close:active{transform:scale(.94);background:#e8e8e8}
-.finance-card-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 96px}
-.finance-card-footer{position:sticky;bottom:0;background:#fff;border-top:1px solid #eeeeee;padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:0.7fr 1.2fr 1.2fr;gap:8px;z-index:50;box-shadow:0 -4px 14px rgba(0,0,0,.06)}
-.finance-download-btn{flex:1;border:none;border-radius:12px;background:#1D9E75;color:#fff;font-size:16px;font-weight:800;padding:13px 12px;cursor:pointer;font-family:inherit}
-.finance-download-btn:active{transform:scale(.98);opacity:.9}
-.finance-secondary-btn{border:1px solid #dddddd;border-radius:12px;background:#fff;color:#333;font-size:14px;font-weight:700;padding:13px 12px;cursor:pointer;font-family:inherit}
-@media(max-width:640px){
-  #financeModal.modal-overlay{padding:8px;align-items:center}
-  .finance-card{width:calc(100vw - 16px);height:calc(100vh - 24px);height:calc(100dvh - 24px);border-radius:18px}
-  .finance-card-head{padding:13px 14px 9px}
-  .finance-card-body{padding:10px 12px 92px}
-  .finance-card-footer{padding:9px 12px calc(9px + env(safe-area-inset-bottom))}
-}
-
-
-/* 總覽：電腦表格、手機卡片，功能一致 */
-.overview-mobile-list{display:none}
-.ov-card{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:13px 14px;margin-bottom:10px;border-left:5px solid var(--g);overflow:hidden;word-break:break-word}
-.ov-card-title{font-size:17px;font-weight:900;color:var(--g);line-height:1.35;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.ov-card-meta{font-size:13px;color:#666;line-height:1.5;margin-bottom:10px}
-.ov-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
-.ov-metric{background:#f7faf8;border:1px solid #e5f2ec;border-radius:10px;padding:9px 10px;min-width:0;overflow:hidden}
-.ov-metric .label{font-size:12px;color:#666;margin-bottom:3px}
-.ov-metric .num{font-size:20px;font-weight:900;color:#1D9E75;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ov-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
-.ov-actions button{font-size:15px!important;padding:11px 8px!important;border-radius:10px!important;font-weight:800!important}
-.ov-equips{font-size:13px;color:#555;line-height:1.55;background:#fafafa;border-radius:10px;padding:8px 10px;margin-top:8px}
-.ov-filter-btn.active{background:var(--g)!important;color:#fff!important;border-color:var(--g)!important}
-.finance-invoice-btn{flex:1;border:none;border-radius:12px;background:#F3E8FF;color:#5B21B6;font-size:15px;font-weight:800;padding:13px 12px;cursor:pointer;font-family:inherit;border:1px solid #D8B4FE}
-@media(max-width:1024px){
-  .main{padding:12px 10px 100px;overflow-x:hidden!important}
-  .overview-desktop-wrap{display:none!important}
-  .overview-mobile-list{display:block!important}
-  .page-title{font-size:22px!important}
-  .finance-card{width:calc(100vw - 16px);height:calc(100vh - 24px);height:calc(100dvh - 24px);border-radius:18px}
-  .finance-card-footer{display:grid;grid-template-columns:1fr;gap:8px}
-  .finance-secondary-btn,.finance-download-btn,.finance-invoice-btn{width:100%;font-size:16px!important}
-
-  /* 手機版字體加大 */
-  .ov-card-title{font-size:18px!important}
-  .ov-card-meta{font-size:14px!important}
-  .ov-metric .label{font-size:13px!important}
-  .ov-metric .num{font-size:22px!important}
-  .ov-equips{font-size:14px!important}
-  .ov-actions button{font-size:15px!important;padding:12px 10px!important}
-  /* 報名審核卡片字體 */
-  .regs-card-name{font-size:16px!important}
-  .btn{font-size:14px!important}
-  .btn-sm{font-size:13px!important;padding:8px 13px!important}
-  .btn-xs{font-size:12px!important;padding:6px 11px!important}
-  /* 篩選選單 */
-  .filter-sel, select, input[type=text], input[type=email], input[type=url], input[type=tel], input[type=number]{font-size:16px!important}
-  /* 現場管理 */
-  .checkin-name{font-size:16px!important}
-  /* 底部Tab */
-  .admin-tab-icon{font-size:26px!important}
-  .admin-tab-label{font-size:12px!important}
-  /* 繳費管理 */
-  #paymentsBody .btn{font-size:14px!important}
-}
-@media(min-width:1025px){
-  .finance-card-body{padding:16px 18px 96px}
-}
-
-
-
-/* ── 老花眼友善大字後台（2026-06） ── */
+/* ── 老花眼友善大字 ── */
 body{font-size:18px!important;line-height:1.55!important}
-.topbar{height:54px!important}.topbar-logo{font-size:20px!important}.topbar-right{font-size:16px!important}
+.topbar{height:54px!important}
+.topbar-logo{font-size:20px!important}
+.topbar-right{font-size:16px!important}
 .page-title{font-size:26px!important;line-height:1.35!important}
 .card-hd h3,.modal-title{font-size:22px!important}
 label{font-size:17px!important;line-height:1.45!important}
-input[type=text],input[type=email],input[type=number],input[type=url],input[type=date],input[type=time],input[type=password],textarea,select{font-size:18px!important;min-height:46px!important}
+input[type=text],input[type=email],input[type=number],input[type=url],
+input[type=date],input[type=time],input[type=password],textarea,select{
+  font-size:18px!important;min-height:46px!important
+}
 .btn,.btn-sm,.btn-xs,button{font-size:18px!important;line-height:1.35!important;min-height:42px!important}
-.admin-tab-icon{font-size:30px!important}.admin-tab-label{font-size:15px!important}.admin-bottom-bar{padding-top:8px!important}
+.admin-tab-icon{font-size:28px!important}
+.admin-tab-label{font-size:13px!important}
+.admin-bottom-bar{padding-top:8px!important}
 #eventCardRow>div{width:150px!important;border-radius:14px!important}
 #eventCardRow>div img,#eventCardRow>div>span{width:150px!important;height:150px!important;object-fit:cover!important}
 #eventCardRow>div div{font-size:18px!important;line-height:1.35!important}
@@ -241,31 +488,57 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 .overview-desktop-wrap table{font-size:18px!important;min-width:1320px!important}
 .overview-desktop-wrap th{font-size:17px!important;padding:13px 9px!important;white-space:nowrap!important}
 .overview-desktop-wrap td{font-size:18px!important;padding:13px 9px!important;vertical-align:middle!important}
-.overview-desktop-wrap td span{font-size:18px!important}.overview-desktop-wrap td span[onclick]{font-size:20px!important}
+.overview-desktop-wrap td span{font-size:18px!important}
+.overview-desktop-wrap td span[onclick]{font-size:20px!important}
 .overview-desktop-wrap td button{font-size:18px!important;padding:10px 14px!important;margin:3px!important}
-.ov-filter-btn{font-size:18px!important;padding:11px 16px!important}.ov-filter-btn span{font-size:15px!important}
-.ov-card-title{font-size:22px!important}.ov-card-meta{font-size:17px!important}.ov-metric .label{font-size:16px!important}.ov-metric .num{font-size:26px!important}.ov-actions button{font-size:18px!important;min-height:48px!important}.ov-equips{font-size:17px!important}
-.badge{font-size:16px!important}.reg-table,.ses-table{font-size:18px!important}.reg-table th,.ses-table th{font-size:17px!important}.reg-table td,.ses-table td{font-size:18px!important}
+.ov-filter-btn{font-size:18px!important;padding:11px 16px!important}
+.ov-filter-btn span{font-size:15px!important}
+.ov-card-title{font-size:22px!important}
+.ov-card-meta{font-size:17px!important}
+.ov-metric .label{font-size:16px!important}
+.ov-metric .num{font-size:26px!important}
+.ov-actions button{font-size:18px!important;min-height:48px!important}
+.ov-equips{font-size:17px!important}
+.badge{font-size:16px!important}
+.reg-table,.ses-table,.summary-table{font-size:18px!important}
+.reg-table th,.ses-table th,.summary-table th{font-size:17px!important}
+.reg-table td,.ses-table td,.summary-table td{font-size:18px!important}
+.qb-btn,.ov-filter-btn,.enter-btn{font-size:16px!important}
+.summary-stat-num{font-size:22px!important}
+.summary-stat-lbl{font-size:12px!important}
+
+/* ── RWD ── */
 @media(max-width:1024px){
-  .main{padding:14px 12px 112px!important}
-  .page-title{font-size:26px!important}
+  .main{padding:14px 12px 112px!important;overflow-x:hidden!important}
+  .overview-desktop-wrap{display:none!important}
+  .overview-mobile-list{display:block!important}
+  .page-title{font-size:24px!important}
+  .finance-card{width:calc(100vw - 16px);height:calc(100vh - 24px);height:calc(100dvh - 24px);border-radius:18px}
+  .finance-card-footer{display:grid;grid-template-columns:1fr;gap:8px}
+  .finance-secondary-btn,.finance-download-btn,.finance-invoice-btn{width:100%;font-size:16px!important}
+  .ov-card-title{font-size:20px!important}
+  .ov-card-meta{font-size:15px!important}
+  .ov-metric .label{font-size:14px!important}
+  .ov-metric .num{font-size:24px!important}
+  .ov-actions button{font-size:15px!important;padding:12px 10px!important}
+  .admin-tab-icon{font-size:26px!important}
+  .admin-tab-label{font-size:12px!important}
+  .btn{font-size:14px!important}
+  .btn-sm{font-size:13px!important;padding:8px 13px!important}
+  .btn-xs{font-size:12px!important;padding:6px 11px!important}
+  .filter-sel,select,input[type=text],input[type=email],input[type=url],
+  input[type=tel],input[type=number]{font-size:16px!important}
+  .topbar-front-btn{font-size:15px;padding:7px 10px}
   #eventCardRow>div{width:148px!important}
   #eventCardRow>div img,#eventCardRow>div>span{width:148px!important;height:148px!important}
+  .form-row{grid-template-columns:1fr}
+  .mod-grid{grid-template-columns:1fr}
+  .ses-table,.reg-table,.summary-table{font-size:14px}
 }
-
-
-.topbar-front-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:7px 12px;font-size:16px;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
-.topbar-front-btn:active{transform:scale(.98);opacity:.85}
-
-
-/* 老花眼友善補強與總覽壓縮 */
-.ses-table th, .ses-table td{font-size:18px}
-.ses-table th{font-size:16px}
-.action-cell button, .ses-table button{font-size:16px!important}
-@media(max-width:1024px){
-  .topbar-front-btn{font-size:15px;padding:7px 10px}
+@media(min-width:640px){.overlay{align-items:center}}
+@media(min-width:1025px){
+  .finance-card-body{padding:16px 18px 96px}
 }
-
 </style>
 <!-- db-driven-20260618 -->
 <!-- build: finance-card-invoice-footer-187 -->
@@ -275,14 +548,32 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 <!-- ══ 登入 ══ -->
 <div id="loginPage" class="login-page">
   <div class="login-box">
-    <h2>🐰 兔彼樂後台</h2>
-    <p>請輸入管理員 Email 登入</p>
-    <label>Email</label>
-    <input type="email" id="loginEmail" placeholder="your@email.com" inputmode="email" onkeydown="if(event.key==='Enter')doLogin()">
-    <div style="height:10px"></div>
-    <button class="btn btn-g" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">登入</button>
+    <h2>活動報名系統後台</h2>
+    <p>請使用 Google 帳號登入，登入後系統將驗證您的管理員身份</p>
 
-    <div id="loginErr" style="font-size:12px;color:var(--rd);margin-top:8px;text-align:center"></div>
+    <!-- Google OAuth 登入按鈕 -->
+    <button id="googleLoginBtn" onclick="startGoogleLogin()"
+      style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;
+             padding:14px 20px;border-radius:10px;border:1.5px solid #dadce0;
+             background:#fff;color:#3c4043;font-size:16px;font-weight:700;
+             font-family:inherit;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08);
+             transition:box-shadow .15s;margin-top:8px">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        <path fill="none" d="M0 0h48v48H0z"/>
+      </svg>
+      使用 Google 帳號登入
+    </button>
+
+    <div id="loginErr" style="font-size:13px;color:var(--rd);margin-top:12px;text-align:center;line-height:1.6;padding:8px;background:#fdf0ed;border-radius:8px;display:none"></div>
+
+    <div style="margin-top:18px;font-size:12px;color:var(--lt);text-align:center;line-height:1.7">
+      僅限授權管理員登入<br>
+      如需帳號協助請聯繫系統管理員
+    </div>
   </div>
 </div>
 
@@ -291,7 +582,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <button onclick="toggleSb()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;padding:0 2px">☰</button>
-      <div class="topbar-logo">🐰 兔彼樂後台</div>
+      <div class="topbar-logo">活動報名系統後台</div>
     </div>
     <div class="topbar-right">
       <a class="topbar-front-btn" href="register.html" target="_blank">前台報名</a>
@@ -304,14 +595,13 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 
   <div class="layout">
     <div class="sidebar" id="sidebar">
-      <div class="nav-section">總覽</div>
-      <div class="nav-item active" id="nav-overview" onclick="goPage('overview')"><span class="nav-icon">📊</span>場次總覽</div>
-      <div class="nav-section">管理</div>
-
-      <div class="nav-item" id="nav-regs" onclick="goPage('regs')"><span class="nav-icon">📋</span>報名審核</div>
-      <div class="nav-item" id="nav-payments" onclick="goPage('payments')"><span class="nav-icon">💰</span>付款管理</div>
-      <div class="nav-section">其他</div>
-      <div class="nav-item" id="nav-announce" onclick="goPage('announce')"><span class="nav-icon">📢</span>公告管理</div>
+      <div class="nav-section">主功能</div>
+      <div class="nav-item active" id="nav-overview" onclick="goPage('overview')"><span class="nav-icon">🗓️</span>場次</div>
+      <div class="nav-item" id="nav-regs" onclick="goPage('regs')"><span class="nav-icon">📋</span>名單</div>
+      <div class="nav-item" id="nav-checkin-side" onclick="goPage('checkin')"><span class="nav-icon">📍</span>現場</div>
+      <div class="nav-item" id="nav-payments" onclick="goPage('payments')"><span class="nav-icon">💰</span>金流</div>
+      <div class="nav-section">系統</div>
+      <div class="nav-item" id="nav-announce" onclick="goPage('settings')"><span class="nav-icon">⚙️</span>更多設定</div>
       <div class="nav-item" id="nav-staff" onclick="goPage('staff')" style="display:none"><span class="nav-icon">👥</span>管理員</div>
       <div style="padding:10px 14px"><a href="register.html" target="_blank" style="font-size:12px;color:var(--md)">🏠 前台</a></div>
     </div>
@@ -320,10 +610,19 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 
       <!-- ── 場次總覽 ── -->
       <div id="page-overview" class="tab-page active">
-  <!-- 上方固定按鈕 -->
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-    <div class="page-title" style="margin:0">總覽</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="page-title" style="margin:0">場次</div>
     <button class="btn btn-g btn-sm" onclick="openSessionCreateModal()">＋ 新增場次</button>
+  </div>
+
+  <!-- 場次頁專屬快捷區 -->
+  <div id="overviewQuickBar" class="page-quick-bar ov-quick-bar">
+    <span class="quick-lbl">快捷篩選</span>
+    <button class="qb-btn qb-ov ov-qb-btn" onclick="setOvQuick('active')" id="ovqb-active">報名中</button>
+    <button class="qb-btn qb-ov ov-qb-btn" onclick="setOvQuick('upcoming')" id="ovqb-upcoming">即將開始</button>
+    <button class="qb-btn qb-ov ov-qb-btn" onclick="setOvQuick('ended')" id="ovqb-ended">已結束</button>
+    <button class="qb-btn qb-ov ov-qb-btn" onclick="setOvQuick('closed')" id="ovqb-closed">已關閉</button>
+    <button class="qb-btn qb-ov-danger ov-qb-btn" onclick="setOvQuick('force')" id="ovqb-force">🚨 不可抗力</button>
   </div>
 
   <!-- 活動卡片橫向滑動 -->
@@ -337,25 +636,45 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 
 <div id="page-regs" class="tab-page">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-    <div class="page-title" id="regsTitle" style="margin:0;flex:1">報名審核</div>
-    <button id="regsBackBtn" class="btn btn-s btn-sm" style="display:none" onclick="backToOverview()">← 回總覽</button>
+    <div class="page-title" id="regsTitle" style="margin:0;flex:1">名單</div>
+    <button id="regsBackBtn" class="btn btn-s btn-sm" style="display:none" onclick="backToRegsSummary()">← 回總覽</button>
   </div>
-  <select id="regSesFilter" onchange="ST._filterSesId=null;ST._showAllRegStatus=false;$('regsTitle').textContent='報名審核';$('regsBackBtn').style.display='none';renderRegs()" style="width:100%;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;margin-bottom:8px;background:#fff"><option value="">所有場次</option></select>
-  <!-- 搜尋 -->
-  <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email/手機" oninput="renderRegs()" style="margin-bottom:10px">
-  <div id="regCount" style="font-size:12px;color:var(--md);margin-bottom:8px"></div>
-  <!-- 批次操作工具列 -->
-  <div style="display:flex;align-items:center;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
-    <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--md);cursor:pointer">
-      <input type="checkbox" id="regSelectAll" onchange="toggleAll(this)" style="width:15px;height:15px;accent-color:var(--g)"> 全選
-    </label>
-    <span style="font-size:12px;color:#ccc">|</span>
-    <button class="btn btn-g btn-xs" onclick="batchApprove()">批次錄取</button>
-    <button class="btn btn-r btn-xs" onclick="batchReject()">批次拒絕</button>
-    <button class="btn btn-b btn-xs" onclick="batchCheckinFromRegs()">批次報到</button>
+
+  <!-- 名單頁專屬快捷區 -->
+  <div id="regsQuickBar" class="page-quick-bar rg-quick-bar">
+    <span class="quick-lbl">快捷篩選</span>
+    <button onclick="setRegsQuick('pending')" id="rqb-pending" class="qb-btn qb-rg-warn rqb-btn">待審核</button>
+    <button onclick="setRegsQuick('approved')" id="rqb-approved" class="qb-btn qb-rg rqb-btn">已錄取</button>
+    <button onclick="setRegsQuick('waitlist')" id="rqb-waitlist" class="qb-btn qb-rg rqb-btn">備取</button>
+    <button onclick="setRegsQuick('rejected')" id="rqb-rejected" class="qb-btn qb-rg-err rqb-btn">不錄取</button>
+    <button onclick="setRegsQuick('cancelled')" id="rqb-cancelled" class="qb-btn qb-rg-grey rqb-btn">已取消</button>
   </div>
-  <!-- 報名列表 -->
-  <div id="regsCardList"></div>
+
+  <!-- 第一層：各場次名單統計總覽（桌機一行、手機一卡） -->
+  <div id="regsSummaryLayer" style="display:block">
+    <div id="regsSummaryList" style="margin-bottom:12px">
+      <div style="text-align:center;padding:30px;color:#aaa;font-size:14px">載入中…</div>
+    </div>
+  </div>
+
+  <!-- 第二層：單場名單（點入後才顯示） -->
+  <div id="regsDetailLayer" style="display:none">
+    <select id="regSesFilter" onchange="onRegSesFilterChange()" style="width:100%;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;margin-bottom:8px;background:#fff"><option value="">所有場次</option></select>
+    <input type="text" id="regSearch" placeholder="搜尋品牌/姓名/Email/手機" oninput="renderRegs()" style="margin-bottom:10px">
+    <div id="regCount" style="font-size:12px;color:var(--md);margin-bottom:8px"></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--md);cursor:pointer">
+        <input type="checkbox" id="regSelectAll" onchange="toggleAll(this)" style="width:15px;height:15px;accent-color:var(--g)"> 全選
+      </label>
+      <span style="font-size:12px;color:#ccc">|</span>
+      <button class="btn btn-g btn-xs" onclick="batchApprove()">批次錄取</button>
+      <button class="btn btn-r btn-xs" onclick="batchReject()">批次拒絕</button>
+      <button class="btn btn-b btn-xs" onclick="batchCheckinFromRegs()">批次報到</button>
+      <button class="btn btn-s btn-xs" id="regsDownloadBtn" onclick="downloadRegsCSV()" style="margin-left:auto">⬇ 下載名單</button>
+    </div>
+    <div id="regsCardList"></div>
+  </div>
+
   <!-- 明細 Modal -->
   <div class="modal-overlay" id="regDetailModal" onclick="if(event.target===this)closeModal('regDetailModal')">
     <div class="modal-box" style="max-height:85vh;overflow-y:auto">
@@ -370,76 +689,132 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 </div>
 
 <div id="page-checkin" class="tab-page">
-  <div class="page-title">現場管理</div>
-  <!-- 場次下拉選單 -->
-  <select id="checkinSesFilter" onchange="loadCheckinRegs()" style="width:100%;padding:11px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:15px;margin-bottom:12px;background:#fff">
-    <option value="">請選擇場次</option>
-  </select>
-  <!-- 選了場次後顯示 -->
-  <div id="checkinBody" style="display:none">
-    <!-- 統計 -->
-    <div id="checkinStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
-  <div id="checkinEquipTotal"></div>
-    <!-- 搜尋 -->
-    <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/電話/Email/攤位" oninput="filterCheckinList()" style="margin-bottom:10px;font-size:14px;padding:10px">
-    <!-- 篩選 -->
-    <div style="display:flex;gap:6px;margin-bottom:12px">
-      <button id="cf-all" onclick="setCFFilter('')" class="btn btn-sm" style="flex:1;background:var(--g);color:#fff">全部</button>
-      <button id="cf-not" onclick="setCFFilter('未報到')" class="btn btn-sm" style="flex:1;background:#f0f0f0;color:var(--md)">未報到</button>
-      <button id="cf-in" onclick="setCFFilter('已報到')" class="btn btn-sm" style="flex:1;background:#f0f0f0;color:var(--md)">已報到</button>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <div class="page-title" id="checkinTitle" style="margin:0;flex:1">現場</div>
+    <button id="checkinBackBtn" class="btn btn-s btn-sm" style="display:none" onclick="backToCheckinSummary()">← 回總覽</button>
+  </div>
+
+  <!-- 現場頁專屬快捷區 -->
+  <div id="checkinQuickBar" class="page-quick-bar ck-quick-bar">
+    <span class="quick-lbl">快捷篩選</span>
+    <button onclick="setCheckinQuick('today')" id="cqb-today" class="qb-btn qb-ck-ok cqb-btn">今日報到</button>
+    <button onclick="setCheckinQuick('notchecked')" id="cqb-notchecked" class="qb-btn qb-ck-warn cqb-btn">未報到</button>
+    <button onclick="setCheckinQuick('checked')" id="cqb-checked" class="qb-btn qb-ck cqb-btn">已報到</button>
+    <button onclick="setCheckinQuick('notcleared')" id="cqb-notcleared" class="qb-btn qb-ck cqb-btn">未清場</button>
+    <button onclick="setCheckinQuick('deposit')" id="cqb-deposit" class="qb-btn qb-ck cqb-btn">退押金</button>
+    <button onclick="setCheckinQuick('equip')" id="cqb-equip" class="qb-btn qb-ck cqb-btn">設備</button>
+  </div>
+
+  <!-- 第一層：各場次現場統計（桌機一行、手機一卡） -->
+  <div id="checkinSummaryLayer" style="display:block">
+    <div id="checkinSummaryList" style="margin-bottom:12px">
+      <div style="text-align:center;padding:30px;color:#aaa;font-size:14px">載入中…</div>
     </div>
-    <!-- 批次工具列 -->
-    <div style="display:flex;align-items:center;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
-      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--md);cursor:pointer">
-        <input type="checkbox" id="checkinSelectAll" onchange="document.querySelectorAll('.checkin-chk').forEach(cb=>cb.checked=this.checked)" style="width:15px;height:15px;accent-color:var(--g)"> 全選
-      </label>
-      <span style="font-size:12px;color:#ccc">|</span>
-      <button class="btn btn-g btn-xs" onclick="batchCheckin()">批次報到</button>
+  </div>
+
+  <!-- 第二層：單場現場作業（選場次後顯示） -->
+  <div id="checkinDetailLayer" style="display:none">
+    <!-- 場次下拉選單 -->
+    <select id="checkinSesFilter" onchange="loadCheckinRegs()" style="width:100%;padding:11px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:15px;margin-bottom:12px;background:#fff">
+      <option value="">請選擇場次</option>
+    </select>
+    <!-- 選了場次後顯示 -->
+    <div id="checkinBody" style="display:none">
+      <div id="checkinStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
+      <div id="checkinEquipTotal"></div>
+      <input type="text" id="checkinSearch" placeholder="搜尋姓名/品牌/電話/Email/攤位" oninput="filterCheckinList()" style="margin-bottom:10px;font-size:14px;padding:10px">
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button id="cf-all" onclick="setCFFilter('')" class="btn btn-sm" style="flex:1;background:var(--g);color:#fff">全部</button>
+        <button id="cf-not" onclick="setCFFilter('未報到')" class="btn btn-sm" style="flex:1;background:#f0f0f0;color:var(--md)">未報到</button>
+        <button id="cf-in" onclick="setCFFilter('已報到')" class="btn btn-sm" style="flex:1;background:#f0f0f0;color:var(--md)">已報到</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--md);cursor:pointer">
+          <input type="checkbox" id="checkinSelectAll" onchange="document.querySelectorAll('.checkin-chk').forEach(cb=>cb.checked=this.checked)" style="width:15px;height:15px;accent-color:var(--g)"> 全選
+        </label>
+        <span style="font-size:12px;color:#ccc">|</span>
+        <button class="btn btn-g btn-xs" onclick="batchCheckin()">批次報到</button>
+      </div>
+      <div id="checkinList"></div>
     </div>
-    <!-- 名單 -->
-    <div id="checkinList"></div>
   </div>
 </div>
 
 
 <div id="page-payments" class="tab-page">
-  <div class="page-title">繳費管理</div>
-  <div style="background:#fff;border-radius:12px;box-shadow:var(--sh);padding:12px 14px;margin-bottom:12px">
-    <div style="font-size:13px;color:var(--md);line-height:1.6">
-      這裡會顯示攤友在前台送出的「繳費通知／匯款回報」，管理員可在確認入帳後按下確認付款。
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <div class="page-title" id="paymentsTitle" style="margin:0;flex:1">金流</div>
+    <button id="paymentsBackBtn" class="btn btn-s btn-sm" style="display:none" onclick="backToPaymentsSummary()">← 回總覽</button>
+  </div>
+
+  <!-- 金流頁專屬快捷區 -->
+  <div id="paymentsQuickBar" class="page-quick-bar py-quick-bar">
+    <span class="quick-lbl">快捷篩選</span>
+    <button onclick="setPaymentsQuick('待確認')" id="pqb-pending" class="qb-btn qb-py-warn pqb-btn">付款待確認</button>
+    <button onclick="setPaymentsQuick('未繳費')" id="pqb-unpaid" class="qb-btn qb-py pqb-btn">未繳費</button>
+    <button onclick="setPaymentsQuick('已繳費')" id="pqb-paid" class="qb-btn qb-py-ok pqb-btn">已繳費</button>
+    <button onclick="setPaymentsQuick('申請退費')" id="pqb-refundreq" class="qb-btn qb-py-err pqb-btn">申請退費</button>
+    <button onclick="setPaymentsQuick('已退費')" id="pqb-refunded" class="qb-btn qb-py-ok pqb-btn">已退費</button>
+    <button onclick="setPaymentsQuick('已取消')" id="pqb-cancelled" class="qb-btn qb-py-grey pqb-btn">已取消</button>
+  </div>
+
+  <!-- 第一層：各場次金流統計（桌機一行、手機一卡） -->
+  <div id="paymentsSummaryLayer" style="display:block">
+    <div id="paymentsSummaryList" style="margin-bottom:12px">
+      <div style="text-align:center;padding:30px;color:#aaa;font-size:14px">載入中…</div>
     </div>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-    <input type="text" id="paymentSearch" placeholder="搜尋姓名／品牌／Email／手機" oninput="renderPaymentManagement()" style="flex:1;min-width:180px;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px">
-    <select id="paymentStatusFilter" onchange="renderPaymentManagement()" style="width:130px;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;background:#fff">
-      <option value="待確認">待確認</option>
-      <option value="未繳費">未繳費</option>
-      <option value="已繳費">已繳費</option>
-      <option value="申請退費">申請退費</option>
-      <option value="已取消">已取消</option>
-      <option value="全部">全部</option>
-    </select>
-    <button class="btn btn-b btn-sm" onclick="loadPayments()" style="font-size:14px">↻ 重新整理</button>
+
+  <!-- 第二層：單場金流（選場次後顯示） -->
+  <div id="paymentsDetailLayer" style="display:none">
+    <div style="background:#fff;border-radius:12px;box-shadow:var(--sh);padding:12px 14px;margin-bottom:12px">
+      <div style="font-size:13px;color:var(--md);line-height:1.6">
+        攤友送出「繳費通知／匯款回報」後，管理員確認入帳並按下確認付款。
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="paymentSearch" placeholder="搜尋姓名／品牌／Email／手機" oninput="renderPaymentManagement()" style="flex:1;min-width:180px;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px">
+      <select id="paymentStatusFilter" onchange="renderPaymentManagement()" style="width:130px;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;background:#fff">
+        <option value="待確認">待確認</option>
+        <option value="未繳費">未繳費</option>
+        <option value="已繳費">已繳費</option>
+        <option value="申請退費">申請退費</option>
+        <option value="已退費">已退費</option>
+        <option value="已取消">已取消</option>
+        <option value="全部">全部</option>
+      </select>
+      <button class="btn btn-b btn-sm" onclick="loadPayments()" style="font-size:14px">↻ 重新整理</button>
+    </div>
+    <div id="paymentStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
+    <div id="paymentsBody"></div>
   </div>
-  <div id="paymentStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
-  <div id="paymentsBody"></div>
 </div>
 
 <div id="page-settings" class="tab-page">
-  <div class="page-title">設定</div>
+  <div class="page-title">更多</div>
+
+  <!-- 更多頁專屬快捷區 -->
+  <div class="page-quick-bar st-quick-bar">
+    <a href="#settings-staff" class="qb-btn qb-st">👥 管理員</a>
+    <a href="#settings-announce" class="qb-btn qb-st">📢 公告</a>
+    <a href="#settings-appearance" class="qb-btn qb-st">🎨 外觀</a>
+    <a href="#settings-email" class="qb-btn qb-st">✉️ 通知</a>
+    <span class="qb-btn qb-st-dim" title="待實作">📋 表單</span>
+    <span class="qb-btn qb-st-dim" title="待實作">⬇ 匯出</span>
+  </div>
 
   <!-- 管理員 -->
-  <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">👥 管理員帳號</div>
+  <div id="settings-staff" style="font-size:14px;font-weight:700;color:var(--st-txt);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--st-border)">👥 管理員帳號</div>
   <button class="btn btn-g btn-sm" onclick="openAddStaffModal()" style="margin-bottom:10px">＋ 新增管理員</button>
   <div id="staffList" style="margin-bottom:24px"></div>
 
   <!-- 公告 -->
-  <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">📢 公告管理</div>
+  <div id="settings-announce" style="font-size:14px;font-weight:700;color:var(--st-txt);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--st-border)">📢 公告管理</div>
   <button class="btn btn-g btn-sm" onclick="openAnnModal()" style="margin-bottom:10px">＋ 新增公告</button>
   <div id="announceList" style="margin-bottom:24px"></div>
 
   <!-- 系統外觀 -->
-  <div style="font-size:14px;font-weight:700;color:var(--g);margin:16px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--gp)">🎨 系統外觀設定</div>
+  <div id="settings-appearance" style="font-size:14px;font-weight:700;color:var(--st-txt);margin:16px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--st-border)">🎨 系統外觀設定</div>
 
   <label style="font-size:13px;color:var(--md);display:block;margin-bottom:4px">首頁封面圖片連結（選填，空白＝使用預設漸層）</label>
   <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -453,7 +828,7 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 
   <label style="font-size:13px;color:var(--md);display:block;margin-bottom:4px">首頁資訊帶文字（下方粗體那行）</label>
   <div style="display:flex;gap:8px;margin-bottom:4px">
-    <input id="siteInfoText" type="text" placeholder="兔彼樂共創活動 期待與您的每場相遇 🌿" style="flex:1;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:14px;font-family:inherit">
+    <input id="siteInfoText" type="text" placeholder="活動資訊與主辦公告將顯示於此" style="flex:1;padding:10px 12px;border:1.5px solid #d0e8d8;border-radius:8px;font-size:14px;font-family:inherit">
     <button class="btn btn-g btn-sm" onclick="saveSiteConfig()" style="white-space:nowrap">儲存</button>
   </div>
   <div style="font-size:11px;color:var(--lt)">空白則使用預設文字。</div>
@@ -461,13 +836,21 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 
   <!-- ✉️ 寄信診斷 -->
   <div style="margin-top:24px;padding-top:16px;border-top:2px solid var(--gp)">
-    <div style="font-size:14px;font-weight:700;color:var(--g);margin-bottom:12px">✉️ 信件系統診斷</div>
+    <div id="settings-email" style="font-size:14px;font-weight:700;color:var(--st-txt);margin-bottom:12px">✉️ 信件系統診斷</div>
     <div style="font-size:13px;color:var(--md);margin-bottom:10px">輸入你自己的 Email，按「測試寄信」，看看信件系統是否正常運作。</div>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <input type="email" id="testEmailAddr" placeholder="輸入你的 Email" style="flex:1;padding:9px 12px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:13px">
       <button onclick="testSendEmail()" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">📨 測試寄信</button>
     </div>
     <div id="testEmailResult" style="display:none;border-radius:10px;padding:12px 14px;font-size:13px;margin-top:4px"></div>
+  </div>
+
+  <!-- 系統提供者資訊（固定，不可編輯） -->
+  <div class="saas-info-card">
+    <h4>🏷 系統提供者資訊</h4>
+    <div class="saas-info-row"><span class="saas-info-lbl">提供者</span>兔彼樂共創活動</div>
+    <div class="saas-info-row"><span class="saas-info-lbl">聯絡方式</span>@2beloved</div>
+    <div class="saas-info-row"><span class="saas-info-lbl">Email</span>ndiangrace@gmail.com</div>
   </div>
 
 </div>
@@ -479,24 +862,24 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
 <div class="admin-bottom-bar" id="adminBottomBar">
   <div class="admin-tab-row">
     <button class="admin-tab active" id="atab-overview" onclick="goPage('overview')">
-      <span class="admin-tab-icon">📊</span>
-      <span class="admin-tab-label">總覽</span>
+      <span class="admin-tab-icon">🗓️</span>
+      <span class="admin-tab-label">場次</span>
     </button>
     <button class="admin-tab" id="atab-regs" onclick="goPage('regs')">
       <span class="admin-tab-icon">📋</span>
-      <span class="admin-tab-label">報名審核</span>
+      <span class="admin-tab-label">名單</span>
     </button>
     <button class="admin-tab" id="atab-checkin" onclick="goPage('checkin')">
-      <span class="admin-tab-icon">✅</span>
-      <span class="admin-tab-label">現場管理</span>
+      <span class="admin-tab-icon">📍</span>
+      <span class="admin-tab-label">現場</span>
     </button>
     <button class="admin-tab" id="atab-payments" onclick="goPage('payments')">
       <span class="admin-tab-icon">💰</span>
-      <span class="admin-tab-label">繳費管理</span>
+      <span class="admin-tab-label">金流</span>
     </button>
     <button class="admin-tab" id="atab-settings" onclick="goPage('settings')">
       <span class="admin-tab-icon">⚙️</span>
-      <span class="admin-tab-label">設定</span>
+      <span class="admin-tab-label">更多</span>
     </button>
   </div>
 </div>
@@ -782,7 +1165,22 @@ input[type=text],input[type=email],input[type=number],input[type=url],input[type
       <div id="stallConfigPreview" style="font-size:12px;color:var(--lt)"></div>
     </div>
 
-
+    <!-- ── 合約同意設定 ── -->
+    <div style="margin-top:18px;padding-top:14px;border-top:2px solid #e8f5ee">
+      <div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:10px">📋 報名合約設定</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:10px">
+        <input type="checkbox" id="ses_agreement_required" checked style="width:18px;height:18px;accent-color:var(--g)">
+        啟用報名合約同意（報名時強制顯示並要求勾選）
+      </label>
+      <label>合約標題</label>
+      <input type="text" id="ses_agreement_title" placeholder="報名合約／活動細則與攤商規範" style="font-size:13px">
+      <label>合約版本</label>
+      <input type="text" id="ses_agreement_version" placeholder="例：v1.0" style="font-size:13px;width:160px">
+      <label>合約正文
+        <span style="font-size:11px;color:var(--lt);font-weight:400;margin-left:6px">（完整貼上合約原文，報名時原文顯示給攤友）</span>
+      </label>
+      <textarea id="ses_agreement_content" rows="10" placeholder="請貼上完整合約正文…" style="font-size:12px;font-family:inherit;white-space:pre-wrap"></textarea>
+    </div>
 
     <div class="modal-actions">
       <button class="btn btn-s" onclick="closeModal('sesModal')" style="flex:1">取消</button>
@@ -914,7 +1312,7 @@ let ST_finItems=[];
 let ST_finAddType="income";
 let ST_invoiceData=[];
 
-const API = 'https://tobeloved-api.ndiangrace.workers.dev';
+const API = 'https://2bl-v7.ndiangrace.workers.dev';
 // V5 SaaS: 後台登入後從 adminLogin 回傳的 tenantId 決定租戶
 // 初始值從 URL ?tenant= 讀取（方便直接連結特定租戶後台）
 const _adminUrlParams = new URLSearchParams(window.location.search);
@@ -1068,28 +1466,134 @@ async function testSendEmail(){
   }
 }
 
-async function doLogin(){
-  const email=$('loginEmail').value.trim();
-  if(!email){$('loginErr').textContent='請填寫 Email';return;}
-  const res=await api({action:'adminLogin',email});
-  if(res.error){$('loginErr').textContent=res.error;return;}
-  ST.email=email;ST.token=res.token;ST.role=res.role;ST.tenantName=res.tenantName||'';
-  const tenantId = res.tenantId || TENANT_ID;
-  TENANT_ID = tenantId;
-  localStorage.setItem('tb_v3',JSON.stringify({email,token:res.token,role:res.role,name:res.name,tenantId,tenantName:res.tenantName||''}));
-  initAdmin(res.name,res.role);
+// ── Google OAuth 登入流程 ──────────────────────────────────────────
+function startGoogleLogin(){
+  const btn=$('googleLoginBtn');
+  if(btn){ btn.disabled=true; btn.textContent='正在跳轉至 Google 登入…'; }
+  // 跳轉至 Worker /auth/google/start
+  const workerBase = API.replace(/\/+$/, '');
+  window.location.href = `${workerBase}/auth/google/start?tenant=${encodeURIComponent(TENANT_ID)}`;
 }
-function logout(){localStorage.removeItem('tb_v3');location.reload();}
+
+// OAuth callback 後，URL 帶 admin_token 回來
+async function handleOAuthCallback(){
+  const params = new URLSearchParams(window.location.search);
+  const adminToken = params.get('admin_token');
+  const tenant = params.get('tenant');
+  const loginError = params.get('login_error');
+
+  if(loginError){
+    const errMap = {
+      not_authorized:'您的 Google 帳號不在管理員名單內，請聯繫系統管理員',
+      staff_inactive:'此管理員帳號已停用，請聯繫系統管理員',
+      id_token_verify_failed:'Google 身份驗證失敗，請重試',
+      google_cancelled:'Google 登入已取消',
+      token_exchange_failed:'Google 登入流程錯誤，請重試',
+    };
+    const errEl=$('loginErr');
+    if(errEl){ errEl.textContent=errMap[loginError]||`登入失敗：${loginError}`; errEl.style.display='block'; }
+    // 清除 URL 參數
+    window.history.replaceState({}, '', window.location.pathname);
+    return;
+  }
+
+  if(!adminToken) return; // 不是 callback，正常初始化
+
+  // 用 /admin/me 驗證 token 並取得角色資料
+  try {
+    if(tenant) TENANT_ID = tenant;
+    const workerBase = API.replace(/\/+$/, '');
+    const res = await fetch(`${workerBase}/admin/me?email=_&token=${encodeURIComponent(adminToken)}&_t=${Date.now()}`, {cache:'no-store'}).then(r=>r.json());
+
+    if(res.error || !res.email){
+      const errEl=$('loginErr');
+      if(errEl){ errEl.textContent='無權限登入後台，請聯繫系統管理員'; errEl.style.display='block'; }
+      // 清 URL
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    // 登入成功
+    const tenantId = res.tenant_id || TENANT_ID;
+    TENANT_ID = tenantId;
+    ST.email = res.email;
+    ST.token = adminToken;
+    ST.role = res.role;
+    ST.tenantName = '';
+    localStorage.setItem('tb_v3', JSON.stringify({
+      email: res.email, token: adminToken, role: res.role,
+      name: res.display_name||res.email, tenantId, tenantName: '',
+    }));
+    // 清 URL，避免 token 留在網址列
+    window.history.replaceState({}, '', window.location.pathname + (tenantId?`?tenant=${tenantId}`:''));
+    initAdmin(res.display_name||res.email, res.role);
+  } catch(e) {
+    const errEl=$('loginErr');
+    if(errEl){ errEl.textContent='登入驗證失敗，請重試'; errEl.style.display='block'; }
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+async function doLogin(){
+  // doLogin 已停用（Google OAuth 升級後移除 Email 直接登入）
+  // 保留函式避免舊呼叫報錯
+  startGoogleLogin();
+}
+
+function logout(){
+  // 通知後端登出（非同步，不等待）
+  if(ST.email && ST.token){
+    fetch(API+'?_t='+Date.now(), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'adminLogout', email:ST.email, token:ST.token, tenant:TENANT_ID})
+    }).catch(()=>{});
+  }
+  localStorage.removeItem('tb_v3');
+  ST.email=''; ST.token=''; ST.role=''; ST.tenantName='';
+  location.reload();
+}
+
+// 頁面載入時：先檢查 OAuth callback，再檢查已存 session
 (function(){
+  // 先處理 OAuth callback
+  handleOAuthCallback();
+  // 若已有有效 session
   const s=JSON.parse(localStorage.getItem('tb_v3')||'null');
-  if(s&&s.token){ST.email=s.email;ST.token=s.token;ST.role=s.role;ST.tenantName=s.tenantName||'';if(s.tenantId){TENANT_ID=s.tenantId;ST.tenantId=s.tenantId;}initAdmin(s.name,s.role);}
+  if(s&&s.token&&s.email){
+    ST.email=s.email;ST.token=s.token;ST.role=s.role;ST.tenantName=s.tenantName||'';
+    if(s.tenantId){TENANT_ID=s.tenantId;ST.tenantId=s.tenantId;}
+    initAdmin(s.name||s.email,s.role);
+  }
 })();
 
+function normalizeAdminRole(role){
+  const r=String(role||'').trim();
+  const map={'superadmin':'platform_super_admin','超級管理員':'platform_super_admin','活動夥伴':'organizer_admin','staff':'organizer_admin','共創夥伴':'organizer_admin','主辦':'organizer_owner','主辦者':'organizer_owner','場次管理員':'session_admin','財務管理員':'finance_admin','現場人員':'onsite_staff'};
+  return map[r]||r||'organizer_admin';
+}
+function adminCanPage(page){
+  const role=normalizeAdminRole(ST.role);
+  if(['platform_super_admin','organizer_owner','organizer_admin'].includes(role)) return true;
+  if(role==='session_admin') return ['overview','regs','checkin'].includes(page);
+  if(role==='finance_admin') return ['overview','payments'].includes(page);
+  if(role==='onsite_staff') return ['overview','checkin'].includes(page);
+  return page==='overview';
+}
+function setVisible(id, visible){ const el=$(id); if(el) el.style.display=visible?'flex':'none'; }
+function applyRoleUi(){
+  const role=normalizeAdminRole(ST.role);
+  setVisible('nav-regs', adminCanPage('regs'));
+  setVisible('nav-checkin-side', adminCanPage('checkin'));
+  setVisible('nav-payments', adminCanPage('payments'));
+  setVisible('nav-announce', ['platform_super_admin','organizer_owner','organizer_admin'].includes(role));
+  setVisible('nav-staff', ['platform_super_admin','organizer_owner'].includes(role));
+  ['regs','payments','checkin','settings'].forEach(p=>setVisible('atab-'+p, adminCanPage(p) || (p==='settings' && ['platform_super_admin','organizer_owner','organizer_admin'].includes(role))));
+}
 function initAdmin(name,role){
   $('loginPage').style.display='none';
   $('adminPage').style.display='block';
   $('staffName').textContent=name||ST.email;
-  if(role==='superadmin') $('nav-staff').style.display='flex';
+  applyRoleUi();
   initAdminHistory();
   startAdminDbSync();
   loadAllData();
@@ -1368,8 +1872,8 @@ function renderOverviewStatusFilters(){
   const cur=all.filter(s=>!isArchivedSession(s)).length;
   const arc=all.filter(isArchivedSession).length;
   const active=ST.ovFilter||'current';
-  const b=(id,txt,n)=>`<button class="ov-filter-btn ${active===id?'active':''}" onclick="setOverviewFilter('${id}')" style="border:1px solid #d4d4d8;background:#fff;border-radius:10px;padding:9px 13px;font-size:14px;font-weight:800;cursor:pointer">${txt} <span style="font-size:12px;opacity:.75">${n}</span></button>`;
-  return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 12px">${b('current','進行中',cur)}${b('archived','封存',arc)}${b('all','全部',all.length)}<span style="font-size:12px;color:#999">封存不刪資料，只從預設總覽收起。</span></div>`;
+  const b=(id,txt,n)=>`<button class="ov-filter-btn ${active===id?'active':''}" onclick="setOverviewFilter('${id}')" style="border:1px solid var(--ov-border);background:#fff;border-radius:10px;padding:9px 13px;font-size:14px;font-weight:800;cursor:pointer;color:var(--ov-txt)">${txt} <span style="font-size:12px;opacity:.7">${n}</span></button>`;
+  return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 14px">${b('current','進行中',cur)}${b('archived','封存',arc)}${b('all','全部',all.length)}<span style="font-size:12px;color:var(--lt)">封存不刪資料，只從預設總覽收起。</span></div>`;
 }
 function loadSessions(){
   if(typeof renderOverviewSessionsFn==="function") renderOverviewSessionsFn();
@@ -1516,6 +2020,7 @@ function renderOverviewSessionsFn(){
         <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" style="background:#f3e8ff;border:1px solid #d8b4fe;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">對帳</button>
         <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isClosedSessionStatus(s.status)?'開啟':'關閉'}</button>
         <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}',this)" style="background:#f4f4f5;border:1px solid #d4d4d8;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px">${isArchivedSession(s)?'取消封存':'封存'}</button>
+        ${s.forceCancelled?`<button disabled style="background:#fee2e2;border:1px solid #fca5a5;border-radius:7px;padding:8px 12px;font-size:13px;font-weight:800;margin:2px;color:#b91c1c;cursor:default">🚨 已啟動</button>`:`<button onclick="openForceCancelModal('${s.id}')" style="background:#fff1f2;border:1px solid #fda4af;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;font-weight:800;margin:2px;color:#be123c">🚨 不可抗力</button>`}
       </td>
     </tr>`;
   }).join('');
@@ -1545,10 +2050,11 @@ function renderOverviewSessionsFn(){
         <button data-sid="${s.id}" data-sname="${safeName}" data-ev="${safeEv}" onclick="openFinanceModal(this.dataset.sid,this.dataset.sname,this.dataset.ev)" class="btn btn-y">對帳</button>
         <button onclick="toggleSesStatus('${s.id}','${s.status||''}',this)" class="btn btn-y">${isClosedSessionStatus(s.status)?'開啟':'關閉'}</button>
         <button onclick="setSessionStatus('${s.id}','${isArchivedSession(s)?'報名中':'封存'}',this)" class="btn btn-s">${isArchivedSession(s)?'取消封存':'封存'}</button>
+        ${s.forceCancelled?`<button disabled class="btn" style="background:#fee2e2;color:#b91c1c;font-size:12px;cursor:default">🚨 已啟動</button>`:`<button onclick="openForceCancelModal('${s.id}')" class="btn" style="background:#fff1f2;border:1px solid #fda4af;color:#be123c">🚨 不可抗力</button>`}
       </div>
     </div>`;
   }).join('');
-  el.innerHTML=renderOverviewStatusFilters()+`<div class="overview-desktop-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:1120px"><thead><tr style="background:#f5f5f5;border-bottom:1.5px solid #e0e0e0"><th style="padding:9px 6px;text-align:left;width:44px"></th><th style="padding:9px 6px;text-align:left;white-space:nowrap">類型</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">場次名稱</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">活動日期</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">報名</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">待審核</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">繳費確認</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已繳費</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">正式攤位</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">設備</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">已收費用</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">押金</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已報到</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">操作</th></tr></thead><tbody>${rowHtml}</tbody></table></div><div class="overview-mobile-list">${cardHtml}</div>`;
+  el.innerHTML=renderOverviewStatusFilters()+`<div class="overview-desktop-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100vw"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:1120px"><thead><tr style="background:#f5f5f5;border-bottom:1.5px solid #e0e0e0"><th style="padding:9px 6px;text-align:left;width:44px"></th><th style="padding:9px 6px;text-align:left;white-space:nowrap">類型</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">場次名稱</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">活動日期</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">報名</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">待審核</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">繳費確認</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已繳費</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">正式攤位</th><th style="padding:9px 6px;text-align:left;white-space:nowrap">設備</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">已收費用</th><th style="padding:9px 6px;text-align:right;white-space:nowrap">押金</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">已報到</th><th style="padding:9px 6px;text-align:center;white-space:nowrap">操作</th></tr></thead><tbody>${rowHtml}</tbody></table></div><div class="overview-mobile-list">${cardHtml}</div>`;
 }
 
 function toggleMoreMenu(){
@@ -1560,30 +2066,282 @@ function toggleMoreMenu(){
 
 
 function goPage(name, opts){
+  if(!adminCanPage(name) && !(name==='settings' && ['platform_super_admin','organizer_owner','organizer_admin'].includes(normalizeAdminRole(ST.role)))){ toast('此角色沒有此頁面權限'); return; }
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
   const page=$('page-'+name);
   if(page) page.classList.add('active');
   const tab=$('atab-'+name);
   if(tab) tab.classList.add('active');
-  // 後台內部上一頁：讓瀏覽器/手機返回鍵先回到系統上一頁，不直接跳出網站
+  // BUG-A FIX: 同步底部 Tab Bar 高亮
+  const _navMap = {
+    overview:  'nav-overview',
+    regs:      'nav-regs',
+    checkin:   'nav-checkin-side',
+    payments:  'nav-payments',
+    settings:  'nav-announce'
+  };
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const _navEl = document.getElementById(_navMap[name]);
+  if (_navEl) _navEl.classList.add('active');
+  // UI: 設定 data-page 供 CSS 做各頁 active tab 色
+  const ap=$('adminPage'); if(ap) ap.setAttribute('data-page',name);
+  // UI: 設定 main 背景色依分頁
+  const mainEl=document.querySelector('.main');
+  if(mainEl){
+    const bgMap={overview:'var(--ov-bg)',regs:'var(--rg-bg)',checkin:'var(--ck-bg)',payments:'var(--py-bg)',settings:'var(--st-bg)'};
+    mainEl.style.background=bgMap[name]||'var(--bg)';
+  }
   const skipHistory=opts&&opts.skipHistory;
   if(!skipHistory && window.__adminHistoryReady && window.history){
     history.pushState({adminPage:name}, '', location.href);
   }
-  // 初始化
   ST._showAllRegStatus=false;
   if(!['regs'].includes(name)) ST._filterSesId=null;
   const inits={
     overview: ()=>{ renderOverviewCards(); },
-    regs: async ()=>{ await loadAllRegs(); renderRegs(); },
-    checkin: async ()=>{ await loadAllRegs(); fillCheckinSesFilter(); loadCheckinRegs(); },
-    payments: async ()=>{ await loadAllRegs(); renderPaymentManagement(); },
+    regs: async ()=>{ await loadAllRegs(); showRegsSummaryLayer(); renderRegsSummary(); },
+    checkin: async ()=>{ await loadAllRegs(); showCheckinSummaryLayer(); renderCheckinSummary(); },
+    payments: async ()=>{ await loadAllRegs(); showPaymentsSummaryLayer(); renderPaymentsSummary(); },
     settings: ()=>{ loadStaff(); loadAnnounce(); loadSiteConfig(); },
   };
   if(inits[name]) inits[name]();
   if(['overview','regs','payments','checkin'].includes(name)) scheduleAdminDbSync('goPage:'+name, 350);
 }
+
+// ── 場次快捷篩選 ──────────────────────────────────────────────────
+function setOvQuick(type){
+  const all=ST.sdData||[];
+  const today=new Date().toISOString().slice(0,10);
+  let list=all;
+  if(type==='active') list=all.filter(s=>s.regOpen&&!isArchivedSession(s)&&!s.forceCancelled);
+  else if(type==='upcoming') list=all.filter(s=>{const d=String(s.date||s.eventDate||'');return d>today&&!isArchivedSession(s);});
+  else if(type==='ended') list=all.filter(s=>{const d=String(s.date||s.eventDate||'');return d<today&&!isArchivedSession(s);});
+  else if(type==='closed') list=all.filter(s=>!s.regOpen&&!isArchivedSession(s)&&!s.forceCancelled);
+  else if(type==='force') list=all.filter(s=>s.forceCancelled);
+  document.querySelectorAll('.ov-qb-btn').forEach(b=>b.style.fontWeight='700');
+  const btn=$('ovqb-'+type);
+  if(btn) btn.style.background='#d1fae5';
+  ST._ovQuickFilter=type;
+  const el=$('overviewSessionList');
+  if(el) renderFilteredOverviewList(list);
+}
+function renderFilteredOverviewList(list){
+  // 使用現有 overview 渲染，透過暫時覆蓋 sdData
+  const backup=ST.sdData;
+  const ovFilter=ST.ovFilter;
+  ST.sdData=list;
+  ST.ovFilter='all';
+  renderOverviewSessionsFn();
+  ST.sdData=backup;
+  ST.ovFilter=ovFilter;
+}
+
+// ── 名單：第一層摘要 ─────────────────────────────────────────────
+function showRegsSummaryLayer(){
+  const s=$('regsSummaryLayer'), d=$('regsDetailLayer'), b=$('regsBackBtn'), t=$('regsTitle');
+  if(s) s.style.display='block';
+  if(d) d.style.display='none';
+  if(b) b.style.display='none';
+  if(t) t.textContent='名單';
+}
+function showRegsDetailLayer(sesId, sesName){
+  const s=$('regsSummaryLayer'), d=$('regsDetailLayer'), b=$('regsBackBtn'), t=$('regsTitle');
+  if(s) s.style.display='none';
+  if(d) d.style.display='block';
+  if(b) b.style.display='inline-flex';
+  if(t) t.textContent='名單 › '+sesName;
+  ST._filterSesId=sesId;
+  const sel=$('regSesFilter');
+  if(sel) sel.value=sesId;
+  renderRegs();
+}
+function backToRegsSummary(){
+  ST._filterSesId=null;
+  showRegsSummaryLayer();
+  renderRegsSummary();
+}
+function onRegSesFilterChange(){
+  ST._filterSesId=null;
+  ST._showAllRegStatus=false;
+  $('regsTitle').textContent='名單';
+  $('regsBackBtn').style.display='none';
+  renderRegs();
+}
+function renderRegsSummary(){
+  const el=$('regsSummaryList');
+  if(!el) return;
+  const sessions=ST.sdData||[];
+  const regs=ST.allRegs||[];
+  if(!sessions.length){el.innerHTML='<div style="text-align:center;padding:30px;color:#aaa;font-size:14px">無場次資料。請先新增場次。</div>';return;}
+  const statusOf=(r)=>String(r.status||r.reviewStatus||'').trim();
+  const rows=sessions.filter(s=>!isArchivedSession(s)).map(s=>{
+    const sr=regs.filter(r=>String(r.sessionId||r.sesId||'')===String(s.id));
+    const total=sr.length;
+    const pending=sr.filter(r=>statusOf(r)==='待審核').length;
+    const approved=sr.filter(r=>['已錄取','approved'].includes(statusOf(r))).length;
+    const waitlist=sr.filter(r=>statusOf(r)==='備取').length;
+    const rejected=sr.filter(r=>['不錄取','rejected'].includes(statusOf(r))).length;
+    const cancelled=sr.filter(r=>isCancelledPaymentReg&&isCancelledPaymentReg(r)).length;
+    const dateStr=s.date||s.eventDate||'';
+    return {s,total,pending,approved,waitlist,rejected,cancelled,dateStr};
+  });
+  // 桌機表格
+  const desktopHtml=`<div class="summary-desktop"><table class="summary-table rg-theme" style="min-width:820px"><thead><tr><th style="text-align:left">場次名稱</th><th>日期</th><th>全部</th><th>待審核</th><th>已錄取</th><th>備取</th><th>不錄取</th><th>已取消</th><th>操作</th></tr></thead><tbody>${rows.map(r=>`<tr><td><span class="summary-card-title" style="font-size:14px">${r.s.title||r.s.name||'未命名'}</span></td><td><span class="summary-stat-lbl">${r.dateStr||'-'}</span></td><td style="font-weight:800">${r.total}</td><td style="font-weight:800;color:var(--s-warn)">${r.pending}</td><td style="font-weight:800;color:var(--s-ok)">${r.approved}</td><td>${r.waitlist}</td><td style="color:var(--s-err)">${r.rejected}</td><td style="color:var(--s-grey)">${r.cancelled}</td><td><button class="enter-btn rg-enter" onclick="showRegsDetailLayer('${r.s.id}','${(r.s.title||r.s.name||'').replace(/'/g,"\\'")}')">進入 →</button></td></tr>`).join('')}</tbody></table></div>`;
+  // 手機卡片
+  const mobileHtml=`<div class="overview-mobile-list">${rows.map(r=>`<div class="summary-card rg-theme"><div class="summary-card-title">${r.s.title||r.s.name||'未命名'}</div><div class="summary-card-date">${r.dateStr||'日期未設定'}</div><div class="summary-stat-grid"><div class="summary-stat"><div class="summary-stat-num">${r.total}</div><div class="summary-stat-lbl">全部</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-warn)">${r.pending}</div><div class="summary-stat-lbl">待審核</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-ok)">${r.approved}</div><div class="summary-stat-lbl">已錄取</div></div><div class="summary-stat"><div class="summary-stat-num">${r.waitlist}</div><div class="summary-stat-lbl">備取</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-err)">${r.rejected}</div><div class="summary-stat-lbl">不錄取</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-grey)">${r.cancelled}</div><div class="summary-stat-lbl">已取消</div></div></div><button class="enter-btn rg-enter" style="width:100%;padding:10px" onclick="showRegsDetailLayer('${r.s.id}','${(r.s.title||r.s.name||'').replace(/'/g,"\\'")}')">進入此場名單 →</button></div>`).join('')}</div>`;
+  el.innerHTML=desktopHtml+mobileHtml;
+}
+function setRegsQuick(type){
+  const regs=ST.allRegs||[];
+  const sessions=ST.sdData||[];
+  const statusOf=(r)=>String(r.status||r.reviewStatus||'').trim();
+  let filtered=[];
+  if(type==='pending') filtered=regs.filter(r=>statusOf(r)==='待審核');
+  else if(type==='approved') filtered=regs.filter(r=>['已錄取','approved'].includes(statusOf(r)));
+  else if(type==='waitlist') filtered=regs.filter(r=>statusOf(r)==='備取');
+  else if(type==='rejected') filtered=regs.filter(r=>['不錄取','rejected'].includes(statusOf(r)));
+  else if(type==='cancelled') filtered=regs.filter(r=>isCancelledPaymentReg&&isCancelledPaymentReg(r));
+  // 找有此狀態的場次，顯示摘要
+  const sesIds=[...new Set(filtered.map(r=>String(r.sessionId||r.sesId||'')))];
+  const filteredSes=sessions.filter(s=>sesIds.includes(String(s.id)));
+  const el=$('regsSummaryList');
+  if(!el) return;
+  if(!filteredSes.length){el.innerHTML=`<div style="text-align:center;padding:20px;color:#aaa">無「${type}」狀態的報名</div>`;return;}
+  const backup=ST.sdData; ST.sdData=filteredSes;
+  renderRegsSummary();
+  ST.sdData=backup;
+}
+
+// ── 現場：第一層摘要 ─────────────────────────────────────────────
+function showCheckinSummaryLayer(){
+  const s=$('checkinSummaryLayer'), d=$('checkinDetailLayer'), b=$('checkinBackBtn'), t=$('checkinTitle');
+  if(s) s.style.display='block';
+  if(d) d.style.display='none';
+  if(b) b.style.display='none';
+  if(t) t.textContent='現場';
+}
+function showCheckinDetailLayer(sesId, sesName){
+  const s=$('checkinSummaryLayer'), d=$('checkinDetailLayer'), b=$('checkinBackBtn'), t=$('checkinTitle');
+  if(s) s.style.display='none';
+  if(d) d.style.display='block';
+  if(b) b.style.display='inline-flex';
+  if(t) t.textContent='現場 › '+sesName;
+  const sel=$('checkinSesFilter');
+  if(sel){ sel.value=sesId; loadCheckinRegs(); }
+}
+function backToCheckinSummary(){
+  showCheckinSummaryLayer();
+  renderCheckinSummary();
+}
+function renderCheckinSummary(){
+  const el=$('checkinSummaryList');
+  if(!el) return;
+  const sessions=(ST.sdData||[]).filter(s=>!isArchivedSession(s));
+  const regs=ST.allRegs||[];
+  if(!sessions.length){el.innerHTML='<div style="text-align:center;padding:30px;color:#aaa">無場次資料</div>';return;}
+  const rows=sessions.map(s=>{
+    const sr=regs.filter(r=>String(r.sessionId||r.sesId||'')===String(s.id)&&isOnsiteEligibleReg(r));
+    const total=sr.length;
+    const checked=sr.filter(r=>r.checkin==='已報到').length;
+    const notChecked=total-checked;
+    const cleared=sr.filter(r=>r.clearStatus==='已清場').length;
+    const notCleared=total-cleared;
+    const depTotal=sr.filter(r=>(r.deposit||0)>0).length;
+    const depRefunded=sr.filter(r=>r.depositRefunded==='已退押金'||r.depositRefunded==='已退').length;
+    const dateStr=s.date||s.eventDate||'';
+    return {s,total,checked,notChecked,cleared,notCleared,depTotal,depRefunded,dateStr};
+  });
+  const desktopHtml=`<div class="summary-desktop"><table class="summary-table ck-theme" style="min-width:820px"><thead><tr><th style="text-align:left">場次名稱</th><th>日期</th><th>應報到</th><th>已報到</th><th>未報到</th><th>已清場</th><th>未清場</th><th>押金需退</th><th>已退押金</th><th>操作</th></tr></thead><tbody>${rows.map(r=>`<tr><td><span class="summary-card-title" style="font-size:14px">${r.s.title||r.s.name||'未命名'}</span></td><td><span class="summary-stat-lbl">${r.dateStr||'-'}</span></td><td style="font-weight:800">${r.total}</td><td style="font-weight:800;color:var(--s-ok)">${r.checked}</td><td style="font-weight:800;color:var(--s-warn)">${r.notChecked}</td><td>${r.cleared}</td><td style="color:var(--s-grey)">${r.notCleared}</td><td>${r.depTotal}</td><td style="color:var(--s-ok)">${r.depRefunded}</td><td><button class="enter-btn ck-enter" onclick="showCheckinDetailLayer('${r.s.id}','${(r.s.title||r.s.name||'').replace(/'/g,"\\'")}')">進入 →</button></td></tr>`).join('')}</tbody></table></div>`;
+  const mobileHtml=`<div class="overview-mobile-list">${rows.map(r=>`<div class="summary-card ck-theme"><div class="summary-card-title">${r.s.title||r.s.name||'未命名'}</div><div class="summary-card-date">${r.dateStr||'日期未設定'}</div><div class="summary-stat-grid"><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-ok)">${r.checked}</div><div class="summary-stat-lbl">已報到</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-warn)">${r.notChecked}</div><div class="summary-stat-lbl">未報到</div></div><div class="summary-stat"><div class="summary-stat-num">${r.depRefunded}/${r.depTotal}</div><div class="summary-stat-lbl">押金已退</div></div></div><button class="enter-btn ck-enter" style="width:100%;padding:10px" onclick="showCheckinDetailLayer('${r.s.id}','${(r.s.title||r.s.name||'').replace(/'/g,"\\'")}')">進入此場現場 →</button></div>`).join('')}</div>`;
+  el.innerHTML=desktopHtml+mobileHtml;
+}
+function setCheckinQuick(type){
+  // 篩選有今日報到 / 對應狀態的場次
+  const today=new Date().toISOString().slice(0,10);
+  const sessions=(ST.sdData||[]).filter(s=>!isArchivedSession(s));
+  let filteredSes=sessions;
+  const regs=ST.allRegs||[];
+  if(type==='today') filteredSes=sessions.filter(s=>String(s.date||s.eventDate||'').slice(0,10)===today);
+  else if(type==='notchecked') filteredSes=sessions.filter(s=>regs.some(r=>String(r.sessionId||r.sesId||'')===String(s.id)&&isOnsiteEligibleReg(r)&&r.checkin!=='已報到'));
+  else if(type==='checked') filteredSes=sessions.filter(s=>regs.some(r=>String(r.sessionId||r.sesId||'')===String(s.id)&&r.checkin==='已報到'));
+  else if(type==='notcleared') filteredSes=sessions.filter(s=>regs.some(r=>String(r.sessionId||r.sesId||'')===String(s.id)&&isOnsiteEligibleReg(r)&&r.clearStatus!=='已清場'));
+  else if(type==='deposit') filteredSes=sessions.filter(s=>regs.some(r=>String(r.sessionId||r.sesId||'')===String(s.id)&&(r.deposit||0)>0&&r.depositRefunded!=='已退押金'&&r.depositRefunded!=='已退'));
+  else if(type==='equip') filteredSes=sessions.filter(s=>regs.some(r=>String(r.sessionId||r.sesId||'')===String(s.id)&&regEquipText&&regEquipText(r)));
+  const backup=ST.sdData; ST.sdData=filteredSes;
+  renderCheckinSummary();
+  ST.sdData=backup;
+}
+
+// ── 金流：第一層摘要 ─────────────────────────────────────────────
+function showPaymentsSummaryLayer(){
+  const s=$('paymentsSummaryLayer'), d=$('paymentsDetailLayer'), b=$('paymentsBackBtn'), t=$('paymentsTitle');
+  if(s) s.style.display='block';
+  if(d) d.style.display='none';
+  if(b) b.style.display='none';
+  if(t) t.textContent='金流';
+}
+function showPaymentsDetailLayer(sesId, sesName){
+  const s=$('paymentsSummaryLayer'), d=$('paymentsDetailLayer'), b=$('paymentsBackBtn'), t=$('paymentsTitle');
+  if(s) s.style.display='none';
+  if(d) d.style.display='block';
+  if(b) b.style.display='inline-flex';
+  if(t) t.textContent='金流 › '+sesName;
+  ST._payFilterSesId=sesId;
+  renderPaymentManagement();
+}
+function backToPaymentsSummary(){
+  ST._payFilterSesId=null;
+  showPaymentsSummaryLayer();
+  renderPaymentsSummary();
+}
+function renderPaymentsSummary(){
+  const el=$('paymentsSummaryList');
+  if(!el) return;
+  const sessions=(ST.sdData||[]).filter(s=>!isArchivedSession(s));
+  const regs=ST.allRegs||[];
+  if(!sessions.length){el.innerHTML='<div style="text-align:center;padding:30px;color:#aaa">無場次資料</div>';return;}
+  const rows=sessions.map(s=>{
+    const sr=regs.filter(r=>String(r.sessionId||r.sesId||'')===String(s.id));
+    const pending=sr.filter(r=>isPayPendingActiveReg&&isPayPendingActiveReg(r)).length;
+    const unpaid=sr.filter(r=>!isCancelledPaymentReg(r)&&(r.payStatus||'')==='' || (r.payStatus||'')==='未繳費').length;
+    const paid=sr.filter(r=>!isCancelledPaymentReg(r)&&isPaidText&&isPaidText(r.payStatus)).length;
+    const refundReq=sr.filter(r=>isRefundRequestReg&&isRefundRequestReg(r)).length;
+    const refunded=sr.filter(r=>isRefundedReg&&isRefundedReg(r)).length;
+    const cancelled=sr.filter(r=>isCancelledPaymentReg&&isCancelledPaymentReg(r)).length;
+    const paidAmt=sr.filter(r=>isPaidText&&isPaidText(r.payStatus)).reduce((sum,r)=>sum+(Number(r.amount)||0),0);
+    const dateStr=s.date||s.eventDate||'';
+    return {s,pending,unpaid,paid,refundReq,refunded,cancelled,paidAmt,dateStr};
+  });
+  const desktopHtml=`<div class="summary-desktop"><table class="summary-table py-theme" style="min-width:900px"><thead><tr><th style="text-align:left">場次名稱</th><th>日期</th><th>待確認</th><th>未繳費</th><th>已繳費</th><th>申請退費</th><th>已退費</th><th>已取消</th><th>已收費用</th><th>操作</th></tr></thead><tbody>${rows.map(r=>`<tr><td><span class="summary-card-title" style="font-size:14px">${r.s.title||r.s.name||'未命名'}</span></td><td><span class="summary-stat-lbl">${r.dateStr||'-'}</span></td><td style="font-weight:800;color:var(--s-warn)">${r.pending}</td><td>${r.unpaid}</td><td style="font-weight:800;color:var(--s-ok)">${r.paid}</td><td style="font-weight:800;color:var(--s-err)">${r.refundReq}</td><td style="color:var(--s-ok)">${r.refunded}</td><td style="color:var(--s-grey)">${r.cancelled}</td><td style="text-align:right;font-weight:700">NT$${r.paidAmt.toLocaleString()}</td><td><button class="enter-btn py-enter" onclick="showPaymentsDetailLayer('${r.s.id}','${(r.s.title||r.s.name||'').replace(/'/g,"\\'")}')">進入 →</button></td></tr>`).join('')}</tbody></table></div>`;
+  const mobileHtml=`<div class="overview-mobile-list">${rows.map(r=>`<div class="summary-card py-theme"><div class="summary-card-title">${r.s.title||r.s.name||'未命名'}</div><div class="summary-card-date">${r.dateStr||'日期未設定'}</div><div class="summary-stat-grid"><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-warn)">${r.pending}</div><div class="summary-stat-lbl">待確認</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-ok)">${r.paid}</div><div class="summary-stat-lbl">已繳費</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--s-err)">${r.refundReq}</div><div class="summary-stat-lbl">申請退費</div></div></div><div style="font-size:12px;color:var(--md);margin-bottom:8px;font-weight:700">已收 NT$${r.paidAmt.toLocaleString()} ｜已退費 ${r.refunded}</div><button class="enter-btn py-enter" style="width:100%;padding:10px" onclick="showPaymentsDetailLayer('${r.s.id}','${(r.s.title||r.s.name||'').replace(/'/g,"\\'")}')">進入此場金流 →</button></div>`).join('')}</div>`;
+  el.innerHTML=desktopHtml+mobileHtml;
+}
+function setPaymentsQuick(status){
+  const sel=$('paymentStatusFilter');
+  if(sel) sel.value=status;
+  // 顯示詳細層（全部場次）
+  showPaymentsDetailLayer('','全部');
+  $('paymentsBackBtn').style.display='inline-flex';
+  renderPaymentManagement();
+}
+
+// ── 名單下載（單場強制）──────────────────────────────────────────
+function downloadRegsCSV(){
+  const sesId=ST._filterSesId||$('regSesFilter')?.value||'';
+  if(!sesId){toast('請先選定場次才能下載名單');return;}
+  const regs=(ST.allRegs||[]).filter(r=>String(r.sessionId||r.sesId||'')===String(sesId));
+  const ses=(ST.sdData||[]).find(s=>String(s.id)===String(sesId));
+  const sesName=ses?.title||ses?.name||sesId;
+  const headers=['報名編號','品牌名稱','聯絡姓名','Email','手機','狀態','繳費狀態','金額','攤位','申請時間'];
+  const rows=regs.map(r=>[r.regNo||r.id,r.brand||'',r.name||'',r.email||'',r.phone||'',r.status||r.reviewStatus||'',r.payStatus||'',r.amount||'',r.stall||'',r.createdAt||'']);
+  const csv=[headers,...rows].map(row=>row.map(v=>'"'+(String(v||'')).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`名單_${sesName}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
 
 // ── 全資料載入 ──
 async function loadAllData(){
@@ -1598,9 +2356,18 @@ async function loadAllData(){
   fillRegSessionFilter();
   renderOverviewCards();
   await loadAllRegs();
-  // 若現場管理頁面已開啟，補填場次選單
+  // 若現場頁已開啟且在第一層，更新現場摘要
   const checkinPage=$('page-checkin');
-  if(checkinPage&&checkinPage.classList.contains('active')) fillCheckinSesFilter();
+  if(checkinPage&&checkinPage.classList.contains('active')){
+    if($('checkinSummaryLayer')?.style.display!=='none') renderCheckinSummary();
+    else fillCheckinSesFilter();
+  }
+  // 若名單頁在第一層，更新摘要
+  const regsPage=$('page-regs');
+  if(regsPage&&regsPage.classList.contains('active')&&$('regsSummaryLayer')?.style.display!=='none') renderRegsSummary();
+  // 若金流頁在第一層，更新摘要
+  const paymentsPage=$('page-payments');
+  if(paymentsPage&&paymentsPage.classList.contains('active')&&$('paymentsSummaryLayer')?.style.display!=='none') renderPaymentsSummary();
   // 載入管理員清單供指派用
   api({action:'getStaff',email:ST.email,token:ST.token}).then(list=>{ ST.staffList=list||[]; });
 }
@@ -1633,20 +2400,23 @@ async function syncActiveAdminPageFromDb(reason){
     console.log('[AA9 admin db sync]', reason||'manual', page);
     if(page==='payments'){
       await loadAllRegs();
-      renderPaymentManagement();
       const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
       ST.sdData=sd||[];
+      // 根據目前顯示層決定更新哪個層
+      const summaryVisible=$('paymentsSummaryLayer')?.style.display!=='none';
+      if(summaryVisible){ renderPaymentsSummary(); } else { renderPaymentManagement(); }
       renderOverview();
     }else if(page==='regs'){
       await loadAllRegs();
-      renderRegs();
       const sd=await api({action:'getSessionDashboard',email:ST.email,token:ST.token});
       ST.sdData=sd||[];
+      const summaryVisible=$('regsSummaryLayer')?.style.display!=='none';
+      if(summaryVisible){ renderRegsSummary(); } else { renderRegs(); }
       renderOverview();
     }else if(page==='checkin'){
       await loadAllRegs();
-      fillCheckinSesFilter();
-      loadCheckinRegs();
+      const summaryVisible=$('checkinSummaryLayer')?.style.display!=='none';
+      if(summaryVisible){ renderCheckinSummary(); } else { fillCheckinSesFilter(); loadCheckinRegs(); }
     }else if(page==='overview'){
       await loadAllData();
     }
@@ -1696,10 +2466,8 @@ function openRegsBySes(sesId, sesName, statusFilter){
   ST._filterSesId = sesId;
   ST._filterStatusFilter = statusFilter || '';
   goPage('regs');
-  $('regsTitle').textContent='報名審核：'+sesName;
-  const backBtn=$('regsBackBtn');
-  if(backBtn) backBtn.style.display='inline-flex';
-  renderRegs();
+  // 延遲切到第二層，待 goPage 初始化完成
+  setTimeout(()=>{ showRegsDetailLayer(sesId, sesName||''); }, 120);
 }
 
 // ── 活動管理 ──
@@ -1952,6 +2720,15 @@ function resetSesModal(){
   $('addonsList').innerHTML='';
   addDateSlot(); // 預設一個日期欄
   updateModPresets();buildEquipDefs({});
+  // ── 合約同意欄位預設值 ────────────────────────────────
+  const agReq = document.getElementById('ses_agreement_required');
+  if(agReq) agReq.checked = true;
+  const agTitle = document.getElementById('ses_agreement_title');
+  if(agTitle) agTitle.value = '報名合約／活動細則與攤商規範';
+  const agVer = document.getElementById('ses_agreement_version');
+  if(agVer) agVer.value = 'v1.0';
+  const agContent = document.getElementById('ses_agreement_content');
+  if(agContent) agContent.value = '';
 }
 
 function fillAssignStaff(){}
@@ -2183,6 +2960,15 @@ async function editSes(id){
   buildEquipDefs(s.equip||{});
   setInvoiceTaxChecks(s.invoiceTax||s.invoiceTaxJson||s['發票含稅JSON']||{});
   $('sesModalTitle').textContent='編輯場次';
+  // ── 合約同意欄位填入 ──────────────────────────────────
+  const _agReq = document.getElementById('ses_agreement_required');
+  if(_agReq) _agReq.checked = s.agreementRequired !== false;
+  const _agTitle = document.getElementById('ses_agreement_title');
+  if(_agTitle) _agTitle.value = s.agreementTitle || '報名合約／活動細則與攤商規範';
+  const _agVer = document.getElementById('ses_agreement_version');
+  if(_agVer) _agVer.value = s.agreementVersion || '';
+  const _agContent = document.getElementById('ses_agreement_content');
+  if(_agContent) _agContent.value = s.agreementContent || '';
   // 載入攤位設定
   $('sm_stallNumbers').value='';
   $('stallPreview').innerHTML='<div style="color:var(--lt);font-size:12px">載入攤位中…</div>';
@@ -2312,7 +3098,12 @@ async function saveSession(btn){
       stallList:stallList,
       stallFee:parseInt(getVal('sm_stallFee','0'))||0,
       invoiceTax:invoiceTax,
-      status:'報名中'
+      status:'報名中',
+      // ── 合約同意設定 ────────────────────────────────────
+      agreementRequired: !!getVal('ses_agreement_required', true),
+      agreementTitle:    String(getVal('ses_agreement_title','')).trim() || '報名合約／活動細則與攤商規範',
+      agreementVersion:  String(getVal('ses_agreement_version','')).trim(),
+      agreementContent:  String(getVal('ses_agreement_content','')).trim(),
     };
 
     
@@ -2667,6 +3458,13 @@ async function openRegDetail(regId){
       <div><strong>審核狀態：</strong>${reg.status||'待審核'}</div>
       <div><strong>付款狀態：</strong>${reg.payStatus||'未繳費'}</div>
       <div><strong>報名時間：</strong>${(reg.createdAt||'').slice(0,16)}</div>
+      <hr style="border:none;border-top:1px solid #eee;margin:6px 0">
+      <div style="font-size:12px;font-weight:700;color:#2d6a4f;margin-bottom:2px">📋 報名合約同意紀錄</div>
+      <div><strong>已查看合約：</strong>${reg.agreementViewed?'✅ 是':'❌ 否'}${reg.agreementViewedAt?' (' + String(reg.agreementViewedAt||'').slice(0,16) + ')':''}</div>
+      <div><strong>已同意合約：</strong>${reg.agreementAccepted?'✅ 是':'❌ 否'}${reg.agreementAcceptedAt?' (' + String(reg.agreementAcceptedAt||'').slice(0,16) + ')':''}</div>
+      ${reg.agreementEmail?`<div><strong>同意時 Email：</strong>${reg.agreementEmail}</div>`:''}
+      ${reg.agreementVersion?`<div><strong>合約版本：</strong>${reg.agreementVersion}</div>`:''}
+      ${reg.agreementTitleSnapshot?`<div><strong>合約標題快照：</strong>${reg.agreementTitleSnapshot}</div>`:''}
     </div>`;
   const regNoteEl=$('regNote');
   if(regNoteEl) regNoteEl.value=reg.adminNote||'';
@@ -2817,24 +3615,27 @@ function renderPaymentManagement(targetId){
   const pending=regs.filter(r=>isPayPendingActiveReg(r));
   const paid=regs.filter(r=>!isCancelledPaymentReg(r) && isPaidText(r.payStatus));
   const refundReq=regs.filter(r=>isRefundRequestReg(r));
+  const refundedPay=regs.filter(r=>isRefundedReg(r));
   const cancelled=regs.filter(r=>isCancelledPaymentReg(r));
   const totalPendingAmt=pending.reduce((sum,r)=>sum+(Number(r.amount)||0),0);
 
   const statsEl=$('paymentStats');
   if(statsEl){
     statsEl.innerHTML=`
-      <button type="button" onclick="setPaymentFilter('待確認')" style="background:#fff;border:0;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:var(--yl)">${pending.length}</div><div style="font-size:11px;color:var(--md)">待確認</div></button>
-      <button type="button" onclick="setPaymentFilter('已繳費')" style="background:#fff;border:0;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:var(--g)">${paid.length}</div><div style="font-size:11px;color:var(--md)">已繳費</div></button>
-      <button type="button" onclick="setPaymentFilter('申請退費')" style="background:#fff;border:0;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:var(--rd)">${refundReq.length}</div><div style="font-size:11px;color:var(--md)">退費申請</div></button>
-      <button type="button" onclick="setPaymentFilter('已取消')" style="background:#fff;border:0;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:#777">${cancelled.length}</div><div style="font-size:11px;color:var(--md)">已取消</div></button>
-      <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:20px;font-weight:800;color:var(--dk)">NT$${totalPendingAmt.toLocaleString()}</div><div style="font-size:11px;color:var(--md)">待核金額</div></div>`;
+      <button type="button" onclick="setPaymentFilter('待確認')" style="background:var(--py-bg);border:1px solid var(--py-border);border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:var(--s-warn)">${pending.length}</div><div style="font-size:11px;color:var(--py-txt)">待確認</div></button>
+      <button type="button" onclick="setPaymentFilter('已繳費')" style="background:var(--s-ok-bg);border:1px solid #A8CEB8;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:var(--s-ok)">${paid.length}</div><div style="font-size:11px;color:var(--s-ok)">已繳費</div></button>
+      <button type="button" onclick="setPaymentFilter('申請退費')" style="background:var(--s-err-bg);border:1px solid #DDB8A8;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:var(--s-err)">${refundReq.length}</div><div style="font-size:11px;color:var(--s-err)">申請退費</div></button>
+      <button type="button" onclick="setPaymentFilter('已退費')" style="background:var(--s-ok-bg);border:1px solid #A8CEB8;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:var(--s-ok)">${refundedPay.length}</div><div style="font-size:11px;color:var(--s-ok)">已退費</div></button>
+      <button type="button" onclick="setPaymentFilter('已取消')" style="background:var(--s-grey-bg);border:1px solid #D0CCC8;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh);cursor:pointer"><div style="font-size:20px;font-weight:800;color:var(--s-grey)">${cancelled.length}</div><div style="font-size:11px;color:var(--s-grey)">已取消</div></button>
+      <div style="background:var(--py-bg);border:1px solid var(--py-border);border-radius:10px;padding:10px 8px;text-align:center;box-shadow:var(--sh)"><div style="font-size:20px;font-weight:800;color:var(--py-txt)">NT$${totalPendingAmt.toLocaleString()}</div><div style="font-size:11px;color:var(--py-txt)">待核金額</div></div>`;
   }
 
   let list=regs.filter(r=>{
     const label=paymentStatusLabel(r.payStatus);
     const isCancelled=isCancelledPaymentReg(r);
     const isRefund=isRefundRequestReg(r);
-    const matchStatus=filter==='全部' || (filter==='已取消'?isCancelled:(filter==='已繳費'?(!isCancelled && isPaidText(r.payStatus)):(filter==='待確認'?isPayPendingActiveReg(r):(filter==='申請退費'?isRefund:(!isCancelled && label===filter)))));
+    const isRefundDone=isRefundedReg(r);
+    const matchStatus=filter==='全部' || (filter==='已取消'?isCancelled:(filter==='已繳費'?(!isCancelled && isPaidText(r.payStatus)):(filter==='待確認'?isPayPendingActiveReg(r):(filter==='申請退費'?isRefund:(filter==='已退費'?isRefundDone:(!isCancelled && label===filter))))));
     const text=[r.name,r.brand,r.email,r.phone,regSessionLabel(r),r.payMethod,r.adminNote,r.stallCount,regEquipText(r)].join(' ').toLowerCase();
     const matchKw=!kw || text.includes(kw);
     const matchSes=!sesFilter || String(r.sessionId||r.sesId||'')===String(sesFilter);
@@ -4146,5 +4947,238 @@ function downloadInvoiceList(){
 
 
 <div id="toast" style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:9999;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center"></div>
+<!-- ════ 不可抗力取消 Modal ════ -->
+<div class="modal-overlay" id="forceCancelModal" onclick="if(event.target===this)closeForceCancelModal()" style="display:none;align-items:center;justify-content:center">
+  <div class="modal-box" style="max-width:540px;width:96vw;max-height:92vh;overflow-y:auto">
+    <div class="modal-title" style="color:#be123c">🚨 啟動不可抗力處理</div>
+    <div id="fmModalBody">
+      <div style="background:#fff1f2;border:1.5px solid #fda4af;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#9f1239">
+        此操作會影響整個場次，並通知符合資格的報名者。啟動後不可撤銷。
+      </div>
+
+      <div style="font-weight:700;font-size:13px;color:#374151;margin-bottom:6px">一、不可抗力原因</div>
+      <select id="fmReasonCode" style="width:100%;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;margin-bottom:12px;background:#fff" onchange="updateFmNote()">
+        <option value="">— 請選擇原因 —</option>
+        <option value="typhoon">颱風警報</option>
+        <option value="heavy_rain">豪雨／大雨特報</option>
+        <option value="earthquake_or_disaster">地震或災害安全疑慮</option>
+        <option value="gov_work_school_suspension">政府公告停班停課</option>
+        <option value="gov_order_cancel">政府／主管機關要求停辦</option>
+        <option value="venue_safety_request">場地方公共安全要求</option>
+        <option value="venue_unavailable">場地突發不可使用</option>
+        <option value="traffic_disruption">交通中斷或重大管制</option>
+        <option value="other_force_majeure">其他不可抗力因素</option>
+      </select>
+      <div id="fmNoteRow" style="display:none;margin-bottom:12px">
+        <div style="font-size:12px;color:#777;margin-bottom:4px">補充說明（選填，不取代主要原因）</div>
+        <input id="fmNote" type="text" placeholder="請補充說明不可抗力原因" style="width:100%;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;box-sizing:border-box">
+      </div>
+
+      <div style="font-weight:700;font-size:13px;color:#374151;margin-bottom:6px">二、處理模式</div>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <label style="flex:1;display:flex;align-items:flex-start;gap:8px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px;cursor:pointer">
+          <input type="radio" name="fmMode" value="transfer_or_refund" checked onchange="updateFmTargetRow()">
+          <span style="font-size:13px"><strong>提供延期場次</strong><br><span style="color:#666">攤友可選擇延期或退費</span></span>
+        </label>
+        <label style="flex:1;display:flex;align-items:flex-start;gap:8px;background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px;padding:12px;cursor:pointer">
+          <input type="radio" name="fmMode" value="refund_only" onchange="updateFmTargetRow()">
+          <span style="font-size:13px"><strong>不提供延期</strong><br><span style="color:#666">直接進入退費流程</span></span>
+        </label>
+      </div>
+
+      <div id="fmTargetRow" style="margin-bottom:12px">
+        <div style="font-weight:700;font-size:13px;color:#374151;margin-bottom:6px">三、延期目標場次</div>
+        <select id="fmTargetSession" style="width:100%;padding:10px;border:1.5px solid #d0e8d8;border-radius:10px;font-size:14px;background:#fff">
+          <option value="">— 請選擇目標場次 —</option>
+        </select>
+      </div>
+
+      <div style="font-weight:700;font-size:13px;color:#374151;margin-bottom:6px">四、系統預估影響</div>
+      <div id="fmPreviewBox" style="background:#f5f5f5;border-radius:10px;padding:12px;font-size:13px;color:#555;margin-bottom:14px">
+        <button onclick="runFmPreview()" class="btn btn-s btn-sm" style="width:100%">📊 預覽影響人數（後端計算）</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-s" onclick="closeForceCancelModal()" style="flex:1">取消</button>
+        <button class="btn" id="fmConfirmBtn" onclick="confirmForceCancelSession()" style="flex:2;background:#be123c;color:#fff;font-weight:800">確認啟動並寄送通知</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 不可抗力退費清單 ════ -->
+<div id="page-forcerefund" class="tab-page" style="display:none">
+  <div class="page-title" style="color:#be123c">🚨 不可抗力退費清單</div>
+  <div style="background:#fff1f2;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#9f1239">
+    此清單包含：主動申請退費、逾期自動申請退費、無延期模式自動進入退費的報名。
+  </div>
+  <button class="btn btn-s btn-sm" onclick="loadForceRefundList()" style="margin-bottom:10px">↻ 重新整理</button>
+  <div id="forceRefundList"></div>
+</div>
+
+<script>
+// ── 不可抗力模組 JS ──────────────────────────────────────────────────
+let FM = { sessionId: null };
+
+function openForceCancelModal(sesId) {
+  FM.sessionId = sesId;
+  // 填入可用目標場次
+  const sel = document.getElementById('fmTargetSession');
+  sel.innerHTML = '<option value="">— 請選擇目標場次 —</option>';
+  (ST.sdData||[]).filter(s=>s.id!==sesId && !s.forceCancelled && s.status!=='封存').forEach(s=>{
+    const opt = document.createElement('option');
+    opt.value = s.id; opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+  document.getElementById('fmPreviewBox').innerHTML = '<button onclick="runFmPreview()" class="btn btn-s btn-sm" style="width:100%">📊 預覽影響人數（後端計算）</button>';
+  document.getElementById('fmReasonCode').value = '';
+  document.querySelector('input[name="fmMode"][value="transfer_or_refund"]').checked = true;
+  updateFmTargetRow();
+  document.getElementById('forceCancelModal').style.display = 'flex';
+}
+function closeForceCancelModal() {
+  document.getElementById('forceCancelModal').style.display = 'none';
+  FM.sessionId = null;
+}
+function updateFmNote() {
+  const code = document.getElementById('fmReasonCode').value;
+  document.getElementById('fmNoteRow').style.display = code === 'other_force_majeure' ? 'block' : 'none';
+}
+function updateFmTargetRow() {
+  const mode = document.querySelector('input[name="fmMode"]:checked').value;
+  document.getElementById('fmTargetRow').style.display = mode === 'transfer_or_refund' ? 'block' : 'none';
+}
+async function runFmPreview() {
+  if (!FM.sessionId) return;
+  const mode = document.querySelector('input[name="fmMode"]:checked').value;
+  const targetSesId = mode === 'transfer_or_refund' ? document.getElementById('fmTargetSession').value : '';
+  const box = document.getElementById('fmPreviewBox');
+  box.innerHTML = '<div style="color:#aaa;font-size:13px">計算中…</div>';
+  try {
+    const res = await api({action:'previewForceCancelSession', sessionId:FM.sessionId,
+      forceMode:mode, transferTargetSessionId:targetSesId||undefined,
+      email:ST.email, token:ST.token});
+    if (res && res.ok) {
+      box.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+        <div style="background:#fff;border-radius:8px;padding:10px">
+          <div style="font-size:20px;font-weight:900;color:#2d6a4f">${res.eligible_count}</div>
+          <div style="font-size:11px;color:#555">可選延期／退費</div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:10px">
+          <div style="font-size:20px;font-weight:900;color:#b45309">${res.notice_only_count}</div>
+          <div style="font-size:11px;color:#555">只通知</div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:10px">
+          <div style="font-size:20px;font-weight:900;color:#9ca3af">${res.skip_count}</div>
+          <div style="font-size:11px;color:#555">不進入流程</div>
+        </div>
+      </div>`;
+    } else { box.innerHTML = `<div style="color:#e11d48;font-size:13px">❌ ${res&&res.error?res.error:'預覽失敗'}</div>`; }
+  } catch(e) { box.innerHTML = `<div style="color:#e11d48;font-size:13px">❌ ${e.message}</div>`; }
+}
+async function confirmForceCancelSession() {
+  if (!FM.sessionId) return;
+  const reasonCode = document.getElementById('fmReasonCode').value;
+  if (!reasonCode) { alert('請選擇不可抗力原因'); return; }
+  const mode = document.querySelector('input[name="fmMode"]:checked').value;
+  const targetSesId = mode === 'transfer_or_refund' ? document.getElementById('fmTargetSession').value : '';
+  if (mode === 'transfer_or_refund' && !targetSesId) { alert('請選擇延期目標場次'); return; }
+  const note = document.getElementById('fmNote').value || '';
+  if (!confirm('確定啟動不可抗力處理？此操作不可撤銷，將通知符合資格的報名者。')) return;
+  const btn = document.getElementById('fmConfirmBtn');
+  btn.disabled = true; btn.textContent = '啟動中…';
+  try {
+    const res = await api({action:'forceCancelSession', sessionId:FM.sessionId,
+      reasonCode, forceMode:mode,
+      transferTargetSessionId:targetSesId||undefined,
+      note, email:ST.email, token:ST.token});
+    if (res && res.success) {
+      closeForceCancelModal();
+      alert(`不可抗力處理已啟動！\n通知：${res.notified} 人\n可選延期/退費：${res.tier1} 人\n只通知：${res.tier2} 人`);
+      loadAllData();
+    } else { alert('啟動失敗：'+(res&&res.error?res.error:'未知錯誤')); }
+  } catch(e) { alert('啟動失敗：'+e.message); }
+  finally { btn.disabled = false; btn.textContent = '確認啟動並寄送通知'; }
+}
+
+// 不可抗力退費清單
+async function loadForceRefundList() {
+  const el = document.getElementById('forceRefundList');
+  if (!el) return;
+  el.innerHTML = '<div style="color:#aaa;text-align:center;padding:20px">載入中…</div>';
+  try {
+    const rows = await api({action:'getForceRefundList', email:ST.email, token:ST.token});
+    if (!Array.isArray(rows) || !rows.length) {
+      el.innerHTML = '<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">目前無退費申請</div>'; return;
+    }
+    el.innerHTML = rows.map(r => {
+      const isRefunded = r.forceStatus === 'refunded';
+      const refundLabel = isRefunded ? `<span style="color:#2d6a4f;font-weight:700">✅ 已退費</span>` :
+        `<button onclick="confirmForceRefund('${r.id}')" class="btn btn-sm" style="background:#2d6a4f;color:#fff;font-size:13px">確認退款完成</button>`;
+      return `<div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:14px;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:700;color:#1D9E75">${r.brand||r.name||''}</div>
+        <div style="font-size:12px;color:#777">${r.email} | ${r.phone||''} | ${r.sessionName||r.sessionId}</div>
+        <div style="display:flex;gap:10px;margin:8px 0;font-size:13px;flex-wrap:wrap">
+          <span>付款：<strong>${r.payStatus||''}</strong></span>
+          <span>金額：<strong>NT$ ${(r.amount||0).toLocaleString()}</strong></span>
+          <span>押金：NT$ ${(r.deposit||0).toLocaleString()}</span>
+          <span style="color:#be123c">來源：${r.applySource||''}</span>
+        </div>
+        <div style="font-size:12px;color:#888">申請時間：${r.forceRefundRequestedAt||r.transferChosenAt||''}</div>
+        <div style="margin-top:10px">${refundLabel}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<div style="color:#e11d48;font-size:13px">載入失敗：${e.message}</div>`; }
+}
+
+async function confirmForceRefund(regId) {
+  const amt = prompt('請輸入退費金額（NT$）：');
+  if (amt === null) return;
+  const refundAmount = Number(amt);
+  if (isNaN(refundAmount) || refundAmount < 0) { alert('金額格式錯誤'); return; }
+  const note = prompt('備註（可空白）：') || '';
+  try {
+    const res = await api({action:'confirmForceRefund', regId, refundAmount, note,
+      email:ST.email, token:ST.token});
+    if (res && res.success) { alert('退款完成！退費金額：NT$ '+res.refundAmount); loadForceRefundList(); }
+    else { alert('失敗：'+(res&&res.error?res.error:'未知錯誤')); }
+  } catch(e) { alert('失敗：'+e.message); }
+}
+
+// 不可抗力退費：從金流頁內進入（符合 2BL V7 規格：不可抗力退費歸入金流頁）
+document.addEventListener('DOMContentLoaded', function() {
+  // 在金流詳細層底部加入不可抗力退費入口按鈕
+  const paymentsDetailLayer = document.getElementById('paymentsDetailLayer');
+  if (paymentsDetailLayer) {
+    const fmSection = document.createElement('div');
+    fmSection.style.cssText = 'margin-top:20px;padding-top:16px;border-top:2px solid #fee2e2';
+    fmSection.innerHTML = '<div style="font-size:13px;font-weight:700;color:#be123c;margin-bottom:8px">🚨 不可抗力退費處理</div><button class="btn btn-sm" style="background:#fff1f2;border:1px solid #fca5a5;color:#be123c;font-weight:700" onclick="openForceRefundPage()">查看不可抗力退費清單</button>';
+    paymentsDetailLayer.appendChild(fmSection);
+  }
+  // 確保 goPage 支援 forcerefund（保留相容性）
+  const origGoPage = window.goPage;
+  window.goPage = function(name, opts) {
+    if (name === 'forcerefund') {
+      // 改為在金流頁內展開，而非獨立頁面
+      showPaymentsDetailLayer('', '不可抗力退費');
+      setTimeout(()=>{ loadForceRefundList(); }, 100);
+      return;
+    }
+    origGoPage(name, opts);
+  };
+});
+function openForceRefundPage(){
+  const fp = document.getElementById('page-forcerefund');
+  if(fp){
+    document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
+    fp.classList.add('active'); fp.style.display='';
+    document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
+    const tab = document.getElementById('atab-payments');
+    if(tab) tab.classList.add('active');
+  }
+  loadForceRefundList();
+}
+
+</script>
 </body>
 </html>
